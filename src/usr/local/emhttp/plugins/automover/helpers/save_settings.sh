@@ -1,0 +1,108 @@
+#!/bin/bash
+
+CONFIG="/boot/config/plugins/automover/settings.cfg"
+mkdir -p "$(dirname "$CONFIG")"
+
+# Safely assign defaults if missing
+POOL_NAME="${1:-cache}"
+THRESHOLD="${2:-0}"
+DRY_RUN="${3:-no}"
+ALLOW_DURING_PARITY="${4:-no}"
+AUTOSTART="${5:-no}"
+AGE_BASED_FILTER="${6:-no}"
+AGE_DAYS="${7:-1}"
+SIZE_BASED_FILTER="${8:-no}"
+SIZE_MB="${9:-1}"
+EXCLUSIONS_ENABLED="${10:-no}"
+QBITTORRENT_SCRIPT="${11:-no}"
+QBITTORRENT_HOST="${12:-}"
+QBITTORRENT_USERNAME="${13:-}"
+QBITTORRENT_PASSWORD="${14:-}"
+QBITTORRENT_DAYS_FROM="${15:-0}"
+QBITTORRENT_DAYS_TO="${16:-2}"
+QBITTORRENT_STATUS="${17:-completed}"
+HIDDEN_FILTER="${18:-no}"
+FORCE_RECONSTRUCTIVE_WRITE="${19:-no}"
+CONTAINER_NAMES_RAW="${20:-}"
+ENABLE_JDUPES="${21:-no}"
+HASH_PATH="${22:-/mnt/user/appdata}"
+ENABLE_CLEANUP="${23:-no}"
+CRON_MODE="${24:-minutes}"
+MINUTES_FREQUENCY="${25:-2}"
+HOURLY_FREQUENCY="${26:-}"
+DAILY_TIME="${27:-}"
+WEEKLY_DAY="${28:-}"
+WEEKLY_TIME="${29:-}"
+MONTHLY_DAY="${30:-}"
+MONTHLY_TIME="${31:-}"
+CUSTOM_CRON="${32:-}"
+CRON_EXPRESSION="${33:-}"
+STOP_THRESHOLD="${34:-0}"
+ENABLE_NOTIFICATIONS="${35:-no}"
+WEBHOOK_URL="${36:-}"
+MANUAL_MOVE="${37:-no}"
+STOP_ALL_CONTAINERS="${38:-no}"
+ENABLE_TRIM="${39:-no}"
+ENABLE_SCRIPTS="${40:-no}"
+PRE_SCRIPT="${41:-}"
+POST_SCRIPT="${42:-}"
+
+# ==========================================================
+#  Normalize and sanitize CONTAINER_NAMES
+# ==========================================================
+if [[ -n "$CONTAINER_NAMES_RAW" ]]; then
+  CONTAINER_NAMES=$(echo "$CONTAINER_NAMES_RAW" | sed 's/, */,/g' | xargs)
+else
+  CONTAINER_NAMES=""
+fi
+
+# ==========================================================
+#  Write all settings cleanly and atomically
+# ==========================================================
+{
+  echo "POOL_NAME=\"$POOL_NAME\""
+  echo "THRESHOLD=\"$THRESHOLD\""
+  echo "DRY_RUN=\"$DRY_RUN\""
+  echo "ALLOW_DURING_PARITY=\"$ALLOW_DURING_PARITY\""
+  echo "AUTOSTART=\"$AUTOSTART\""
+  echo "AGE_BASED_FILTER=\"$AGE_BASED_FILTER\""
+  echo "AGE_DAYS=\"$AGE_DAYS\""
+  echo "SIZE_BASED_FILTER=\"$SIZE_BASED_FILTER\""
+  echo "SIZE_MB=\"$SIZE_MB\""
+  echo "EXCLUSIONS_ENABLED=\"$EXCLUSIONS_ENABLED\""
+  echo "QBITTORRENT_SCRIPT=\"$QBITTORRENT_SCRIPT\""
+  echo "QBITTORRENT_HOST=\"$QBITTORRENT_HOST\""
+  echo "QBITTORRENT_USERNAME=\"$QBITTORRENT_USERNAME\""
+  echo "QBITTORRENT_PASSWORD=\"$QBITTORRENT_PASSWORD\""
+  echo "QBITTORRENT_DAYS_FROM=\"$QBITTORRENT_DAYS_FROM\""
+  echo "QBITTORRENT_DAYS_TO=\"$QBITTORRENT_DAYS_TO\""
+  echo "QBITTORRENT_STATUS=\"$QBITTORRENT_STATUS\""
+  echo "HIDDEN_FILTER=\"$HIDDEN_FILTER\""
+  echo "FORCE_RECONSTRUCTIVE_WRITE=\"$FORCE_RECONSTRUCTIVE_WRITE\""
+  echo "CONTAINER_NAMES=\"$CONTAINER_NAMES\""
+  echo "ENABLE_JDUPES=\"$ENABLE_JDUPES\""
+  echo "HASH_PATH=\"$HASH_PATH\""
+  echo "ENABLE_CLEANUP=\"$ENABLE_CLEANUP\""
+  echo "CRON_MODE=\"$CRON_MODE\""
+  echo "MINUTES_FREQUENCY=\"$MINUTES_FREQUENCY\""
+  echo "HOURLY_FREQUENCY=\"$HOURLY_FREQUENCY\""
+  echo "DAILY_TIME=\"$DAILY_TIME\""
+  echo "WEEKLY_DAY=\"$WEEKLY_DAY\""
+  echo "WEEKLY_TIME=\"$WEEKLY_TIME\""
+  echo "MONTHLY_DAY=\"$MONTHLY_DAY\""
+  echo "MONTHLY_TIME=\"$MONTHLY_TIME\""
+  echo "CUSTOM_CRON=\"$CUSTOM_CRON\""
+  echo "CRON_EXPRESSION=\"$CRON_EXPRESSION\""
+  echo "STOP_THRESHOLD=\"$STOP_THRESHOLD\""
+  echo "ENABLE_NOTIFICATIONS=\"$ENABLE_NOTIFICATIONS\""
+  echo "WEBHOOK_URL=\"$WEBHOOK_URL\""
+  echo "MANUAL_MOVE=\"$MANUAL_MOVE\""
+  echo "STOP_ALL_CONTAINERS=\"$STOP_ALL_CONTAINERS\""
+  echo "ENABLE_TRIM=\"$ENABLE_TRIM\""
+  echo "ENABLE_SCRIPTS=\"$ENABLE_SCRIPTS\""
+  echo "PRE_SCRIPT=\"$PRE_SCRIPT\""
+  echo "POST_SCRIPT=\"$POST_SCRIPT\""
+} > "$CONFIG"
+
+echo '{"status":"ok"}'
+exit 0
