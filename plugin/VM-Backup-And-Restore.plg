@@ -1,0 +1,227 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN>
+
+<PLUGIN 
+  name="VM-Backup-And-Restore"
+  author="jcofer555"
+  version="2026.02.02.02"
+  launch="Settings/VM-Backup-And-Restore"
+  pluginURL="https://raw.githubusercontent.com/jcofer555/vm-backup-and-restore/main/plugin/VM-Backup-And-Restore.plg"
+  support="https://forums.unraid.net/topic/192216-vm-backup-and-restore-for-unraid/"
+  min="7.1.0"
+  
+  icon="icon.png"
+>
+
+<CHANGES>
+<![CDATA[
+
+### 2026.02.02.02
+
+- Initial release
+
+
+For older releases, see https://github.com/jcofer555/vm-backup-and-restore/releases
+]]>
+</CHANGES>
+
+<FILE Name="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.02.02-noarch-1.txz">
+<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.02.02.02/unraid-vm-backup-and-restore-2026.02.02.02-noarch-1.txz</URL>
+<SHA256>863d975503575d437e3e5c472d91d29003c6c0a9b46280f843d3af5a036bf8c5</SHA256>
+</FILE>
+
+<!-- ==========================================================
+     INSTALL SCRIPT
+========================================================== -->
+<FILE Run="/bin/bash">
+<INLINE>
+<![CDATA[
+# ==========================================================
+#  INSTALL / UPGRADE LOGIC
+# ==========================================================
+
+PACKAGE_TXZ="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.02.02-noarch-1.txz"
+USER_CFG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
+DEFAULT_CFG="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/default_settings.cfg"
+TMP_CFG="/tmp/vm-backup-and-restore_settings.tmp"
+CRON_FILE="/boot/config/plugins/vm-backup-and-restore/vm-backup-and-restore.cron"
+
+# Install the package
+upgradepkg --install-new "$PACKAGE_TXZ"
+
+# Ordered config keys
+ordered_keys=(
+    "POOL_NAME"
+    "THRESHOLD"
+    "DRY_RUN"
+    "ALLOW_DURING_PARITY"
+    "AUTOSTART"
+    "AGE_BASED_FILTER"
+    "AGE_DAYS"
+    "SIZE_BASED_FILTER"
+    "SIZE_MB"
+    "EXCLUSIONS_ENABLED"
+    "QBITTORRENT_SCRIPT"
+    "QBITTORRENT_HOST"
+    "QBITTORRENT_USERNAME"
+    "QBITTORRENT_PASSWORD"
+    "QBITTORRENT_DAYS_FROM"
+    "QBITTORRENT_DAYS_TO"
+    "QBITTORRENT_STATUS"
+    "HIDDEN_FILTER"
+    "FORCE_RECONSTRUCTIVE_WRITE"
+    "CONTAINER_NAMES"
+    "ENABLE_JDUPES"
+    "HASH_PATH"
+    "ENABLE_CLEANUP"
+    "CRON_MODE"
+    "MINUTES_FREQUENCY"
+    "HOURLY_FREQUENCY"
+    "DAILY_TIME"
+    "WEEKLY_DAY"
+    "WEEKLY_TIME"
+    "MONTHLY_DAY"
+    "MONTHLY_TIME"
+    "CUSTOM_CRON"
+    "CRON_EXPRESSION"
+    "STOP_THRESHOLD"
+    "ENABLE_NOTIFICATIONS"
+    "WEBHOOK_URL"
+    "MANUAL_MOVE"
+    "STOP_ALL_CONTAINERS"
+    "ENABLE_TRIM"
+    "ENABLE_SCRIPTS"
+    "PRE_SCRIPT"
+    "POST_SCRIPT"
+)
+
+# ==========================================================
+#  CONFIG MANAGEMENT
+# ==========================================================
+if [ ! -f "$USER_CFG" ]; then
+    cp "$DEFAULT_CFG" "$USER_CFG"
+else
+    # Add missing keys from default
+    while IFS='=' read -r key val; do
+        [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+        if ! grep -q -E "^[[:space:]]*${key}[[:space:]]*=" "$USER_CFG"; then
+            echo "$key=$val" >> "$USER_CFG"
+        fi
+    done < "$DEFAULT_CFG"
+fi
+
+# Rebuild ordered version (only known keys, drop extra lines)
+{
+    for key in "${ordered_keys[@]}"; do
+        grep -E "^[[:space:]]*${key}[[:space:]]*=" "$USER_CFG"
+    done
+} > "$TMP_CFG"
+
+mv "$TMP_CFG" "$USER_CFG"
+
+# ==========================================================
+#  LOAD SETTINGS & SETUP CRON
+# ==========================================================
+SETTINGS="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
+if [ -f "$SETTINGS" ]; then
+    source "$SETTINGS"
+fi
+
+# === Check for Mover Tuning plugin ===
+MOVER_TUNING="/boot/config/plugins/ca.mover.tuning.plg"
+MOVER_TUNING_DIR="/usr/local/emhttp/plugins/ca.mover.tuning"
+
+if realpath "$MOVER_TUNING" &>/dev/null || [ -d "$MOVER_TUNING_DIR" ]; then
+  if [ -f "$MOVER_TUNING" ] || [ -d "$MOVER_TUNING_DIR" ]; then
+    echo -e "⚠️ Mover Tuning plugin appears to be installed. Having both can result in conflicts between Mover Tuning and vm-backup-and-restore. \nConsider uninstalling one to avoid incompatibility issues."
+  fi
+fi
+
+# Remove older txz packages (keep only the current one)
+find /boot/config/plugins/VM-Backup-And-Restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.02.02.02-noarch-1.txz" -delete
+
+# ==========================================================
+#  HANDLE AUTOSTART + CRON GENERATION
+# ==========================================================
+if [ "$AUTOSTART" == "no" ]; then
+    rm -f "$CRON_FILE"
+    echo ""
+    echo "----------------------------------------------------"
+    echo " VM-Backup-And-Restore has been installed."
+    echo " Version: 2026.02.02.02"
+    echo "----------------------------------------------------"
+    echo ""
+else
+    MODE="${MODE:-minutes}"
+    INTERVAL=${INTERVAL:-60}
+    CRON_EXPRESSION="${CRON_EXPRESSION:-}"
+    CRON_CMD="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/vm-backup-and-restore.sh &> /dev/null 2>&1"
+
+    # Build cron entry based on MODE
+    if [ "$MODE" = "cron" ] && [ -n "$CRON_EXPRESSION" ]; then
+        cronEntry="${CRON_EXPRESSION} ${CRON_CMD}"
+    else
+        # INTERVAL mode — convert minutes into cron schedule
+        if [ "$INTERVAL" -lt 60 ]; then
+            # every X minutes
+            minutes=$(( INTERVAL > 0 ? INTERVAL : 1 ))
+            cronEntry="*/${minutes} * * * * ${CRON_CMD}"
+        elif [ "$INTERVAL" -lt 1440 ]; then
+            # every X hours
+            hours=$(( INTERVAL / 60 ))
+            [ "$hours" -lt 1 ] && hours=1
+            minute=$(( INTERVAL % 60 ))
+            cronEntry="$(printf "%d */%d * * * %s" "$minute" "$hours" "$CRON_CMD")"
+        elif [ "$INTERVAL" -lt 10080 ]; then
+            # every X days
+            days=$(( INTERVAL / 1440 ))
+            [ "$days" -lt 1 ] && days=1
+            hour=$(( (INTERVAL % 1440) / 60 ))
+            minute=$(( INTERVAL % 60 ))
+            cronEntry="$(printf "%d %d */%d * * %s" "$minute" "$hour" "$days" "$CRON_CMD")"
+        elif [ "$INTERVAL" -lt 43200 ]; then
+            # every X weeks (7-day multiples)
+            weeks=$(( INTERVAL / 10080 ))
+            [ "$weeks" -lt 1 ] && weeks=1
+            day=0  # Sunday
+            hour=$(( (INTERVAL % 1440) / 60 ))
+            minute=$(( INTERVAL % 60 ))
+            cronEntry="$(printf "%d %d * * %d %s" "$minute" "$hour" "$day" "$CRON_CMD")"
+        else
+            # every X months (~30-day multiples)
+            months=$(( INTERVAL / 43200 ))
+            [ "$months" -lt 1 ] && months=1
+            cronEntry="$(printf "0 0 1 */%d * %s" "$months" "$CRON_CMD")"
+        fi
+    fi
+
+    # Write to cron file and apply
+    echo "$cronEntry" > "$CRON_FILE"
+    update_cron
+
+    echo ""
+    echo "----------------------------------------------------"
+    echo " VM-Backup-And-Restore has been installed."
+    echo " Version: 2026.02.02.02"
+    echo "----------------------------------------------------"
+    echo ""
+fi
+
+]]>
+</INLINE>
+</FILE>
+
+<!-- ==========================================================
+     REMOVE SCRIPT
+========================================================== -->
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+<![CDATA[
+removepkg unraid-vm-backup-and-restore
+rm -rf /usr/local/emhttp/plugins/VM-Backup-And-Restore
+rm -rf /boot/config/plugins/VM-Backup-And-Restore
+]]>
+</INLINE>
+</FILE>
+
+</PLUGIN>
