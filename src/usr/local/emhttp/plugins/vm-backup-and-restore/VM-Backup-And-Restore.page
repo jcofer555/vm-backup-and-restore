@@ -1,12 +1,12 @@
 Menu="Utilities"
 Type="xmenu"
-Title="Automover"
+Title="VM-Backup-And-Restore"
 Icon="icon.png"
 Tag="icon.png"
 Markdown="false"
 ---
 <?php
-$cfgPath = '/boot/config/plugins/automover/settings.cfg';
+$cfgPath = '/boot/config/plugins/vm-backup-and-restore/settings.cfg';
 
 // Define all default keys and their order
 $defaults = [
@@ -129,7 +129,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   /* === Layout Wrapper === */
-  #automover-wrapper {
+  #vm-backup-and-restore-wrapper {
     display: flex;
     flex-wrap: nowrap;
     /* stay side-by-side */
@@ -144,7 +144,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   /* === Each Panel (auto-sizing) === */
-  #automover-settings,
+  #vm-backup-and-restore-settings,
   #moved-log-container,
   #last-run-container {
     background: #111;
@@ -165,7 +165,7 @@ if (file_exists("/etc/unraid-version")) {
     box-sizing: border-box;
   }
 
-  #automover-settings {
+  #vm-backup-and-restore-settings {
     padding-top: 0px !important;
     /* reduce from default 20px */
   }
@@ -195,7 +195,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   /* === Optional: fine-tune widths === */
-  #automover-settings {
+  #vm-backup-and-restore-settings {
     flex-basis: 25%;
   }
 
@@ -207,7 +207,7 @@ if (file_exists("/etc/unraid-version")) {
     flex-basis: 22%;
   }
 
-  .unraid-71 #automover-settings {
+  .unraid-71 #vm-backup-and-restore-settings {
     min-height: 77vh;
     max-height: 77vh;
     overflow-y: auto;
@@ -226,7 +226,7 @@ if (file_exists("/etc/unraid-version")) {
     margin: 0;
   }
 
-  .unraid-72 #automover-settings {
+  .unraid-72 #vm-backup-and-restore-settings {
     min-height: 76vh;
     max-height: 76vh;
     overflow-y: auto;
@@ -246,11 +246,11 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   @media (max-width: 1100px) {
-    #automover-wrapper {
+    #vm-backup-and-restore-wrapper {
       flex-wrap: wrap;
     }
 
-    #automover-settings,
+    #vm-backup-and-restore-settings,
     #moved-log-container,
     #last-run-container {
       flex: 1 1 100%;
@@ -278,11 +278,11 @@ if (file_exists("/etc/unraid-version")) {
     padding: 8px;
   }
 
-  .unraid-71 #automover-wrapper {
+  .unraid-71 #vm-backup-and-restore-wrapper {
     margin-top: -31px !important;
   }
 
-  .unraid-72 #automover-wrapper {
+  .unraid-72 #vm-backup-and-restore-wrapper {
     margin-top: -20px !important;
   }
 
@@ -467,7 +467,7 @@ if (file_exists("/etc/unraid-version")) {
     }
   }
 
-  #automover-settings.shake {
+  #vm-backup-and-restore-settings.shake {
     animation: shake .3s;
   }
 
@@ -512,7 +512,7 @@ if (file_exists("/etc/unraid-version")) {
     margin-bottom: 12px;
   }
 
-  #automover-log {
+  #vm-backup-and-restore-log {
     background: #111;
     border: 1px solid var(--primary-blue);
     border-radius: 8px;
@@ -971,7 +971,7 @@ if (file_exists("/etc/unraid-version")) {
 
   #manual-move-section .form-pair label {
     width: 130px;
-    /* match automover settings labels */
+    /* match vm-backup-and-restore settings labels */
     font-weight: bold;
     color: var(--primary-blue);
   }
@@ -1191,8 +1191,8 @@ if (file_exists("/etc/unraid-version")) {
   }
 </style>
 
-<div id="automover-wrapper">
-  <form id="automover-settings">
+<div id="vm-backup-and-restore-wrapper">
+  <form id="vm-backup-and-restore-settings">
     <div class="status-container">
       <div class="status-row"><span class="status-label">Status:</span><span id="status-text">Stopped</span></div>
       <div class="status-row"><span class="status-label">Last Run:</span><span id="last-run-text">No last run
@@ -1200,31 +1200,31 @@ if (file_exists("/etc/unraid-version")) {
     </div>
 
     <div class="form-group">
-      <span title="Save your configuration settings and start the automover service" class="automovertip">
+      <span title="Save your configuration settings and start the vm-backup-and-restore service" class="vm-backup-and-restoretip">
         <button type="button" id="save-settings">Save & Start</button>
       </span>
 
-      <span title="Stop Automover service and stop moving" class="automovertip">
+      <span title="Stop vm-backup-and-restore service and stop moving" class="vm-backup-and-restoretip">
         <button type="button" id="stop-button">Stop</button>
       </span>
 
-      <span title="Run Automover immediately, ignoring filters" class="automovertip">
+      <span title="Run vm-backup-and-restore immediately, ignoring filters" class="vm-backup-and-restoretip">
         <button type="button" id="moveNowBtn">Move Now</button>
       </span>
     </div>
 
     <div id="move-now-confirmation" style="display:none;">✅ Moving Now</div>
-    <div id="save-confirmation" style="display:none;">✅ Saved & Started Automover</div>
-    <div id="stop-confirmation" style="display:none;">✅ Stopping Automover</div>
+    <div id="save-confirmation" style="display:none;">✅ Saved & Started vm-backup-and-restore</div>
+    <div id="stop-confirmation" style="display:none;">✅ Stopping vm-backup-and-restore</div>
 
     <div id="save-messages" style="display:none;background:#111;border-radius:6px;font-family:monospace;color:red;">
     </div>
 
     <!-- Pool -->
     <div class="form-pair">
-      <label for="pool" <span title="Choose which pool to monitor for disk usage" class="automovertip">Pool:</span>
+      <label for="pool" <span title="Choose which pool to monitor for disk usage" class="vm-backup-and-restoretip">Pool:</span>
       </label>
-      <span title="Choose which pool to monitor for disk usage" class="automovertip">
+      <span title="Choose which pool to monitor for disk usage" class="vm-backup-and-restoretip">
         <select id="pool" class="select-pool"
           data-selected="<?php echo htmlspecialchars($settings['POOL_NAME'] ?? '') ?>"></select>
       </span>
@@ -1236,10 +1236,10 @@ if (file_exists("/etc/unraid-version")) {
     <!-- Threshold -->
     <div class="form-pair">
       <label for="threshold" <span title="Set the disk usage percentage threshold that triggers the mover"
-        class="automovertip">Threshold (%):</span>
+        class="vm-backup-and-restoretip">Threshold (%):</span>
       </label>
       <div class="input-wrapper">
-        <span title="Set the disk usage percentage threshold that triggers the mover" class="automovertip">
+        <span title="Set the disk usage percentage threshold that triggers the mover" class="vm-backup-and-restoretip">
           <input type="number" id="threshold" class="short-input" min="0" max="100" step="1"
             value="<?php echo htmlspecialchars($settings['THRESHOLD'] ?? '') ?>">
         </span>
@@ -1249,12 +1249,12 @@ if (file_exists("/etc/unraid-version")) {
 
     <!-- Stop Threshold -->
     <div class="form-pair">
-      <label for="stop_threshold" <span title="Set the disk usage percentage to stop moving" class="automovertip">
+      <label for="stop_threshold" <span title="Set the disk usage percentage to stop moving" class="vm-backup-and-restoretip">
         Stop Threshold (%):
         </span>
       </label>
       <div class="input-wrapper">
-        <span title="Set the disk usage percentage to stop moving" class="automovertip">
+        <span title="Set the disk usage percentage to stop moving" class="vm-backup-and-restoretip">
           <input type="number" id="stop_threshold" class="short-input" min="0" max="100" step="1"
             value="<?php echo htmlspecialchars($settings['STOP_THRESHOLD'] ?? ''); ?>">
         </span>
@@ -1265,12 +1265,12 @@ if (file_exists("/etc/unraid-version")) {
 <!-- Scheduling Selection -->
 <div class="form-pair" id="cron-expression-row">
   <label for="cron_mode">
-    <span class="automovertip" title="Select scheduling selection">
+    <span class="vm-backup-and-restoretip" title="Select scheduling selection">
       Scheduling:
     </span>
   </label>
   <div class="input-wrapper">
-    <span class="automovertip" title="Select scheduling selection">
+    <span class="vm-backup-and-restoretip" title="Select scheduling selection">
       <select id="cron_mode" name="CRON_MODE" class="short-input">
         <option value="minutes" <?php echo (($settings['CRON_MODE'] ?? '' )==='minutes' ) ? 'selected' : '' ; ?>>Minutes</option>
         <option value="hourly" <?php echo (($settings['CRON_MODE'] ?? '' )==='hourly' ) ? 'selected' : '' ; ?>>Hourly</option>
@@ -1287,12 +1287,12 @@ if (file_exists("/etc/unraid-version")) {
 <div id="minutes-options" style="display:none; margin-top:10px;">
   <div class="form-pair">
     <label for="minutes_frequency">
-      <span class="automovertip" title="Select minute frequency">
+      <span class="vm-backup-and-restoretip" title="Select minute frequency">
         Select Frequency:
       </span>
     </label>
     <div class="input-wrapper">
-      <span class="automovertip" title="Select minute frequency">
+      <span class="vm-backup-and-restoretip" title="Select minute frequency">
         <select id="minutes_frequency" name="MINUTES_FREQUENCY" class="short-input">
           <?php
             for ($i = 2; $i <= 59; $i++) {
@@ -1310,12 +1310,12 @@ if (file_exists("/etc/unraid-version")) {
 <div id="hourly-options" style="display:none; margin-top:10px;">
   <div class="form-pair">
     <label for="hourly_frequency">
-      <span class="automovertip" title="Select hourly frequency">
+      <span class="vm-backup-and-restoretip" title="Select hourly frequency">
         Select Frequency:
       </span>
     </label>
     <div class="input-wrapper">
-      <span class="automovertip" title="Select hourly frequency">
+      <span class="vm-backup-and-restoretip" title="Select hourly frequency">
         <select id="hourly_frequency" name="HOURLY_FREQUENCY" class="short-input">
           <?php
           for ($i = 1; $i <= 23; $i++) {
@@ -1333,12 +1333,12 @@ if (file_exists("/etc/unraid-version")) {
     <div id="daily-options" style="display:none; margin-top:10px;">
       <div class="form-pair">
         <label for="daily_time">
-          <span class="automovertip" title="Select the time of day for daily execution">
+          <span class="vm-backup-and-restoretip" title="Select the time of day for daily execution">
             Time Of Day:
           </span>
         </label>
         <div class="input-wrapper">
-          <span class="automovertip" title="Select the time of day for daily execution">
+          <span class="vm-backup-and-restoretip" title="Select the time of day for daily execution">
             <select id="daily_time" name="DAILY_TIME" class="short-input">
               <?php for ($h = 0; $h < 24; $h++): 
             $time = str_pad($h, 2, "0", STR_PAD_LEFT) . ":00"; ?>
@@ -1357,12 +1357,12 @@ if (file_exists("/etc/unraid-version")) {
     <div id="weekly-options" style="display:none; margin-top:10px;">
       <div class="form-pair">
         <label for="weekly_day">
-          <span class="automovertip" title="Select day of the week">
+          <span class="vm-backup-and-restoretip" title="Select day of the week">
             Day Of Week:
           </span>
         </label>
         <div class="input-wrapper">
-          <span class="automovertip" title="Select day of the week">
+          <span class="vm-backup-and-restoretip" title="Select day of the week">
             <select id="weekly_day" name="WEEKLY_DAY" class="short-input">
               <?php 
             $days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -1379,12 +1379,12 @@ if (file_exists("/etc/unraid-version")) {
 
       <div class="form-pair">
         <label for="weekly_time">
-          <span class="automovertip" title="Select time of day for weekly execution">
+          <span class="vm-backup-and-restoretip" title="Select time of day for weekly execution">
             Time Of Day:
           </span>
         </label>
         <div class="input-wrapper">
-          <span class="automovertip" title="Select time of day for weekly execution">
+          <span class="vm-backup-and-restoretip" title="Select time of day for weekly execution">
             <select id="weekly_time" name="WEEKLY_TIME" class="short-input">
               <?php for ($h = 0; $h < 24; $h++): 
             $time = str_pad($h, 2, "0", STR_PAD_LEFT) . ":00"; ?>
@@ -1403,12 +1403,12 @@ if (file_exists("/etc/unraid-version")) {
     <div id="monthly-options" style="display:none; margin-top:10px;">
       <div class="form-pair">
         <label for="monthly_day">
-          <span class="automovertip" title="Select day of the month">
+          <span class="vm-backup-and-restoretip" title="Select day of the month">
             Day Of Month:
           </span>
         </label>
         <div class="input-wrapper">
-          <span class="automovertip" title="Select day of the month">
+          <span class="vm-backup-and-restoretip" title="Select day of the month">
             <select id="monthly_day" name="MONTHLY_DAY" class="short-input">
               <?php for ($d = 1; $d <= 31; $d++): 
             $day = str_pad($d, 2, "0", STR_PAD_LEFT); ?>
@@ -1424,12 +1424,12 @@ if (file_exists("/etc/unraid-version")) {
 
       <div class="form-pair">
         <label for="monthly_time">
-          <span class="automovertip" title="Select time of day for monthly execution">
+          <span class="vm-backup-and-restoretip" title="Select time of day for monthly execution">
             Time Of Day:
           </span>
         </label>
         <div class="input-wrapper">
-          <span class="automovertip" title="Select time of day for monthly execution">
+          <span class="vm-backup-and-restoretip" title="Select time of day for monthly execution">
             <select id="monthly_time" name="MONTHLY_TIME" class="short-input">
               <?php for ($h = 0; $h < 24; $h++): 
             $time = str_pad($h, 2, "0", STR_PAD_LEFT) . ":00"; ?>
@@ -1448,13 +1448,13 @@ if (file_exists("/etc/unraid-version")) {
     <div id="custom-options" style="display:none; margin-top:10px;">
       <div class="form-pair">
         <label for="custom_cron">
-          <span class="automovertip"
+          <span class="vm-backup-and-restoretip"
             title="Enter a valid cron expression 5 fields with spaces between each for example */2 * * * * visit https://crontab.guru for help">
             Cron Expression:
           </span>
         </label>
         <div class="input-wrapper">
-          <span class="automovertip"
+          <span class="vm-backup-and-restoretip"
             title="Enter a valid cron expression 5 fields with spaces between each for example */2 * * * * visit https://crontab.guru for help">
             <input type="text" id="custom_cron" name="CUSTOM_CRON" class="short-input" placeholder="*/2 * * * *"
               value="<?php echo htmlspecialchars($settings['CUSTOM_CRON'] ?? ''); ?>">
@@ -1479,10 +1479,10 @@ if (file_exists("/etc/unraid-version")) {
     <!-- Webhook URL -->
     <div class="form-pair" id="webhook_row" style="display:none;">
       <label for="webhook_url">
-        <span title="Optional: Discord Webhook URL for notifications" class="automovertip">Discord Webhook:</span>
+        <span title="Optional: Discord Webhook URL for notifications" class="vm-backup-and-restoretip">Discord Webhook:</span>
       </label>
       <div class="input-wrapper">
-        <span title="Optional: Discord Webhook URL for notifications" class="automovertip">
+        <span title="Optional: Discord Webhook URL for notifications" class="vm-backup-and-restoretip">
           <input type="text" id="webhook_url" placeholder="https://discord.com/api/webhooks/yourwebhookid"
             value="<?php echo htmlspecialchars($settings['WEBHOOK_URL'] ?? '') ?>">
         </span>
@@ -1497,14 +1497,14 @@ if (file_exists("/etc/unraid-version")) {
       <label for="container_names">
         <span
           title="Optional: Enter a comma separated list of containers to stop during moves and start after moving finishes. Leave blank to disable"
-          class="automovertip">
+          class="vm-backup-and-restoretip">
           Stop Containers:
         </span>
       </label>
       <div class="input-wrapper">
         <span
           title="Optional: Enter a comma separated list of containers to stop during moves and start after moving finishes. Leave blank to disable"
-          class="automovertip">
+          class="vm-backup-and-restoretip">
           <input type="text" id="container_names" placeholder="e.g. qbit-manage,cross-seed"
             value="<?php echo htmlspecialchars($settings['CONTAINER_NAMES'] ?? '') ?>">
         </span>
@@ -1518,7 +1518,7 @@ if (file_exists("/etc/unraid-version")) {
             )==='yes' ) ? 'checked' : '' ; ?>>
           <span
             title="Optional: Enable to stop all containers on the system that are running during moves and start only those the plugin stopped after moving finishes"
-            class="automovertip">
+            class="vm-backup-and-restoretip">
             <label for="stop_all_containers">Stop All Containers</label>
           </span>
         </div>
@@ -1528,11 +1528,11 @@ if (file_exists("/etc/unraid-version")) {
 
     <!-- Age -->
     <div class="form-pair" id="age-days-container" style="display:none;">
-      <label for="age_days" <span title="Only move files older than this many days" class="automovertip">Age
+      <label for="age_days" <span title="Only move files older than this many days" class="vm-backup-and-restoretip">Age
         (days):</span>
       </label>
       <div class="input-wrapper">
-        <span title="Only move files older than this many days" class="automovertip">
+        <span title="Only move files older than this many days" class="vm-backup-and-restoretip">
           <input type="number" id="age_days" class="short-input" min="1" step="1"
             value="<?php echo htmlspecialchars($settings['AGE_DAYS'] ?? '') ?>">
         </span>
@@ -1542,11 +1542,11 @@ if (file_exists("/etc/unraid-version")) {
 
     <!-- Size -->
     <div class="form-pair" id="size-mb-container" style="display:none;">
-      <label for="size_mb" <span title="Only move files larger than this size (in MB)" class="automovertip">Min Size
+      <label for="size_mb" <span title="Only move files larger than this size (in MB)" class="vm-backup-and-restoretip">Min Size
         (MB):</span>
       </label>
       <div class="input-wrapper">
-        <span title="Only move files larger than this size (in MB)" class="automovertip">
+        <span title="Only move files larger than this size (in MB)" class="vm-backup-and-restoretip">
           <input type="number" id="size_mb" class="short-input" min="1" step="1"
             value="<?php echo htmlspecialchars($settings['SIZE_MB'] ?? '') ?>">
         </span>
@@ -1558,10 +1558,10 @@ if (file_exists("/etc/unraid-version")) {
     <div id="qbit-fields" style="display:none;">
 
       <div class="form-pair">
-        <label for="qbit_host" <span title="Example: 10.100.10.250:8080" class="automovertip">Host:</span>
+        <label for="qbit_host" <span title="Example: 10.100.10.250:8080" class="vm-backup-and-restoretip">Host:</span>
         </label>
         <div class="input-wrapper">
-          <span title="Example: 10.100.10.250:8080" class="automovertip">
+          <span title="Example: 10.100.10.250:8080" class="vm-backup-and-restoretip">
             <input type="text" id="qbit_host" placeholder="e.g. 10.100.10.250:8080"
               value="<?php echo htmlspecialchars($settings['QBITTORRENT_HOST'] ?? '') ?>">
           </span>
@@ -1570,10 +1570,10 @@ if (file_exists("/etc/unraid-version")) {
       </div>
 
       <div class="form-pair">
-        <label for="qbit_user" <span title="Qbittorrent webui username" class="automovertip">Username:</span>
+        <label for="qbit_user" <span title="Qbittorrent webui username" class="vm-backup-and-restoretip">Username:</span>
         </label>
         <div class="input-wrapper">
-          <span title="Qbittorrent webui username" class="automovertip">
+          <span title="Qbittorrent webui username" class="vm-backup-and-restoretip">
             <input type="text" id="qbit_user"
               value="<?php echo htmlspecialchars($settings['QBITTORRENT_USERNAME'] ?? '') ?>">
           </span>
@@ -1582,10 +1582,10 @@ if (file_exists("/etc/unraid-version")) {
       </div>
 
       <div class="form-pair">
-        <label for="qbit_pass" <span title="Qbittorrent webui password" class="automovertip">Password:</span>
+        <label for="qbit_pass" <span title="Qbittorrent webui password" class="vm-backup-and-restoretip">Password:</span>
         </label>
         <div class="input-wrapper">
-          <span title="Qbittorrent webui password" class="automovertip">
+          <span title="Qbittorrent webui password" class="vm-backup-and-restoretip">
             <input type="password" id="qbit_pass"
               value="<?php echo htmlspecialchars($settings['QBITTORRENT_PASSWORD'] ?? '') ?>">
           </span>
@@ -1595,10 +1595,10 @@ if (file_exists("/etc/unraid-version")) {
 
       <div class="form-pair">
         <label for="qbit_days_from" <span title="Torrents newer than this age (days) will be ignored"
-          class="automovertip">Days From:</span>
+          class="vm-backup-and-restoretip">Days From:</span>
         </label>
         <div class="input-wrapper">
-          <span title="Torrents newer than this age (days) will be ignored" class="automovertip">
+          <span title="Torrents newer than this age (days) will be ignored" class="vm-backup-and-restoretip">
             <input type="number" id="qbit_days_from" class="short-input" min="0" max="999" step="1"
               value="<?php echo htmlspecialchars($settings['QBITTORRENT_DAYS_FROM'] ?? '') ?>">
           </span>
@@ -1608,10 +1608,10 @@ if (file_exists("/etc/unraid-version")) {
 
       <div class="form-pair">
         <label for="qbit_days_to" <span title="Torrents older than this age (days) will be ignored"
-          class="automovertip">Days To:</span>
+          class="vm-backup-and-restoretip">Days To:</span>
         </label>
         <div class="input-wrapper">
-          <span title="Torrents older than this age (days) will be ignored" class="automovertip">
+          <span title="Torrents older than this age (days) will be ignored" class="vm-backup-and-restoretip">
             <input type="number" id="qbit_days_to" class="short-input" min="1" max="999" step="1"
               value="<?php echo htmlspecialchars($settings['QBITTORRENT_DAYS_TO'] ?? '') ?>">
           </span>
@@ -1622,9 +1622,9 @@ if (file_exists("/etc/unraid-version")) {
       </div>
 
       <div class="form-pair">
-        <label for="qbit_status" <span title="Which status of torrents to act on" class="automovertip">Status:</span>
+        <label for="qbit_status" <span title="Which status of torrents to act on" class="vm-backup-and-restoretip">Status:</span>
         </label>
-        <span title="Which status of torrents to act on" class="automovertip">
+        <span title="Which status of torrents to act on" class="vm-backup-and-restoretip">
           <select id="qbit_status">
             <?php
         $statuses = [
@@ -1642,10 +1642,10 @@ if (file_exists("/etc/unraid-version")) {
       </div>
 
       <div class="form-pair" id="hashPathRow" style="display:none;">
-        <label for="HASH_PATH" <span title="Pick a share to save the jdupes hash database" class="automovertip">Hash
+        <label for="HASH_PATH" <span title="Pick a share to save the jdupes hash database" class="vm-backup-and-restoretip">Hash
           Location:</span>
         </label>
-        <span title="Pick a share to save the jdupes hash database" class="automovertip">
+        <span title="Pick a share to save the jdupes hash database" class="vm-backup-and-restoretip">
           <select id="HASH_PATH" name="HASH_PATH">
             <?php
         $sharesFile = '/var/local/emhttp/shares.ini';
@@ -1678,14 +1678,14 @@ if (file_exists("/etc/unraid-version")) {
     <!-- Exclusions row (appears below Interval when enabled) -->
     <div class="form-pair" id="exclusions-row" style="display:none;">
       <label for="exclusions-field" <span title="Open the file picker to add or remove excluded paths"
-        class="automovertip">Exclusions:</span>
+        class="vm-backup-and-restoretip">Exclusions:</span>
       </label>
       <div class="input-wrapper">
-        <span title="Open the file picker to add or remove excluded paths" class="automovertip">
+        <span title="Open the file picker to add or remove excluded paths" class="vm-backup-and-restoretip">
           <input id="exclusions-field" type="text" readonly value="Click to open file picker"
             title="Click to open file picker">
         </span>
-        <span title="Open to view/edit exclusions" class="automovertip">
+        <span title="Open to view/edit exclusions" class="vm-backup-and-restoretip">
           <button id="viewExclusionsBtn" type="button">Exclusions List</button>
         </span>
       </div>
@@ -1751,12 +1751,12 @@ if (file_exists("/etc/unraid-version")) {
     <!-- Pre Script Path -->
     <div class="form-pair" id="pre-script-row" style="display:none;">
       <label for="pre_script">
-        <span title="Script to run at the beginning of every session" class="automovertip">
+        <span title="Script to run at the beginning of every session" class="vm-backup-and-restoretip">
           Pre-Move Script:
         </span>
       </label>
       <div class="input-wrapper">
-        <span title="Script to run at the beginning of every session" class="automovertip">
+        <span title="Script to run at the beginning of every session" class="vm-backup-and-restoretip">
           <input type="text" id="pre_script" placeholder="/mnt/user/scripts/pre_move.sh"
             value="<?php echo htmlspecialchars($settings['PRE_SCRIPT'] ?? ''); ?>">
         </span>
@@ -1766,12 +1766,12 @@ if (file_exists("/etc/unraid-version")) {
     <!-- Post Script Path -->
     <div class="form-pair" id="post-script-row" style="display:none;">
       <label for="post_script">
-        <span title="Script to run at the end of the session regardless if anything moves or not" class="automovertip">
+        <span title="Script to run at the end of the session regardless if anything moves or not" class="vm-backup-and-restoretip">
           Post-Move Script:
         </span>
       </label>
       <div class="input-wrapper">
-        <span title="Script to run at the end of the session regardless if anything moves or not" class="automovertip">
+        <span title="Script to run at the end of the session regardless if anything moves or not" class="vm-backup-and-restoretip">
           <input type="text" id="post_script" placeholder="/mnt/user/scripts/post_move.sh"
             value="<?php echo htmlspecialchars($settings['POST_SCRIPT'] ?? ''); ?>">
         </span>
@@ -1780,70 +1780,70 @@ if (file_exists("/etc/unraid-version")) {
 
     <!-- Checkboxes row -->
     <div class="checkbox-row">
-      <span title="Start Automover automatically when Unraid boots" class="automovertip">
+      <span title="Start vm-backup-and-restore automatically when Unraid boots" class="vm-backup-and-restoretip">
         <label>
           <input type="checkbox" id="autostart" <?php echo ($settings['AUTOSTART'] ?? '' )==='yes' ? 'checked' : '' ?>>
           Autostart on Boot
         </label>
       </span>
 
-      <span title="Enable an exclusions list of files and folders that won't be moved" class="automovertip">
+      <span title="Enable an exclusions list of files and folders that won't be moved" class="vm-backup-and-restoretip">
         <label>
           <input type="checkbox" id="enable_exclusions" <?php echo ($settings['EXCLUSIONS_ENABLED'] ?? '' )==='yes'
             ? 'checked' : '' ?>> Enable Exclusions
         </label>
       </span>
 
-      <span title="Allow Automover to run even when Unraid is doing a parity check" class="automovertip">
+      <span title="Allow vm-backup-and-restore to run even when Unraid is doing a parity check" class="vm-backup-and-restoretip">
         <label>
           <input type="checkbox" id="allow_during_parity" <?php echo ($settings['ALLOW_DURING_PARITY'] ?? '' )==='yes'
             ? 'checked' : '' ?>> Allow During Parity
         </label>
       </span>
 
-      <span title="Enable to move files only if older than the specified amount of days old" class="automovertip">
+      <span title="Enable to move files only if older than the specified amount of days old" class="vm-backup-and-restoretip">
         <label>
           <input type="checkbox" id="age_based_filter" <?php echo ($settings['AGE_BASED_FILTER'] ?? '' )==='yes'
             ? 'checked' : '' ?>> Enable Age Based Filter
         </label>
       </span>
 
-      <span title="Enable to simulate moves without actually transferring files" class="automovertip">
+      <span title="Enable to simulate moves without actually transferring files" class="vm-backup-and-restoretip">
         <label>
           <input type="checkbox" id="dry_run" <?php echo ($settings['DRY_RUN'] ?? '' )==='yes' ? 'checked' : '' ?>> Dry
           Run
         </label>
       </span>
 
-      <span title="Enable to move only files larger than the specified size in MB" class="automovertip">
+      <span title="Enable to move only files larger than the specified size in MB" class="vm-backup-and-restoretip">
         <label>
           <input type="checkbox" id="size_based_filter" <?php echo ($settings['SIZE_BASED_FILTER'] ?? '' )==='yes'
             ? 'checked' : '' ?>> Enable Size Based Filter
         </label>
       </span>
 
-      <span title="Enable to pause qbittorrent torrents before move and resume after" class="automovertip">
+      <span title="Enable to pause qbittorrent torrents before move and resume after" class="vm-backup-and-restoretip">
         <label>
           <input type="checkbox" id="qbit_script" <?php echo ($settings['QBITTORRENT_SCRIPT'] ?? '' )==='yes'
             ? 'checked' : '' ?>> Enable Qbit Script
         </label>
       </span>
 
-      <span title="Skip hidden files and folders (those starting with a dot)" class="automovertip">
+      <span title="Skip hidden files and folders (those starting with a dot)" class="vm-backup-and-restoretip">
         <label>
           <input type="checkbox" id="hidden_filter" <?php echo ($settings['HIDDEN_FILTER'] ?? '' )==='yes' ? 'checked'
             : '' ?>> Enable Hidden Filter
         </label>
       </span>
 
-      <span title="Force Unraid to use reconstructive (turbo) write mode during file moves" class="automovertip">
+      <span title="Force Unraid to use reconstructive (turbo) write mode during file moves" class="vm-backup-and-restoretip">
         <label>
           <input type="checkbox" id="force_reconstructive_write" <?php echo ($settings['FORCE_RECONSTRUCTIVE_WRITE']
             ?? '' )==='yes' ? 'checked' : '' ?>> Force Turbo Write
         </label>
       </span>
 
-      <span title="Enable to remove empty folders and datasets from shares that are moved" class="automovertip">
+      <span title="Enable to remove empty folders and datasets from shares that are moved" class="vm-backup-and-restoretip">
         <label>
           <input type="checkbox" id="enable_cleanup" <?php echo ($settings['ENABLE_CLEANUP'] ?? '' )==='yes' ? 'checked'
             : '' ?>> Enable Cleanup
@@ -1852,14 +1852,14 @@ if (file_exists("/etc/unraid-version")) {
 
       <span
         title="Enable this if you want jdupes to run a fix-hardlinks scan on the shares moved. Exclusions for appdata, system, domains, and isos"
-        class="automovertip">
+        class="vm-backup-and-restoretip">
         <label>
           <input type="checkbox" id="ENABLE_JDUPES" <?php echo ($settings['ENABLE_JDUPES'] ?? '' )==='yes' ? 'checked'
             : '' ; ?>> Enable Jdupes
         </label>
       </span>
 
-      <span title="Send Unraid system notifications when Automover starts and finishes" class="automovertip">
+      <span title="Send Unraid system notifications when vm-backup-and-restore starts and finishes" class="vm-backup-and-restoretip">
         <label>
           <input type="checkbox" id="enable_notifications" <?php echo ($settings['ENABLE_NOTIFICATIONS'] ?? '' )==='yes'
             ? 'checked' : '' ?>>
@@ -1868,7 +1868,7 @@ if (file_exists("/etc/unraid-version")) {
       </span>
 
       <span title="Enable running a session start and session end script which runs regardless of filters enabled"
-        class="automovertip">
+        class="vm-backup-and-restoretip">
         <label>
           <input type="checkbox" id="enable_scripts" name="ENABLE_SCRIPTS" <?php echo (($settings['ENABLE_SCRIPTS']
             ?? 'no' )==='yes' ) ? 'checked' : '' ; ?>>
@@ -1876,7 +1876,7 @@ if (file_exists("/etc/unraid-version")) {
         </label>
       </span>
 
-      <span title="Enable ssd trim to run after the move completes" class="automovertip">
+      <span title="Enable ssd trim to run after the move completes" class="vm-backup-and-restoretip">
         <label>
           <input type="checkbox" id="enable_trim_toggle" name="ENABLE_TRIM" <?php echo (($settings['ENABLE_TRIM']
             ?? 'no' )==='yes' ) ? 'checked' : '' ; ?>>
@@ -1884,7 +1884,7 @@ if (file_exists("/etc/unraid-version")) {
         </label>
       </span>
 
-      <span title="Enable to show a manual move section below" class="automovertip">
+      <span title="Enable to show a manual move section below" class="vm-backup-and-restoretip">
         <label>
           <input type="checkbox" id="manual_move_toggle" <?php echo ($settings['MANUAL_MOVE'] ?? 'no' )==='yes'
             ? 'checked' : '' ; ?>>
@@ -1903,7 +1903,7 @@ if (file_exists("/etc/unraid-version")) {
     <div class="log-header-row">
       <h3>Files Moved</h3>
       <div class="toast-wrapper">
-        <span title="Clear the files moved log" class="automovertip">
+        <span title="Clear the files moved log" class="vm-backup-and-restoretip">
           <button id="clear-mover-log">Clear Log</button>
         </span>
         <div id="toast-mover" class="toast-inline"></div>
@@ -1912,14 +1912,14 @@ if (file_exists("/etc/unraid-version")) {
     <div id="log-counts" class="log-stats" style="margin-top:-10px;"></div>
     <input type="text" id="log-filter" class="short-input-filter" placeholder="🔍 Filter keyword"
       style="margin-bottom:12px;">
-    <pre id="automover-log">Loading</pre>
+    <pre id="vm-backup-and-restore-log">Loading</pre>
   </div>
 
   <div id="last-run-container">
     <div class="log-header-row">
       <h3>Last Run Details</h3>
       <div class="toast-wrapper">
-        <span title="Clear the last run details log" class="automovertip">
+        <span title="Clear the last run details log" class="vm-backup-and-restoretip">
           <button id="clear-last-run-log">Clear Log</button>
         </span>
         <div id="toast-last" class="toast-inline"></div>
@@ -1986,9 +1986,9 @@ if (file_exists("/etc/unraid-version")) {
     <!-- Source -->
     <div class="form-pair">
       <label for="manual_source"> <span title="Source folder to move or copy"
-          class="automovertip">Source:</label></span>
+          class="vm-backup-and-restoretip">Source:</label></span>
       <div class="input-wrapper">
-        <span title="Source folder to move or copy" class="automovertip">
+        <span title="Source folder to move or copy" class="vm-backup-and-restoretip">
           <input type="text" id="manual_source" readonly placeholder="Select source">
         </span>
         <div id="manual-source-error" class="manual-error-toast">⚠️ Source is required</div>
@@ -1998,9 +1998,9 @@ if (file_exists("/etc/unraid-version")) {
     <!-- Destination -->
     <div class="form-pair">
       <label for="manual_dest"> <span title="Destination folder for the move or copy"
-          class="automovertip">Destination:</label></span>
+          class="vm-backup-and-restoretip">Destination:</label></span>
       <div class="input-wrapper">
-        <span title="Destination folder for the move or copy" class="automovertip">
+        <span title="Destination folder for the move or copy" class="vm-backup-and-restoretip">
           <input type="text" id="manual_dest" readonly placeholder="Select destination">
         </span>
         <div id="manual-dest-error" class="manual-error-toast">⚠️ Destination is required</div>
@@ -2012,7 +2012,7 @@ if (file_exists("/etc/unraid-version")) {
 
       <span
         title="Uses rsync -aH /src/ /dst/ as the command which only copies to destination new or modified while preserving hardlinks"
-        class="automovertip">
+        class="vm-backup-and-restoretip">
         <label class="form-check">
           <input type="checkbox" id="manual_copy">
           Copy
@@ -2021,7 +2021,7 @@ if (file_exists("/etc/unraid-version")) {
 
       <span
         title="Uses rsync -aH --remove-source-files /src/ dst/ as the command which copies new or modified to destination while preserving hardlinks and after successful transfer deletes the files from source that were transferred"
-        class="automovertip">
+        class="vm-backup-and-restoretip">
         <label class="form-check">
           <input type="checkbox" id="manual_delete">
           Delete Source After
@@ -2030,7 +2030,7 @@ if (file_exists("/etc/unraid-version")) {
 
       <span
         title="Uses rsync -aH --delete /src/ /dst/ as the command which keep destination in full sync with source deleting anything on destination that is not currently on source"
-        class="automovertip">
+        class="vm-backup-and-restoretip">
         <label class="form-check">
           <input type="checkbox" id="manual_fullsync">
           Full Sync
@@ -2046,7 +2046,7 @@ if (file_exists("/etc/unraid-version")) {
         ignored</div>
     </div>
 
-    <span title="Starts the manual rsync process" class="automovertip">
+    <span title="Starts the manual rsync process" class="vm-backup-and-restoretip">
       <button type="button" id="start-manual-rsync" class="button button-primary" style="padding:8px 16px;">
         Start
       </button>
@@ -2149,7 +2149,7 @@ if (file_exists("/etc/unraid-version")) {
   const stopBadge = document.getElementById('stop-confirmation');
 
   function updateStatus() {
-    fetch('/plugins/automover/helpers/status_check.php')
+    fetch('/plugins/vm-backup-and-restore/helpers/status_check.php')
       .then(res => res.json())
       .then(data => {
         document.getElementById('status-text').textContent = data.status;
@@ -2160,9 +2160,9 @@ if (file_exists("/etc/unraid-version")) {
   updateStatus();
   setInterval(updateStatus, 5000);
 
-  // === Poll for Automover completion (done flag) ===
-  function checkAutomoverDone() {
-    fetch('/plugins/automover/helpers/check_done.php', { cache: 'no-store' })
+  // === Poll for vm-backup-and-restore completion (done flag) ===
+  function checkvm-backup-and-restoreDone() {
+    fetch('/plugins/vm-backup-and-restore/helpers/check_done.php', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         if (data.done) {
@@ -2183,11 +2183,11 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   // run every 5s like your status updates
-  setInterval(checkAutomoverDone, 5000);
+  setInterval(checkvm-backup-and-restoreDone, 5000);
 
   // Disable only Save & Start and Move Now
-  function checkAutomoverLock() {
-    fetch('/plugins/automover/helpers/check_lock.php', { cache: 'no-store' })
+  function checkvm-backup-and-restoreLock() {
+    fetch('/plugins/vm-backup-and-restore/helpers/check_lock.php', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         const locked = data.locked === true;
@@ -2217,12 +2217,12 @@ if (file_exists("/etc/unraid-version")) {
 
   // Run once immediately, then every 5s (same as status polling)
   document.addEventListener('DOMContentLoaded', () => {
-    checkAutomoverLock();
-    setInterval(checkAutomoverLock, 5000);
+    checkvm-backup-and-restoreLock();
+    setInterval(checkvm-backup-and-restoreLock, 5000);
   });
 
   document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('automover-settings');
+    const form = document.getElementById('vm-backup-and-restore-settings');
     const poolSelect = document.getElementById('pool');
     const thresholdInput = document.getElementById('threshold');
     const stopThresholdInput = document.getElementById('stop_threshold');
@@ -2303,7 +2303,7 @@ if (file_exists("/etc/unraid-version")) {
 
     moveNowBtn.addEventListener('click', () => {
       // Trigger the move action (you may already have this logic elsewhere)
-      fetch('/plugins/automover/helpers/run_manual_move.php', {
+      fetch('/plugins/vm-backup-and-restore/helpers/run_manual_move.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -2553,7 +2553,7 @@ if (file_exists("/etc/unraid-version")) {
       e.preventDefault();
       viewModal.style.display = 'flex';
 
-      fetch('/plugins/automover/helpers/manage_exclusions.php?action=get' +
+      fetch('/plugins/vm-backup-and-restore/helpers/manage_exclusions.php?action=get' +
         (typeof csrfToken !== 'undefined'
           ? '&csrf_token=' + encodeURIComponent(csrfToken)
           : ''), { cache: 'no-store' })
@@ -2608,7 +2608,7 @@ if (file_exists("/etc/unraid-version")) {
       e.preventDefault();
       const content = editor.value || '';
 
-      fetch('/plugins/automover/helpers/manage_exclusions.php?action=save', {
+      fetch('/plugins/vm-backup-and-restore/helpers/manage_exclusions.php?action=save', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -2639,7 +2639,7 @@ if (file_exists("/etc/unraid-version")) {
 
     // Pool list
     function updatePoolUsage() {
-      fetch('/plugins/automover/helpers/pool_usage.php')
+      fetch('/plugins/vm-backup-and-restore/helpers/pool_usage.php')
         .then(res => res.json())
         .then(data => {
           poolSelect.innerHTML = '';
@@ -2672,7 +2672,7 @@ if (file_exists("/etc/unraid-version")) {
     });
 
     function loadLastRunLog() {
-      fetch('/plugins/automover/helpers/fetch_last_run_log.php')
+      fetch('/plugins/vm-backup-and-restore/helpers/fetch_last_run_log.php')
         .then(res => res.text())
         .then(data => { document.getElementById('last-run-log').textContent = data || 'No last run data available.'; })
         .catch(() => { document.getElementById('last-run-log').textContent = 'Error loading last run log.'; });
@@ -2683,10 +2683,10 @@ if (file_exists("/etc/unraid-version")) {
     function loadMoverLog() {
       const keyword = filterInput.value.trim();
       const query = keyword ? `?filter=${encodeURIComponent(keyword)}` : '';
-      fetch(`/plugins/automover/helpers/fetch_files_moved_log.php${query}`)
+      fetch(`/plugins/vm-backup-and-restore/helpers/fetch_files_moved_log.php${query}`)
         .then(res => res.json())
         .then(data => {
-          const logContainer = document.getElementById('automover-log');
+          const logContainer = document.getElementById('vm-backup-and-restore-log');
           logContainer.innerHTML = '';
           data.log.split('\n').forEach(line => {
             const div = document.createElement('div');
@@ -2697,7 +2697,7 @@ if (file_exists("/etc/unraid-version")) {
           document.getElementById('log-counts').innerHTML = `<h3>Total Files Moved: ${data.moved}</h3>`;
         })
         .catch(() => {
-          document.getElementById('automover-log').textContent = 'Error loading log.';
+          document.getElementById('vm-backup-and-restore-log').textContent = 'Error loading log.';
           document.getElementById('log-counts').textContent = '';
         });
     }
@@ -2710,7 +2710,7 @@ if (file_exists("/etc/unraid-version")) {
       messageBox.innerHTML = '';
       messageBox.style.display = 'none';
 
-      fetch('/plugins/automover/helpers/stop_automover.php', {
+      fetch('/plugins/vm-backup-and-restore/helpers/stop_vm-backup-and-restore.php', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -2719,7 +2719,7 @@ if (file_exists("/etc/unraid-version")) {
         .then(res => res.json())
         .then(() => {
           // Also stop cron schedule (optional but recommended)
-          return fetch('/plugins/automover/helpers/stop_cron.php', {
+          return fetch('/plugins/vm-backup-and-restore/helpers/stop_cron.php', {
             method: 'GET',
             credentials: 'same-origin'
           });
@@ -2741,7 +2741,7 @@ if (file_exists("/etc/unraid-version")) {
           }, 3000);
         })
         .catch(() => {
-          document.getElementById('status-text').textContent = 'Error stopping automover';
+          document.getElementById('status-text').textContent = 'Error stopping vm-backup-and-restore';
         });
     });
 
@@ -3043,7 +3043,7 @@ if (file_exists("/etc/unraid-version")) {
     });
 
     function loadDir(path) {
-      const url = `/plugins/automover/helpers/update_exclusions.php?action=list_dir&path=${encodeURIComponent(path)}&csrf_token=${encodeURIComponent(csrf_token)}`;
+      const url = `/plugins/vm-backup-and-restore/helpers/update_exclusions.php?action=list_dir&path=${encodeURIComponent(path)}&csrf_token=${encodeURIComponent(csrf_token)}`;
       fetch(url)
         .then(r => r.json())
         .then(data => {
@@ -3102,7 +3102,7 @@ if (file_exists("/etc/unraid-version")) {
     function selectedPaths() { return Array.from(grid.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.dataset.path); }
 
     function refreshExclusionCount() {
-      fetch(`/plugins/automover/helpers/update_exclusions.php?action=get_exclusion_count&csrf_token=${encodeURIComponent(csrf_token)}`)
+      fetch(`/plugins/vm-backup-and-restore/helpers/update_exclusions.php?action=get_exclusion_count&csrf_token=${encodeURIComponent(csrf_token)}`)
         .then(r => r.json())
         .then(d => {
           if (d.ok) {
@@ -3116,7 +3116,7 @@ if (file_exists("/etc/unraid-version")) {
       const paths = selectedPaths();
       if (paths.length === 0) { showToast('No selection'); return; }
       const body = new URLSearchParams(); body.append('csrf_token', csrf_token); paths.forEach(p => body.append('paths[]', p));
-      fetch('/plugins/automover/helpers/update_exclusions.php?action=add_exclusions', { method: 'POST', body })
+      fetch('/plugins/vm-backup-and-restore/helpers/update_exclusions.php?action=add_exclusions', { method: 'POST', body })
         .then(r => r.json()).then(d => {
           if (d.ok) { showToast('✅ Added'); refreshExclusionCount(); }
           else showToast('Add failed');
@@ -3127,7 +3127,7 @@ if (file_exists("/etc/unraid-version")) {
       const paths = selectedPaths();
       if (paths.length === 0) { showToast('No selection'); return; }
       const body = new URLSearchParams(); body.append('csrf_token', csrf_token); paths.forEach(p => body.append('paths[]', p));
-      fetch('/plugins/automover/helpers/update_exclusions.php?action=remove_exclusions', { method: 'POST', body })
+      fetch('/plugins/vm-backup-and-restore/helpers/update_exclusions.php?action=remove_exclusions', { method: 'POST', body })
         .then(r => r.json()).then(d => {
           if (d.ok) { showToast('✅ Removed'); refreshExclusionCount(); }
           else showToast('Remove failed');
@@ -3179,7 +3179,7 @@ if (file_exists("/etc/unraid-version")) {
       body.append('csrf_token', csrf_token);
       Array.from(selectedExts).forEach(ext => body.append('paths[]', `*.${ext}`));
 
-      fetch('/plugins/automover/helpers/update_exclusions.php?action=add_exclusions', {
+      fetch('/plugins/vm-backup-and-restore/helpers/update_exclusions.php?action=add_exclusions', {
         method: 'POST',
         body
       })
@@ -3207,7 +3207,7 @@ if (file_exists("/etc/unraid-version")) {
       body.append('csrf_token', csrf_token);
       Array.from(selectedExts).forEach(ext => body.append('paths[]', `*.${ext}`));
 
-      fetch('/plugins/automover/helpers/update_exclusions.php?action=remove_exclusions', {
+      fetch('/plugins/vm-backup-and-restore/helpers/update_exclusions.php?action=remove_exclusions', {
         method: 'POST',
         body
       })
@@ -3232,7 +3232,7 @@ saveBtn.addEventListener('click', function () {
   const stopAll = document.getElementById('stop_all_containers').checked ? 'yes' : 'no';
   const thresholdInput = document.getElementById('threshold');
   const stopThresholdInput = document.getElementById('stop_threshold');
-  const form = document.getElementById('automover-settings');
+  const form = document.getElementById('vm-backup-and-restore-settings');
 
   // --- Validation ---
   const thresholdValid = validateField(thresholdInput, { min: 0, max: 100 }, 'threshold-warning');
@@ -3369,7 +3369,7 @@ params.set("MONTHLY_TIME", document.getElementById("monthly_time")?.value || "")
 params.set("CUSTOM_CRON", document.getElementById("custom_cron")?.value.trim() || "");
 
 // --- Step 1: Save settings ---
-fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { method: 'GET' })
+fetch('/plugins/vm-backup-and-restore/helpers/save_settings.php?' + params.toString(), { method: 'GET' })
   .then(res => res.json())
   .then(saveData => {
     if (saveData.status === 'error') {
@@ -3393,7 +3393,7 @@ fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { met
       CRON_EXPRESSION: cronExpression
     });
 
-    return fetch('/plugins/automover/helpers/start_cron.php', {
+    return fetch('/plugins/vm-backup-and-restore/helpers/start_cron.php', {
       method: 'POST',
       body: startForm
     });
@@ -3414,7 +3414,7 @@ fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { met
 
     // Initial counts
     function refreshExclusionCount() {
-      fetch(`/plugins/automover/helpers/update_exclusions.php?action=get_exclusion_count&csrf_token=${encodeURIComponent(csrf_token)}`)
+      fetch(`/plugins/vm-backup-and-restore/helpers/update_exclusions.php?action=get_exclusion_count&csrf_token=${encodeURIComponent(csrf_token)}`)
         .then(r => r.json())
         .then(d => {
           if (d.ok) {
@@ -3432,7 +3432,7 @@ fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { met
     const poolWarning = document.getElementById('pool-warning');
     function checkPoolUsage(poolName) {
       if (!poolName) { poolWarning.style.display = 'none'; return; }
-      fetch(`/plugins/automover/helpers/check_pool_usage.php?pool=${encodeURIComponent(poolName)}`)
+      fetch(`/plugins/vm-backup-and-restore/helpers/check_pool_usage.php?pool=${encodeURIComponent(poolName)}`)
         .then(res => res.json())
         .then(data => { poolWarning.style.display = data.in_use ? 'none' : 'block'; })
         .catch(() => { poolWarning.style.display = 'none'; });
@@ -3441,7 +3441,7 @@ fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { met
     setTimeout(() => { checkPoolUsage(poolSelect.value); }, 250);
   });
   if (typeof caPluginUpdateCheck === "function") {
-    caPluginUpdateCheck("automover.plg", { name: "Automover" });
+    caPluginUpdateCheck("vm-backup-and-restore.plg", { name: "vm-backup-and-restore" });
   }
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -3463,7 +3463,7 @@ fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { met
     }
   });
 
-  $('.automovertip').tooltipster({
+  $('.vm-backup-and-restoretip').tooltipster({
     maxWidth: 300
   });
 
@@ -3493,7 +3493,7 @@ fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { met
   if (clearLastRunBtn) {
     clearLastRunBtn.addEventListener("click", function () {
       if (confirm("Are you sure you want to clear the Last Run Log?")) {
-        fetch("/plugins/automover/helpers/clear_log.php", {
+        fetch("/plugins/vm-backup-and-restore/helpers/clear_log.php", {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -3514,7 +3514,7 @@ fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { met
   if (clearMoverBtn) {
     clearMoverBtn.addEventListener("click", function () {
       if (confirm("Are you sure you want to clear the Mover Log?")) {
-        fetch("/plugins/automover/helpers/clear_log.php", {
+        fetch("/plugins/vm-backup-and-restore/helpers/clear_log.php", {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -3526,7 +3526,7 @@ fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { met
           .then(data => {
             showToast(toastMover, data.message, data.ok ? "ok" : "err");
             if (data.ok) {
-              document.getElementById("automover-log").textContent = "";
+              document.getElementById("vm-backup-and-restore-log").textContent = "";
               document.getElementById("log-counts").textContent = "";
             }
           })
@@ -3594,7 +3594,7 @@ fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { met
 
     // Start Manual Rsync
     document.getElementById("start-manual-rsync").addEventListener("click", () => {
-      // Immediately disable Automover buttons when manual move starts
+      // Immediately disable vm-backup-and-restore buttons when manual move starts
       ['save-settings', 'moveNowBtn'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
@@ -3640,7 +3640,7 @@ fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { met
       params.append("fullsync", modeFull ? "1" : "0");
 
       // Fire off request in background
-      fetch("/plugins/automover/helpers/manual_rsync.php", {
+      fetch("/plugins/vm-backup-and-restore/helpers/manual_rsync.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -3696,7 +3696,7 @@ fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { met
   function loadPicker(path) {
     pickerPath = path;
 
-    fetch(`/plugins/automover/helpers/list_dir.php?path=${encodeURIComponent(path)}`)
+    fetch(`/plugins/vm-backup-and-restore/helpers/list_dir.php?path=${encodeURIComponent(path)}`)
       .then(r => r.json())
       .then(data => {
         buildCrumbs(path);
@@ -4035,7 +4035,7 @@ fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { met
       margin-top: 2px;
     ">
       *To re-enable after disabling permanently, delete <b>mover_warning_dismissed.txt</b><br>
-      from <i>/boot/config/plugins/automover</i> on the flash drive.
+      from <i>/boot/config/plugins/vm-backup-and-restore</i> on the flash drive.
     </div>
     <div id="dismiss-status" style="
       display:none;
@@ -4054,7 +4054,7 @@ fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { met
   const dismissStatus = document.getElementById('dismiss-status');
 
   // Check dismissal state before showing to prevent flash
-  fetch('/plugins/automover/helpers/mover_warning_state.php')
+  fetch('/plugins/vm-backup-and-restore/helpers/mover_warning_state.php')
     .then(res => res.json())
     .then(data => {
       if (!data.dismissed && warningBox) {
@@ -4078,7 +4078,7 @@ fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { met
   // Dismiss Permanently
   if (dismissBtn && warningBox) {
     dismissBtn.addEventListener('click', () => {
-      fetch('/plugins/automover/helpers/mover_warning_state.php', {
+      fetch('/plugins/vm-backup-and-restore/helpers/mover_warning_state.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -4142,7 +4142,7 @@ fetch('/plugins/automover/helpers/save_settings.php?' + params.toString(), { met
 
     newFolderInput.style.borderColor = "";
 
-    fetch("/plugins/automover/helpers/create_folder.php", {
+    fetch("/plugins/vm-backup-and-restore/helpers/create_folder.php", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body:

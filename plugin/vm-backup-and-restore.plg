@@ -2,10 +2,10 @@
 <!DOCTYPE PLUGIN>
 
 <PLUGIN 
-  name="vm-backup-and-restore"
+  name="VM-Backup-And-Restore"
   author="jcofer555"
   version="2026.02.02.01"
-  launch="Settings/vm-backup-and-restore"
+  launch="Settings/VM-Backup-And-Restore"
   pluginURL="https://raw.githubusercontent.com/jcofer555/vm-backup-and-restore/main/plugin/vm-backup-and-restore.plg"
   support="https://forums.unraid.net/topic/192216-vm-backup-and-restore-for-unraid/"
   min="7.1.0"
