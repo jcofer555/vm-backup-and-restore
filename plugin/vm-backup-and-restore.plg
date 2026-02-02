@@ -16,13 +16,18 @@
 <CHANGES>
 <![CDATA[
 
+### 2026.02.02.01
+
+- Initial release
+
+
 For older releases, see https://github.com/jcofer555/vm-backup-and-restore/releases
 ]]>
 </CHANGES>
 
-<FILE Name="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2025.12.17.01-noarch-1.txz">
-<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2025.12.17.01/unraid-vm-backup-and-restore-2025.12.17.01-noarch-1.txz</URL>
-<SHA256>0fe19a574a6ce2eef9be1b464a965665bcfcca4188f9f35a9d6169b282bf7985</SHA256>
+<FILE Name="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.02.02.01-noarch-1.txz">
+<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.02.02.01/unraid-vm-backup-and-restore-2026.02.02.01-noarch-1.txz</URL>
+<SHA256>7a82dc17722e2576d15914859a7afb26be7d4e3d9d915fd5a54a5c6e367a135d</SHA256>
 </FILE>
 
 <!-- ==========================================================
@@ -35,7 +40,7 @@ For older releases, see https://github.com/jcofer555/vm-backup-and-restore/relea
 #  INSTALL / UPGRADE LOGIC
 # ==========================================================
 
-PACKAGE_TXZ="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2025.12.17.01-noarch-1.txz"
+PACKAGE_TXZ="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.02.02.01-noarch-1.txz"
 USER_CFG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
 DEFAULT_CFG="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/default_settings.cfg"
 TMP_CFG="/tmp/vm-backup-and-restore_settings.tmp"
@@ -122,8 +127,18 @@ if [ -f "$SETTINGS" ]; then
     source "$SETTINGS"
 fi
 
+# === Check for Mover Tuning plugin ===
+MOVER_TUNING="/boot/config/plugins/ca.mover.tuning.plg"
+MOVER_TUNING_DIR="/usr/local/emhttp/plugins/ca.mover.tuning"
+
+if realpath "$MOVER_TUNING" &>/dev/null || [ -d "$MOVER_TUNING_DIR" ]; then
+  if [ -f "$MOVER_TUNING" ] || [ -d "$MOVER_TUNING_DIR" ]; then
+    echo -e "⚠️ Mover Tuning plugin appears to be installed. Having both can result in conflicts between Mover Tuning and vm-backup-and-restore. \nConsider uninstalling one to avoid incompatibility issues."
+  fi
+fi
+
 # Remove older txz packages (keep only the current one)
-find /boot/config/plugins/vm-backup-and-restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2025.12.17.01-noarch-1.txz" -delete
+find /boot/config/plugins/vm-backup-and-restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.02.02.01-noarch-1.txz" -delete
 
 # ==========================================================
 #  HANDLE AUTOSTART + CRON GENERATION
@@ -133,7 +148,7 @@ if [ "$AUTOSTART" == "no" ]; then
     echo ""
     echo "----------------------------------------------------"
     echo " vm-backup-and-restore has been installed."
-    echo " Version: 2025.12.17.01"
+    echo " Version: 2026.02.02.01"
     echo "----------------------------------------------------"
     echo ""
 else
@@ -187,7 +202,7 @@ else
     echo ""
     echo "----------------------------------------------------"
     echo " vm-backup-and-restore has been installed."
-    echo " Version: 2025.12.17.01"
+    echo " Version: 2026.02.02.01"
     echo "----------------------------------------------------"
     echo ""
 fi
