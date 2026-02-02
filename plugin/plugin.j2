@@ -47,29 +47,10 @@ upgradepkg --install-new "$PACKAGE_TXZ"
 
 # Ordered config keys
 ordered_keys=(
-    "POOL_NAME"
-    "THRESHOLD"
+    "VM_NAME"
     "DRY_RUN"
     "ALLOW_DURING_PARITY"
     "AUTOSTART"
-    "AGE_BASED_FILTER"
-    "AGE_DAYS"
-    "SIZE_BASED_FILTER"
-    "SIZE_MB"
-    "EXCLUSIONS_ENABLED"
-    "QBITTORRENT_SCRIPT"
-    "QBITTORRENT_HOST"
-    "QBITTORRENT_USERNAME"
-    "QBITTORRENT_PASSWORD"
-    "QBITTORRENT_DAYS_FROM"
-    "QBITTORRENT_DAYS_TO"
-    "QBITTORRENT_STATUS"
-    "HIDDEN_FILTER"
-    "FORCE_RECONSTRUCTIVE_WRITE"
-    "CONTAINER_NAMES"
-    "ENABLE_JDUPES"
-    "HASH_PATH"
-    "ENABLE_CLEANUP"
     "CRON_MODE"
     "MINUTES_FREQUENCY"
     "HOURLY_FREQUENCY"
@@ -80,15 +61,8 @@ ordered_keys=(
     "MONTHLY_TIME"
     "CUSTOM_CRON"
     "CRON_EXPRESSION"
-    "STOP_THRESHOLD"
     "ENABLE_NOTIFICATIONS"
     "WEBHOOK_URL"
-    "MANUAL_MOVE"
-    "STOP_ALL_CONTAINERS"
-    "ENABLE_TRIM"
-    "ENABLE_SCRIPTS"
-    "PRE_SCRIPT"
-    "POST_SCRIPT"
 )
 
 # ==========================================================
@@ -121,16 +95,6 @@ mv "$TMP_CFG" "$USER_CFG"
 SETTINGS="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
 if [ -f "$SETTINGS" ]; then
     source "$SETTINGS"
-fi
-
-# === Check for Mover Tuning plugin ===
-MOVER_TUNING="/boot/config/plugins/ca.mover.tuning.plg"
-MOVER_TUNING_DIR="/usr/local/emhttp/plugins/ca.mover.tuning"
-
-if realpath "$MOVER_TUNING" &>/dev/null || [ -d "$MOVER_TUNING_DIR" ]; then
-  if [ -f "$MOVER_TUNING" ] || [ -d "$MOVER_TUNING_DIR" ]; then
-    echo -e "⚠️ Mover Tuning plugin appears to be installed. Having both can result in conflicts between Mover Tuning and vm-backup-and-restore. \nConsider uninstalling one to avoid incompatibility issues."
-  fi
 fi
 
 # Remove older txz packages (keep only the current one)
