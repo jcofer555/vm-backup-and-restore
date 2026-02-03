@@ -1,4 +1,4 @@
-Menu="Utilities2"
+Menu="Utilities"
 Type="xmenu"
 Title="VM-Backup-And-Restore"
 Icon="icon.png"
@@ -98,7 +98,7 @@ if (file_exists("/etc/unraid-version")) {
 
 <style>
   :root {
-    --primary-blue: #00aaff;
+    --primary-blue: #e6231c;
     --status-green: #2ECC40;
   }
 
@@ -445,24 +445,6 @@ if (file_exists("/etc/unraid-version")) {
     animation: shake .3s;
   }
 
-  #move-now-confirmation,
-  #save-confirmation,
-  #stop-confirmation {
-    animation: flash .4s ease;
-    background: var(--primary-blue);
-    border-radius: 6px;
-    clear: both;
-    color: #fff;
-    display: block;
-    font-weight: bold;
-    opacity: 0;
-    padding: 6px 12px;
-    transition: opacity .4s ease;
-    width: fit-content;
-    display: inline-block;
-    margin-bottom: 10px;
-  }
-
   @keyframes flash {
     0% {
       opacity: 0;
@@ -675,203 +657,9 @@ if (file_exists("/etc/unraid-version")) {
     position: absolute;
   }
 
-  .select-pool {
-    min-width: fit-content;
-    appearance: none;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: width .2s;
-    white-space: nowrap;
-    width: 200px;
-  }
-
   #save-messages div {
     opacity: 1;
     transition: opacity .6s;
-  }
-
-  /* Modal picker */
-  #exclusion-modal {
-    align-items: center;
-    background: rgba(0, 0, 0, .8);
-    bottom: 0;
-    display: none;
-    justify-content: center;
-    left: 0;
-    position: fixed;
-    right: 0;
-    top: 0;
-    z-index: 9999;
-  }
-
-  #exclusion-modal .box {
-    background: #111;
-    border-radius: 10px;
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    height: 600px;
-    min-height: fit-content;
-    max-height: 100%;
-    overflow: hidden;
-    padding: 18px;
-    position: relative;
-    width: 800px;
-    min-width: fit-content;
-    max-width: 100%;
-  }
-
-  #exclusion-modal .header {
-    align-items: center;
-    display: flex;
-    gap: 10px;
-    margin-bottom: 0px;
-  }
-
-  #exclusion-modal .crumbs {
-    flex: 1;
-    overflow: auto;
-    white-space: nowrap;
-  }
-
-  #exclusion-modal .crumbs a {
-    color: #00bfff;
-    margin-right: 8px;
-    text-decoration: none;
-  }
-
-  #exclusion-modal .grid {
-    border: 1px solid #333;
-    flex: 1;
-    overflow-y: auto;
-    padding: 6px;
-  }
-
-  #exclusion-modal .row {
-    align-items: center;
-    cursor: default;
-    display: flex;
-    gap: 0px;
-    padding: 0px;
-  }
-
-  #exclusion-modal .row .name {
-    align-items: center;
-    color: #fff;
-    display: flex;
-    flex: 1;
-    font-weight: 500;
-    gap: 0px;
-  }
-
-  #exclusion-modal .row.folder .name {
-    color: var(--primary-blue);
-  }
-
-  #exclusion-modal .row .name .icon {
-    margin-right: 2px;
-  }
-
-  #exclusion-modal .row .name .label {
-    display: inline-block;
-  }
-
-  #exclusion-modal .row input[type="checkbox"] {
-    margin-right: 2px;
-    transform: scale(1.1);
-  }
-
-  #exclusion-modal .row .type {
-    opacity: .7;
-    text-align: right;
-    width: 70px;
-  }
-
-  #exclusion-modal .footer {
-    align-items: center;
-    display: flex;
-    gap: 12px;
-    justify-content: space-between;
-    margin-top: 0px;
-  }
-
-  #exclusion-modal .toast {
-    border-radius: 6px;
-    bottom: 0px;
-    color: red;
-    display: none;
-    left: 16px;
-    padding: 8px 10px;
-    position: absolute;
-  }
-
-  #exclusion-modal .btn {
-    background: #0b5fff;
-    border: none;
-    border-radius: 6px;
-    color: #fff;
-    cursor: pointer;
-    padding: 8px 12px;
-  }
-
-  #exclusion-modal .btn.secondary {
-    background: #444;
-  }
-
-  #exclusion-modal .btn.warn {
-    background: #b54708;
-  }
-
-  #exclusions-field {
-    color: #ccc;
-    cursor: pointer;
-    font-style: italic;
-    opacity: 0.6;
-    user-select: none;
-    width: 200px;
-    min-width: fit-content;
-    max-width: 100%;
-  }
-
-  #exclusion-modal .crumb {
-    color: var(--primary-blue);
-    cursor: pointer;
-    font-weight: 500;
-    transition: color 0.2s ease;
-    user-select: none;
-  }
-
-  #exclusion-view-modal .modal-body {
-    position: relative;
-  }
-
-  #exclusion-view-modal .toast {
-    background: rgba(0, 0, 0, 0.9);
-    border: 1px solid #00aaff55;
-    border-radius: 6px;
-    bottom: 12px;
-    color: #00ff99;
-    display: none;
-    font-weight: 600;
-    left: 50%;
-    padding: 8px 14px;
-    position: absolute;
-    transform: translateX(-50%);
-    z-index: 10;
-  }
-
-  #exclusion-view-modal .toast.error {
-    color: #ff5555;
-  }
-
-  #exclusion-modal .crumb:hover {
-    color: #ff3333;
-    text-decoration: underline;
-  }
-
-  #exclusion-modal .sep {
-    color: #999;
   }
 
   .footer>div {
@@ -920,144 +708,6 @@ if (file_exists("/etc/unraid-version")) {
     border-radius: 4px;
   }
 
-  #qbit_status {
-    width: 200px;
-    min-width: fit-content;
-    max-width: 100%;
-    display: inline-block;
-  }
-
-  #HASH_PATH {
-    width: 200px;
-    min-width: fit-content;
-    max-width: 100%;
-    display: inline-block;
-  }
-
-  #manual-move-section {
-    width: 24.5%;
-    box-sizing: border-box;
-  }
-
-  .manual-move-toggle-wrapper {
-    margin-top: 20px;
-  }
-
-  #manual-move-section .form-pair label {
-    width: 130px;
-    /* match vm-backup-and-restore settings labels */
-    font-weight: bold;
-    color: var(--primary-blue);
-  }
-
-  #manual-move-section .form-pair input {
-    width: 200px;
-    /* same as others */
-  }
-
-  #manual-move-section .form-check {
-    gap: 4px !important;
-  }
-
-  #manual-move-section input[type="checkbox"] {
-    margin-right: 2px !important;
-    transform: scale(1.1);
-  }
-
-  /* Shake animation for invalid click */
-  @keyframes pickerShake {
-    0% {
-      transform: translateX(0);
-    }
-
-    20% {
-      transform: translateX(-8px);
-    }
-
-    40% {
-      transform: translateX(8px);
-    }
-
-    60% {
-      transform: translateX(-8px);
-    }
-
-    80% {
-      transform: translateX(8px);
-    }
-
-    100% {
-      transform: translateX(0);
-    }
-  }
-
-  .shake-picker {
-    animation: pickerShake 0.3s ease;
-  }
-
-  /* --- Picker link styles (same as exclusions modal) --- */
-  .picker-link {
-    color: var(--primary-blue);
-    cursor: pointer;
-    font-weight: 500;
-  }
-
-  .picker-link:hover {
-    text-decoration: underline;
-  }
-
-  /* Breadcrumb container matches exclusions modal */
-  #manual-picker-crumbs {
-    font-size: 14px;
-    color: var(--primary-blue);
-    padding: 10px 12px;
-    border-bottom: 1px solid #333;
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-
-  /* Breadcrumb pieces */
-  .picker-crumb {
-    color: #3ca8ff;
-    cursor: pointer;
-    transition: color 0.15s ease;
-  }
-
-  .picker-crumb:hover {
-    text-decoration: underline;
-    color: #ff4444;
-  }
-
-  #manual_source,
-  #manual_dest {
-    cursor: pointer;
-  }
-
-  #qbit-days-to-warning,
-  #qbit-days-order-warning {
-    max-width: 200px;
-    width: 200px;
-    /* optional, keeps consistent width */
-    white-space: normal;
-    /* allows wrapping */
-  }
-
-  .manual-error-toast {
-    display: none;
-    color: #ff4444;
-    padding: -66px 10px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    max-width: 200px;
-    white-space: normal;
-  }
-
-  .manual-error-wide {
-    max-width: 350px !important;
-  }
-
   @keyframes manualShake {
     0% {
       transform: translateX(0);
@@ -1082,42 +732,6 @@ if (file_exists("/etc/unraid-version")) {
     100% {
       transform: translateX(0);
     }
-  }
-
-  .manual-shake {
-    animation: manualShake .35s ease;
-  }
-
-  #exclusion-view-modal .modal-body {
-    display: flex;
-    flex-direction: column;
-    padding-right: 18px !important;
-  }
-
-  #exclusion-view-modal p {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin-right: 0 !important;
-  }
-
-  #exclusionsEditor {
-    width: 100% !important;
-    margin-right: 0 !important;
-    padding-right: 8px;
-  }
-
-  #exclusion-view-modal .footer {
-    display: flex;
-    justify-content: flex-end !important;
-    margin-top: 10px;
-  }
-
-  #exclusion-view-modal .footer>div:first-child {
-    margin-right: auto;
-  }
-
-  #stop-button {
-    border: none;
   }
 
   .form-check {
@@ -1147,14 +761,6 @@ if (file_exists("/etc/unraid-version")) {
     cursor: pointer;
   }
 
-  #stop_all_containers {
-    margin-left: 2px;
-    transform: scale(1.1);
-    width: 16px;
-    height: 16px;
-    vertical-align: middle;
-  }
-
   #cron-warning-fields,
   #cron-warning-minute,
   #cron-warning-interval {
@@ -1163,87 +769,273 @@ if (file_exists("/etc/unraid-version")) {
     box-sizing: border-box;
     word-wrap: break-word;
   }
+
+  .vm-multiselect {
+    position: relative;
+    width: 200px;
+    border: 1px solid #ff4444;
+    padding: 6px;
+    background: #111;
+    cursor: pointer;
+    color: #111;
+    transition: width .2s;
+    white-space: nowrap;
+    border-radius: 4px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+
+  .vm-multiselect.active {
+    border-color: #ff4444;
+  }
+
+  .vm-dropdown-label {
+    color: #fff;
+    user-select: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .vm-dropdown-list {
+    padding: 6px;
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ff4444;
+    background: #111;
+    color: #fff;
+    z-index: 10;
+    font-family: 'Segoe UI', sans-serif;
+  }
+
+  .vm-dropdown-list div {
+    padding: 4px 0;
+    text-align: left;
+    line-height: 1.5;
+    height: 28px;
+    display: flex;
+    align-items: center;
+  }
+
+  .vm-dropdown-list label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #fff;
+    padding-left: 0px;
+  }
+
+  .vm-dropdown-list input[type="checkbox"] {
+    align-items: left;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #ccc;
+    background: #222;
+    cursor: pointer;
+    position: relative;
+    accent-color: #ff4444;
+  }
+
+  .vm-dropdown-list input[type="checkbox"]:checked::after {
+    content: '✔';
+    position: absolute;
+    top: 0;
+    left: 2px;
+    font-size: 14px;
+    color: #fff;
+  }
+
+  .vm-dropdown-list div:hover {
+    background: #111;
+  }
+
+  #cron_mode,
+  #minutes_frequency,
+  #hourly_frequency,
+  #daily_time,
+  #weekly_day,
+  #weekly_time,
+  #monthly_day,
+  #monthly_time {
+    background-color: #111 !important;
+    color: #fff !important;
+    border: 1px solid var(--primary-blue);
+  }
+
+  select option {
+    background-color: #111 !important;
+    color: #fff !important;
+  }
+
+  select:focus,
+  select:hover {
+    background-color: #111 !important;
+    color: #fff !important;
+  }
+
+  /* Scheduling dropdown (single select) */
+  #cron-dropdown {
+    width: 200px;
+  }
+
+  #cron-dropdown.active {
+    border-color: #ff4444;
+    box-shadow: 0 0 0 2px #111;
+  }
+
+  #cron-dropdown .vm-dropdown-list {
+    border: 1px solid #ff4444;
+    background: #111;
+  }
+
+  .checkbox-row label.vm-backup-and-restoretip {
+    display: inline-flex;
+    /* shrink to content */
+    align-items: center;
+    /* vertically center checkbox and text */
+    width: auto;
+    /* prevent stretching */
+    cursor: pointer;
+    /* nice hover pointer */
+  }
+
+  .checkbox-row input[type="checkbox"] {
+    margin-right: 6px;
+    /* space between checkbox and text */
+  }
+
+  .vm-dropdown-item.no-vms {
+    color: #999;
+    cursor: default;
+    font-style: italic;
+  }
 </style>
 
 <div id="vm-backup-and-restore-wrapper">
   <form id="vm-backup-and-restore-settings">
 
+    <h2>Backup:</h2>
+
     <!-- VM -->
     <div class="form-pair">
-      <label for="pool" <span title="Choose which pool to monitor for disk usage" class="vm-backup-and-restoretip">VM:</span>
+      <label>
+        <span class="vm-backup-and-restoretip" title="Choose which VM(s) to backup">
+          VM:
+        </span>
       </label>
-      <span title="Choose which pool to monitor for disk usage" class="vm-backup-and-restoretip">
-        <select id="pool" class="select-pool"
-          data-selected="<?php echo htmlspecialchars($settings['POOL_NAME'] ?? '') ?>"></select>
+
+      <div id="vm-dropdown" class="vm-multiselect vm-backup-and-restoretip" title="Choose which VM(s) to backup"
+        data-selected="<?php echo htmlspecialchars($settings['VM_NAME'] ?? '') ?>">
+        <div class="vm-dropdown-label">Select VM(s)</div>
+        <div class="vm-dropdown-list"></div>
+      </div>
+    </div>
+
+    <!-- DESTINATION -->
+    <div class="form-pair">
+      <label>
+        <span class="vm-backup-and-restoretip"
+          title="Choose destination for backup. Each VM will be saved to a subdirectory with the name the same as the VM">
+          Destination:
+        </span>
+      </label>
+
+      <span class="vm-backup-and-restoretip"
+        title="Choose destination for backup. Each VM will be saved to a subdirectory with the name the same as the VM">
+        <input type="text" id="backup_destination" placeholder="e.g. /mnt/user/backups/vms">
       </span>
     </div>
 
-<!-- Scheduling Selection -->
-<div class="form-pair" id="cron-expression-row">
-  <label for="cron_mode">
-    <span class="vm-backup-and-restoretip" title="Select scheduling selection">
-      Scheduling:
-    </span>
-  </label>
-  <div class="input-wrapper">
-    <span class="vm-backup-and-restoretip" title="Select scheduling selection">
-      <select id="cron_mode" name="CRON_MODE" class="short-input">
-        <option value="minutes" <?php echo (($settings['CRON_MODE'] ?? '' )==='minutes' ) ? 'selected' : '' ; ?>>Minutes</option>
-        <option value="hourly" <?php echo (($settings['CRON_MODE'] ?? '' )==='hourly' ) ? 'selected' : '' ; ?>>Hourly</option>
-        <option value="daily" <?php echo (($settings['CRON_MODE'] ?? '' )==='daily' ) ? 'selected' : '' ; ?>>Daily</option>
-        <option value="weekly" <?php echo (($settings['CRON_MODE'] ?? '' )==='weekly' ) ? 'selected' : '' ; ?>>Weekly</option>
-        <option value="monthly" <?php echo (($settings['CRON_MODE'] ?? '' )==='monthly' ) ? 'selected' : '' ; ?>>Monthly</option>
-        <option value="custom" <?php echo (($settings['CRON_MODE'] ?? '' )==='custom' ) ? 'selected' : '' ; ?>>Custom</option>
-      </select>
-    </span>
-  </div>
-</div>
+    <!-- Hidden select for existing JS -->
+    <select id="cron_mode" style="display:none;">
+      <option value="minutes"></option>
+      <option value="hourly"></option>
+      <option value="daily"></option>
+      <option value="weekly"></option>
+      <option value="monthly"></option>
+      <option value="custom"></option>
+    </select>
 
-<!-- Minutes Options -->
-<div id="minutes-options" style="display:none; margin-top:10px;">
-  <div class="form-pair">
-    <label for="minutes_frequency">
-      <span class="vm-backup-and-restoretip" title="Select minute frequency">
-        Select Frequency:
-      </span>
-    </label>
-    <div class="input-wrapper">
-      <span class="vm-backup-and-restoretip" title="Select minute frequency">
-        <select id="minutes_frequency" name="MINUTES_FREQUENCY" class="short-input">
-          <?php
+    <!-- Scheduling Selection -->
+    <div class="form-pair" id="cron-expression-row">
+      <label>
+        <span class="vm-backup-and-restoretip" title="Select scheduling selection">
+          Scheduling:
+        </span>
+      </label>
+
+      <div class="input-wrapper">
+        <div id="cron-dropdown" class="vm-multiselect vm-backup-and-restoretip" title="Select scheduling selection"
+          data-selected="<?php echo htmlspecialchars($settings['CRON_MODE'] ?? 'minutes'); ?>">
+
+          <div class="vm-dropdown-label">Select Schedule</div>
+
+          <div class="vm-dropdown-list">
+            <div data-value="minutes">Minutes</div>
+            <div data-value="hourly">Hourly</div>
+            <div data-value="daily">Daily</div>
+            <div data-value="weekly">Weekly</div>
+            <div data-value="monthly">Monthly</div>
+            <div data-value="custom">Custom</div>
+          </div>
+        </div>
+
+        <input type="hidden" id="cron-hidden" name="CRON_MODE"
+          value="<?php echo htmlspecialchars($settings['CRON_MODE'] ?? 'minutes'); ?>">
+      </div>
+    </div>
+
+    <!-- Minutes Options -->
+    <div id="minutes-options" style="display:none; margin-top:10px;">
+      <div class="form-pair">
+        <label for="minutes_frequency">
+          <span class="vm-backup-and-restoretip" title="Select minute frequency">
+            Select Frequency:
+          </span>
+        </label>
+        <div class="input-wrapper">
+          <span class="vm-backup-and-restoretip" title="Select minute frequency">
+            <select id="minutes_frequency" name="MINUTES_FREQUENCY" class="short-input">
+              <?php
             for ($i = 2; $i <= 59; $i++) {
               $selected = (($settings['MINUTES_FREQUENCY'] ?? '') == strval($i)) ? 'selected' : '';
               echo "<option value=\"$i\" $selected>Every $i Minutes</option>";
             }
           ?>
-        </select>
-      </span>
+            </select>
+          </span>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
 
-<!-- Hourly Options -->
-<div id="hourly-options" style="display:none; margin-top:10px;">
-  <div class="form-pair">
-    <label for="hourly_frequency">
-      <span class="vm-backup-and-restoretip" title="Select hourly frequency">
-        Select Frequency:
-      </span>
-    </label>
-    <div class="input-wrapper">
-      <span class="vm-backup-and-restoretip" title="Select hourly frequency">
-        <select id="hourly_frequency" name="HOURLY_FREQUENCY" class="short-input">
-          <?php
+    <!-- Hourly Options -->
+    <div id="hourly-options" style="display:none; margin-top:10px;">
+      <div class="form-pair">
+        <label for="hourly_frequency">
+          <span class="vm-backup-and-restoretip" title="Select hourly frequency">
+            Select Frequency:
+          </span>
+        </label>
+        <div class="input-wrapper">
+          <span class="vm-backup-and-restoretip" title="Select hourly frequency">
+            <select id="hourly_frequency" name="HOURLY_FREQUENCY" class="short-input">
+              <?php
           for ($i = 1; $i <= 23; $i++) {
               $selected = (($settings['HOURLY_FREQUENCY'] ?? '') === (string)$i) ? 'selected' : '';
               echo "<option value=\"$i\" $selected>Every $i Hour" . ($i > 1 ? 's' : '') . "</option>";
           }
           ?>
-        </select>
-      </span>
+            </select>
+          </span>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
 
     <!-- Daily Options -->
     <div id="daily-options" style="display:none; margin-top:10px;">
@@ -1392,137 +1184,204 @@ if (file_exists("/etc/unraid-version")) {
       </div>
     </div>
 
-    <!-- Webhook URL -->
-    <div class="form-pair" id="webhook_row" style="display:none;">
-      <label for="webhook_url">
-        <span title="Optional: Discord Webhook URL for notifications" class="vm-backup-and-restoretip">Discord Webhook:</span>
+    <!-- Checkboxes -->
+    <div class="checkbox-row" style="display:flex; gap:20px; flex-wrap:wrap; align-items:center;">
+
+      <label class="vm-backup-and-restoretip" title="Start vm-backup-and-restore automatically when Unraid boots">
+        <input type="checkbox" id="autostart" <?php echo ($settings['AUTOSTART'] ?? '' )==='yes' ? 'checked' : '' ?>>
+        Autostart on Boot
       </label>
-      <div class="input-wrapper">
-        <span title="Optional: Discord Webhook URL for notifications" class="vm-backup-and-restoretip">
-          <input type="text" id="webhook_url" placeholder="https://discord.com/api/webhooks/yourwebhookid"
-            value="<?php echo htmlspecialchars($settings['WEBHOOK_URL'] ?? '') ?>">
-        </span>
-        <div id="webhook-warning" class="field-warning">
-          ⚠️ Needs entered like this https://discord.com/api/webhooks/yourwebhookid
-        </div>
-      </div>
+
+      <label class="vm-backup-and-restoretip"
+        title="Allow vm-backup-and-restore to run even when Unraid is doing a parity check">
+        <input type="checkbox" id="allow_during_parity" <?php echo ($settings['ALLOW_DURING_PARITY'] ?? '' )==='yes'
+          ? 'checked' : '' ?>>
+        Allow During Parity
+      </label>
+
+      <label class="vm-backup-and-restoretip" title="Enable to simulate moves without actually transferring files">
+        <input type="checkbox" id="dry_run" <?php echo ($settings['DRY_RUN'] ?? '' )==='yes' ? 'checked' : '' ?>>
+        Dry Run
+      </label>
+
+      <label class="vm-backup-and-restoretip"
+        title="Send Unraid system notifications when vm-backup-and-restore starts and finishes">
+        <input type="checkbox" id="enable_notifications" <?php echo ($settings['ENABLE_NOTIFICATIONS'] ?? '' )==='yes'
+          ? 'checked' : '' ?>>
+        Enable Notifications
+      </label>
+
     </div>
 
-    <!-- Checkboxes row -->
-    <div class="checkbox-row">
-      <span title="Start vm-backup-and-restore automatically when Unraid boots" class="vm-backup-and-restoretip">
-        <label>
-          <input type="checkbox" id="autostart" <?php echo ($settings['AUTOSTART'] ?? '' )==='yes' ? 'checked' : '' ?>>
-          Autostart on Boot
-        </label>
-      </span>
+    <script>
+      $(document).ready(function () {
+        const dropdown = $('#vm-dropdown');
+        const label = dropdown.find('.vm-dropdown-label');
+        const list = dropdown.find('.vm-dropdown-list');
 
-      <span title="Enable an exclusions list of files and folders that won't be moved" class="vm-backup-and-restoretip">
-        <label>
-          <input type="checkbox" id="enable_exclusions" <?php echo ($settings['EXCLUSIONS_ENABLED'] ?? '' )==='yes'
-            ? 'checked' : '' ?>> Enable Exclusions
-        </label>
-      </span>
+        // Saved selections (comma-separated string)
+        const selectedRaw = dropdown.data('selected') || '';
+        const selected = selectedRaw.split(',').map(s => s.trim()).filter(s => s !== '');
 
-      <span title="Allow vm-backup-and-restore to run even when Unraid is doing a parity check" class="vm-backup-and-restoretip">
-        <label>
-          <input type="checkbox" id="allow_during_parity" <?php echo ($settings['ALLOW_DURING_PARITY'] ?? '' )==='yes'
-            ? 'checked' : '' ?>> Allow During Parity
-        </label>
-      </span>
+        /* -----------------------------
+           OPEN / CLOSE BEHAVIOR
+           ----------------------------- */
 
-      <span title="Enable to move files only if older than the specified amount of days old" class="vm-backup-and-restoretip">
-        <label>
-          <input type="checkbox" id="age_based_filter" <?php echo ($settings['AGE_BASED_FILTER'] ?? '' )==='yes'
-            ? 'checked' : '' ?>> Enable Age Based Filter
-        </label>
-      </span>
+        label.on('click', function (e) {
+          // Prevent opening if no VMs
+          if (dropdown.hasClass('disabled')) return;
 
-      <span title="Enable to simulate moves without actually transferring files" class="vm-backup-and-restoretip">
-        <label>
-          <input type="checkbox" id="dry_run" <?php echo ($settings['DRY_RUN'] ?? '' )==='yes' ? 'checked' : '' ?>> Dry
-          Run
-        </label>
-      </span>
+          e.stopPropagation();
+          list.toggle();
 
-      <span title="Enable to move only files larger than the specified size in MB" class="vm-backup-and-restoretip">
-        <label>
-          <input type="checkbox" id="size_based_filter" <?php echo ($settings['SIZE_BASED_FILTER'] ?? '' )==='yes'
-            ? 'checked' : '' ?>> Enable Size Based Filter
-        </label>
-      </span>
+          dropdown.toggleClass('active', list.is(':visible'));
+        });
 
-      <span title="Enable to pause qbittorrent torrents before move and resume after" class="vm-backup-and-restoretip">
-        <label>
-          <input type="checkbox" id="qbit_script" <?php echo ($settings['QBITTORRENT_SCRIPT'] ?? '' )==='yes'
-            ? 'checked' : '' ?>> Enable Qbit Script
-        </label>
-      </span>
+        // Close when clicking outside
+        $(document).on('click', function (e) {
+          if (!$(e.target).closest('#vm-dropdown').length) {
+            list.hide();
+            dropdown.removeClass('active');
+          }
+        });
 
-      <span title="Skip hidden files and folders (those starting with a dot)" class="vm-backup-and-restoretip">
-        <label>
-          <input type="checkbox" id="hidden_filter" <?php echo ($settings['HIDDEN_FILTER'] ?? '' )==='yes' ? 'checked'
-            : '' ?>> Enable Hidden Filter
-        </label>
-      </span>
+        /* -----------------------------
+           LOAD VM LIST
+           ----------------------------- */
+        $.getJSON('/plugins/vm-backup-and-restore/helpers/list_vms.php', function (data) {
+          list.empty();
 
-      <span title="Force Unraid to use reconstructive (turbo) write mode during file moves" class="vm-backup-and-restoretip">
-        <label>
-          <input type="checkbox" id="force_reconstructive_write" <?php echo ($settings['FORCE_RECONSTRUCTIVE_WRITE']
-            ?? '' )==='yes' ? 'checked' : '' ?>> Force Turbo Write
-        </label>
-      </span>
+          if (!data.vms || data.vms.length === 0) {
+            // No VMs found
+            list.append('<div class="vm-dropdown-item no-vms">No VMs found</div>');
+            label.text('No VMs available');
+            dropdown.addClass('disabled'); // visually indicate disabled
+          } else {
+            data.vms.forEach(vm => {
+              const id = 'vmchk-' + vm.replace(/\s+/g, '_');
 
-      <span title="Enable to remove empty folders and datasets from shares that are moved" class="vm-backup-and-restoretip">
-        <label>
-          <input type="checkbox" id="enable_cleanup" <?php echo ($settings['ENABLE_CLEANUP'] ?? '' )==='yes' ? 'checked'
-            : '' ?>> Enable Cleanup
-        </label>
-      </span>
+              const item = $(`
+            <div>
+              <label>
+                <input type="checkbox" value="${vm}" id="${id}">
+                ${vm}
+              </label>
+            </div>
+          `);
 
-      <span
-        title="Enable this if you want jdupes to run a fix-hardlinks scan on the shares moved. Exclusions for appdata, system, domains, and isos"
-        class="vm-backup-and-restoretip">
-        <label>
-          <input type="checkbox" id="ENABLE_JDUPES" <?php echo ($settings['ENABLE_JDUPES'] ?? '' )==='yes' ? 'checked'
-            : '' ; ?>> Enable Jdupes
-        </label>
-      </span>
+              // Pre-select saved values
+              if (selected.includes(vm)) {
+                item.find('input').prop('checked', true);
+              }
 
-      <span title="Send Unraid system notifications when vm-backup-and-restore starts and finishes" class="vm-backup-and-restoretip">
-        <label>
-          <input type="checkbox" id="enable_notifications" <?php echo ($settings['ENABLE_NOTIFICATIONS'] ?? '' )==='yes'
-            ? 'checked' : '' ?>>
-          Enable Notifications
-        </label>
-      </span>
+              list.append(item);
+            });
 
-      <span title="Enable running a session start and session end script which runs regardless of filters enabled"
-        class="vm-backup-and-restoretip">
-        <label>
-          <input type="checkbox" id="enable_scripts" name="ENABLE_SCRIPTS" <?php echo (($settings['ENABLE_SCRIPTS']
-            ?? 'no' )==='yes' ) ? 'checked' : '' ; ?>>
-          Enable Pre/Post Scripts
-        </label>
-      </span>
+            updateLabel();
+          }
+        });
 
-      <span title="Enable ssd trim to run after the move completes" class="vm-backup-and-restoretip">
-        <label>
-          <input type="checkbox" id="enable_trim_toggle" name="ENABLE_TRIM" <?php echo (($settings['ENABLE_TRIM']
-            ?? 'no' )==='yes' ) ? 'checked' : '' ; ?>>
-          Enable SSD Trim
-        </label>
-      </span>
+        /* -----------------------------
+           UPDATE LABEL + HIDDEN FIELD
+           ----------------------------- */
+        function updateLabel() {
+          const checked = list.find('input:checked').map(function () {
+            return $(this).val();
+          }).get();
 
-      <span title="Enable to show a manual move section below" class="vm-backup-and-restoretip">
-        <label>
-          <input type="checkbox" id="manual_move_toggle" <?php echo ($settings['MANUAL_MOVE'] ?? 'no' )==='yes'
-            ? 'checked' : '' ; ?>>
-          Manual Move
-        </label>
-      </span>
-    </div>
-    </div>
+          if (checked.length === 0) {
+            label.text('Select VM(s)');
+          } else {
+            label.text(checked.join(', '));
+          }
 
-  </div>
-</div>
+          ensureHiddenField(checked.join(','));
+        }
+
+        list.on('change', 'input[type=checkbox]', updateLabel);
+
+        function ensureHiddenField(value) {
+          let hidden = $('#vm-hidden');
+          if (!hidden.length) {
+            hidden = $('<input>', {
+              type: 'hidden',
+              id: 'vm-hidden',
+              name: 'VM_NAME'
+            }).appendTo(dropdown.parent());
+          }
+          hidden.val(value);
+        }
+
+        /* -----------------------------
+           TOOLTIPSTER INIT
+           ----------------------------- */
+        $('.vm-backup-and-restoretip').tooltipster({
+          maxWidth: 300
+        });
+      });
+
+      // Force-close any Dynamix tooltip when dropdown opens
+      function closeTooltips() {
+        $('.vm-backup-and-restoretip').trigger('mouseleave');
+      }
+
+      $('.vm-dropdown-label, .vm-dropdown-list, select, .custom-dropdown').on('click', function () {
+        closeTooltips();
+      });
+    </script>
+
+    <script>
+      $(function () {
+        const dropdown = $('#cron-dropdown');
+        const label = dropdown.find('.vm-dropdown-label');
+        const list = dropdown.find('.vm-dropdown-list');
+        const hidden = $('#cron-hidden');
+
+        const selected = dropdown.data('selected') || 'minutes';
+
+        // Set initial label
+        const initialText = list.find(`[data-value="${selected}"]`).text();
+        label.text(initialText);
+
+        // Toggle open
+        label.on('click', function (e) {
+          e.stopPropagation();
+          list.toggle();
+          dropdown.toggleClass('active', list.is(':visible'));
+        });
+
+        // Select item
+        list.on('click', 'div', function () {
+          const value = $(this).data('value');
+          const text = $(this).text();
+
+          label.text(text);
+          hidden.val(value);
+
+          list.hide();
+          dropdown.removeClass('active');
+
+          // Trigger existing scheduling logic
+          $('#cron_mode').val(value).trigger('change');
+        });
+
+        // Close on outside click
+        $(document).on('click', function (e) {
+          if (!$(e.target).closest('#cron-dropdown').length) {
+            list.hide();
+            dropdown.removeClass('active');
+          }
+        });
+      });
+
+      // Force-close any Dynamix tooltip
+      function closeTooltips() {
+        $('.vm-backup-and-restoretip').trigger('mouseleave');
+      }
+
+      // When your dropdown opens, close tooltips
+      $('.vm-dropdown-label, .vm-dropdown-list, select, .custom-dropdown').on('click', function () {
+        closeTooltips();
+      });
+
+    </script>
