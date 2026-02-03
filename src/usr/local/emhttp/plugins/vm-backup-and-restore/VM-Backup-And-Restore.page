@@ -11,28 +11,9 @@ $cfgPath = '/boot/config/plugins/vm-backup-and-restore/settings.cfg';
 // Define all default keys and their order
 $defaults = [
     'POOL_NAME' => 'cache',
-    'THRESHOLD' => 0,
     'DRY_RUN' => 'no',
     'ALLOW_DURING_PARITY' => 'no',
     'AUTOSTART' => 'no',
-    'AGE_BASED_FILTER' => 'no',
-    'AGE_DAYS' => 1,
-    'SIZE_BASED_FILTER' => 'no',
-    'SIZE_MB' => 1,
-    'EXCLUSIONS_ENABLED' => 'no',
-    'QBITTORRENT_SCRIPT' => 'no',
-    'QBITTORRENT_HOST' => '',
-    'QBITTORRENT_USERNAME' => '',
-    'QBITTORRENT_PASSWORD' => '',
-    'QBITTORRENT_DAYS_FROM' => '0',
-    'QBITTORRENT_DAYS_TO' => '2',
-    'QBITTORRENT_STATUS' => 'completed',
-    'HIDDEN_FILTER' => 'no',
-    'FORCE_RECONSTRUCTIVE_WRITE' => 'no',
-    'CONTAINER_NAMES' => '',
-    'ENABLE_JDUPES' => 'no',
-    'HASH_PATH' => '/mnt/user/appdata',
-    'ENABLE_CLEANUP' => 'no',
     'CRON_MODE' => 'minutes',
     'MINUTES_FREQUENCY' => '2',
     'HOURLY_FREQUENCY' => '',
@@ -43,15 +24,8 @@ $defaults = [
     'MONTHLY_TIME' => '',
     'CUSTOM_CRON' => '',
     'CRON_EXPRESSION' => '',
-    'STOP_THRESHOLD' => 0,
     'ENABLE_NOTIFICATIONS' => 'no',
-    'WEBHOOK_URL' => '',
-    'MANUAL_MOVE' => 'no',
-    'STOP_ALL_CONTAINERS' => 'no',
-    'ENABLE_TRIM' => 'no',
-    'ENABLE_SCRIPTS' => 'no',
-    'PRE_SCRIPT' => '',
-    'POST_SCRIPT' => ''
+    'WEBHOOK_URL' => ''
 ];
 
 // Load existing config if present
