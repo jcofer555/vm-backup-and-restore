@@ -6,7 +6,7 @@ $cmd = '/usr/local/emhttp/plugins/automover/helpers/save_settings.sh';
 
 // Grab arguments from query string
 $args = [
-    $_GET['POOL_NAME'] ?? '',
+    $_GET['VM_NAME'] ?? '',
     $_GET['DRY_RUN'] ?? '',
     $_GET['ALLOW_DURING_PARITY'] ?? '',
     $_GET['AUTOSTART'] ?? '',

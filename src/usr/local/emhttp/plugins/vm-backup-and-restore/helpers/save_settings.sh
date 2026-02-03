@@ -4,7 +4,7 @@ CONFIG="/boot/config/plugins/automover/settings.cfg"
 mkdir -p "$(dirname "$CONFIG")"
 
 # Safely assign defaults if missing
-POOL_NAME="${1:-cache}"
+VM_NAME="${1:-vm1}"
 DRY_RUN="${2:-no}"
 ALLOW_DURING_PARITY="${3:-no}"
 AUTOSTART="${4:-no}"
@@ -34,7 +34,7 @@ fi
 #  Write all settings cleanly and atomically
 # ==========================================================
 {
-  echo "POOL_NAME=\"$POOL_NAME\""
+  echo "VM_NAME=\"$VM_NAME\""
   echo "DRY_RUN=\"$DRY_RUN\""
   echo "ALLOW_DURING_PARITY=\"$ALLOW_DURING_PARITY\""
   echo "AUTOSTART=\"$AUTOSTART\""
