@@ -4,7 +4,7 @@
 <PLUGIN 
   name="VM-Backup-And-Restore"
   author="jcofer555"
-  version="2026.02.02.02"
+  version="2026.02.02.03"
   launch="Settings/VM-Backup-And-Restore"
   pluginURL="https://raw.githubusercontent.com/jcofer555/vm-backup-and-restore/main/plugin/VM-Backup-And-Restore.plg"
   support="https://forums.unraid.net/topic/192216-vm-backup-and-restore-for-unraid/"
@@ -16,7 +16,7 @@
 <CHANGES>
 <![CDATA[
 
-### 2026.02.02.02
+### 2026.02.02.03
 
 - Initial release
 
@@ -25,9 +25,9 @@ For older releases, see https://github.com/jcofer555/vm-backup-and-restore/relea
 ]]>
 </CHANGES>
 
-<FILE Name="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.02.02-noarch-1.txz">
-<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.02.02.02/unraid-vm-backup-and-restore-2026.02.02.02-noarch-1.txz</URL>
-<SHA256>863d975503575d437e3e5c472d91d29003c6c0a9b46280f843d3af5a036bf8c5</SHA256>
+<FILE Name="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.02.03-noarch-1.txz">
+<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.02.02.03/unraid-vm-backup-and-restore-2026.02.02.03-noarch-1.txz</URL>
+<SHA256>d3288ce08011e1ed60b502086dd02602fcc336e351673e436f7ba2c4cd17e112</SHA256>
 </FILE>
 
 <!-- ==========================================================
@@ -40,7 +40,7 @@ For older releases, see https://github.com/jcofer555/vm-backup-and-restore/relea
 #  INSTALL / UPGRADE LOGIC
 # ==========================================================
 
-PACKAGE_TXZ="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.02.02-noarch-1.txz"
+PACKAGE_TXZ="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.02.03-noarch-1.txz"
 USER_CFG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
 DEFAULT_CFG="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/default_settings.cfg"
 TMP_CFG="/tmp/vm-backup-and-restore_settings.tmp"
@@ -51,29 +51,10 @@ upgradepkg --install-new "$PACKAGE_TXZ"
 
 # Ordered config keys
 ordered_keys=(
-    "POOL_NAME"
-    "THRESHOLD"
+    "VM_NAME"
     "DRY_RUN"
     "ALLOW_DURING_PARITY"
     "AUTOSTART"
-    "AGE_BASED_FILTER"
-    "AGE_DAYS"
-    "SIZE_BASED_FILTER"
-    "SIZE_MB"
-    "EXCLUSIONS_ENABLED"
-    "QBITTORRENT_SCRIPT"
-    "QBITTORRENT_HOST"
-    "QBITTORRENT_USERNAME"
-    "QBITTORRENT_PASSWORD"
-    "QBITTORRENT_DAYS_FROM"
-    "QBITTORRENT_DAYS_TO"
-    "QBITTORRENT_STATUS"
-    "HIDDEN_FILTER"
-    "FORCE_RECONSTRUCTIVE_WRITE"
-    "CONTAINER_NAMES"
-    "ENABLE_JDUPES"
-    "HASH_PATH"
-    "ENABLE_CLEANUP"
     "CRON_MODE"
     "MINUTES_FREQUENCY"
     "HOURLY_FREQUENCY"
@@ -84,15 +65,8 @@ ordered_keys=(
     "MONTHLY_TIME"
     "CUSTOM_CRON"
     "CRON_EXPRESSION"
-    "STOP_THRESHOLD"
     "ENABLE_NOTIFICATIONS"
     "WEBHOOK_URL"
-    "MANUAL_MOVE"
-    "STOP_ALL_CONTAINERS"
-    "ENABLE_TRIM"
-    "ENABLE_SCRIPTS"
-    "PRE_SCRIPT"
-    "POST_SCRIPT"
 )
 
 # ==========================================================
@@ -127,18 +101,8 @@ if [ -f "$SETTINGS" ]; then
     source "$SETTINGS"
 fi
 
-# === Check for Mover Tuning plugin ===
-MOVER_TUNING="/boot/config/plugins/ca.mover.tuning.plg"
-MOVER_TUNING_DIR="/usr/local/emhttp/plugins/ca.mover.tuning"
-
-if realpath "$MOVER_TUNING" &>/dev/null || [ -d "$MOVER_TUNING_DIR" ]; then
-  if [ -f "$MOVER_TUNING" ] || [ -d "$MOVER_TUNING_DIR" ]; then
-    echo -e "⚠️ Mover Tuning plugin appears to be installed. Having both can result in conflicts between Mover Tuning and vm-backup-and-restore. \nConsider uninstalling one to avoid incompatibility issues."
-  fi
-fi
-
 # Remove older txz packages (keep only the current one)
-find /boot/config/plugins/VM-Backup-And-Restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.02.02.02-noarch-1.txz" -delete
+find /boot/config/plugins/VM-Backup-And-Restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.02.02.03-noarch-1.txz" -delete
 
 # ==========================================================
 #  HANDLE AUTOSTART + CRON GENERATION
@@ -148,7 +112,7 @@ if [ "$AUTOSTART" == "no" ]; then
     echo ""
     echo "----------------------------------------------------"
     echo " VM-Backup-And-Restore has been installed."
-    echo " Version: 2026.02.02.02"
+    echo " Version: 2026.02.02.03"
     echo "----------------------------------------------------"
     echo ""
 else
@@ -202,7 +166,7 @@ else
     echo ""
     echo "----------------------------------------------------"
     echo " VM-Backup-And-Restore has been installed."
-    echo " Version: 2026.02.02.02"
+    echo " Version: 2026.02.02.03"
     echo "----------------------------------------------------"
     echo ""
 fi
