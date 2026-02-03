@@ -4,9 +4,9 @@
 <PLUGIN 
   name="VM-Backup-And-Restore"
   author="jcofer555"
-  version="2026.02.02.01"
+  version="2026.02.02.02"
   launch="Settings/VM-Backup-And-Restore"
-  pluginURL="https://raw.githubusercontent.com/jcofer555/vm-backup-and-restore/main/plugin/vm-backup-and-restore.plg"
+  pluginURL="https://raw.githubusercontent.com/jcofer555/vm-backup-and-restore/main/plugin/VM-Backup-And-Restore.plg"
   support="https://forums.unraid.net/topic/192216-vm-backup-and-restore-for-unraid/"
   min="7.1.0"
   
@@ -16,7 +16,7 @@
 <CHANGES>
 <![CDATA[
 
-### 2026.02.02.01
+### 2026.02.02.02
 
 - Initial release
 
@@ -25,9 +25,9 @@ For older releases, see https://github.com/jcofer555/vm-backup-and-restore/relea
 ]]>
 </CHANGES>
 
-<FILE Name="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.02.02.01-noarch-1.txz">
-<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.02.02.01/unraid-vm-backup-and-restore-2026.02.02.01-noarch-1.txz</URL>
-<SHA256>7a82dc17722e2576d15914859a7afb26be7d4e3d9d915fd5a54a5c6e367a135d</SHA256>
+<FILE Name="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.02.02-noarch-1.txz">
+<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.02.02.02/unraid-vm-backup-and-restore-2026.02.02.02-noarch-1.txz</URL>
+<SHA256>863d975503575d437e3e5c472d91d29003c6c0a9b46280f843d3af5a036bf8c5</SHA256>
 </FILE>
 
 <!-- ==========================================================
@@ -40,7 +40,7 @@ For older releases, see https://github.com/jcofer555/vm-backup-and-restore/relea
 #  INSTALL / UPGRADE LOGIC
 # ==========================================================
 
-PACKAGE_TXZ="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.02.02.01-noarch-1.txz"
+PACKAGE_TXZ="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.02.02-noarch-1.txz"
 USER_CFG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
 DEFAULT_CFG="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/default_settings.cfg"
 TMP_CFG="/tmp/vm-backup-and-restore_settings.tmp"
@@ -138,7 +138,7 @@ if realpath "$MOVER_TUNING" &>/dev/null || [ -d "$MOVER_TUNING_DIR" ]; then
 fi
 
 # Remove older txz packages (keep only the current one)
-find /boot/config/plugins/vm-backup-and-restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.02.02.01-noarch-1.txz" -delete
+find /boot/config/plugins/VM-Backup-And-Restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.02.02.02-noarch-1.txz" -delete
 
 # ==========================================================
 #  HANDLE AUTOSTART + CRON GENERATION
@@ -147,8 +147,8 @@ if [ "$AUTOSTART" == "no" ]; then
     rm -f "$CRON_FILE"
     echo ""
     echo "----------------------------------------------------"
-    echo " vm-backup-and-restore has been installed."
-    echo " Version: 2026.02.02.01"
+    echo " VM-Backup-And-Restore has been installed."
+    echo " Version: 2026.02.02.02"
     echo "----------------------------------------------------"
     echo ""
 else
@@ -201,8 +201,8 @@ else
 
     echo ""
     echo "----------------------------------------------------"
-    echo " vm-backup-and-restore has been installed."
-    echo " Version: 2026.02.02.01"
+    echo " VM-Backup-And-Restore has been installed."
+    echo " Version: 2026.02.02.02"
     echo "----------------------------------------------------"
     echo ""
 fi
@@ -218,8 +218,8 @@ fi
 <INLINE>
 <![CDATA[
 removepkg unraid-vm-backup-and-restore
-rm -rf /usr/local/emhttp/plugins/vm-backup-and-restore
-rm -rf /boot/config/plugins/vm-backup-and-restore
+rm -rf /usr/local/emhttp/plugins/VM-Backup-And-Restore
+rm -rf /boot/config/plugins/VM-Backup-And-Restore
 ]]>
 </INLINE>
 </FILE>
