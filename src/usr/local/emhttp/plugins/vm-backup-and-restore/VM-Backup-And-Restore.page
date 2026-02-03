@@ -10,7 +10,7 @@ $cfgPath = '/boot/config/plugins/vm-backup-and-restore/settings.cfg';
 
 // Define all default keys and their order
 $defaults = [
-    'POOL_NAME' => 'cache',
+    'VM_NAME' => 'vm1',
     'DRY_RUN' => 'no',
     'ALLOW_DURING_PARITY' => 'no',
     'AUTOSTART' => 'no',
