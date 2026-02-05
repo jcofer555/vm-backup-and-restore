@@ -940,7 +940,9 @@ if (is_file($plg)) {
           $selected = ((int)$current === $i) ? 'selected' : '';
 
           if ($i === 0) {
-            echo "<option value=\"0\" $selected>Infinitely</option>";
+            echo "<option value=\"0\" $selected>Unlimited</option>";
+          } elseif ($i === 1) {
+            echo "<option value=\"1\" $selected>Current Only</option>";
           } else {
             echo "<option value=\"$i\" $selected>$i</option>";
           }
@@ -1024,9 +1026,13 @@ if (is_file($plg)) {
       </span>
     </div>
 
+    <div id="backup-status" style="color:red; font-weight:bold; margin-bottom:6px; display:none;">
+      Backup in progress!
+    </div>
+
     <!-- Backup Button-->
     <div class="form-group">
-      <span title="Run backup of selected VM's" class="vm-backup-and-restoretip">
+      <span title="Run backup of selected VM's. Last 20 logs kept at destination/logs" class="vm-backup-and-restoretip">
         <button type="button" id="moveNowBtn">Backup</button>
       </span>
     </div>
@@ -1155,47 +1161,33 @@ if (is_file($plg)) {
     </script>
 
     <script>
-      $(function () {
-        const dropdown = $('#cron-dropdown');
-        const label = dropdown.find('.vm-dropdown-label');
-        const list = dropdown.find('.vm-dropdown-list');
-        const hidden = $('#cron-hidden');
+      function updateBackupUI(running) {
+        const btn = $('#moveNowBtn');
+        const status = $('#backup-status');
 
-        const selected = dropdown.data('selected') || 'minutes';
+        if (running) {
+          btn.prop('disabled', true);
+          btn.text('Backup running...');
+          status.show();
+        } else {
+          btn.prop('disabled', false);
+          btn.text('Backup');
+          status.hide();
+        }
+      }
 
-        // Set initial label
-        const initialText = list.find(`[data-value="${selected}"]`).text();
-        label.text(initialText);
-
-        // Toggle open
-        label.on('click', function (e) {
-          e.stopPropagation();
-          list.toggle();
-          dropdown.toggleClass('active', list.is(':visible'));
+      function pollBackupStatus() {
+        $.getJSON('/plugins/vm-backup-and-restore/helpers/backup_status.php', function (res) {
+          updateBackupUI(res.running);
         });
+      }
 
-        // Select item
-        list.on('click', 'div', function () {
-          const value = $(this).data('value');
-          const text = $(this).text();
+      // Poll every 1 second
+      setInterval(pollBackupStatus, 1000);
 
-          label.text(text);
-          hidden.val(value);
-
-          list.hide();
-          dropdown.removeClass('active');
-
-          // Trigger existing scheduling logic
-          $('#cron_mode').val(value).trigger('change');
-        });
-
-        // Close on outside click
-        $(document).on('click', function (e) {
-          if (!$(e.target).closest('#cron-dropdown').length) {
-            list.hide();
-            dropdown.removeClass('active');
-          }
-        });
+      // Initial check on page load
+      $(document).ready(function () {
+        pollBackupStatus();
       });
 
       // Force-close any Dynamix tooltip
@@ -1221,6 +1213,10 @@ if (is_file($plg)) {
 
         if (!dest) {
           alert('Please set a backup destination');
+          return;
+        }
+
+        if ($('#moveNowBtn').prop('disabled')) {
           return;
         }
 
@@ -1272,7 +1268,7 @@ if (is_file($plg)) {
           });
       }
 
-if ( typeof caPluginUpdateCheck === "function" ) {
-        caPluginUpdateCheck("VM-Backup-And-Restore.plg",{name:"VM-Backup-And-Restore"});
-    }
+      if (typeof caPluginUpdateCheck === "function") {
+        caPluginUpdateCheck("VM-Backup-And-Restore.plg", { name: "VM-Backup-And-Restore" });
+      }
     </script>

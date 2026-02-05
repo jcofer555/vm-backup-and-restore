@@ -1,5 +1,15 @@
 #!/bin/bash
 
+mkdir -p /tmp/vm-backup-and-restore
+LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
+
+# Prevent double-run
+if [[ -f "$LOCK_FILE" ]]; then
+  exit 0
+fi
+
+touch "$LOCK_FILE"
+
 CONFIG="/boot/config/plugins/VM-Backup-And-Restore/settings.cfg"
 source "$CONFIG" || exit 1
 
@@ -45,6 +55,16 @@ if [[ "$stop_vms" == "yes" ]]; then
         vm_state_before=$(virsh domstate "$vm" 2>/dev/null)
 
         if [[ "$vm_state_before" == "running" ]]; then
+            echo "VM $vm is running."
+
+            # DRY RUN MODE
+            if [[ "$DRY_RUN" == "yes" ]]; then
+                echo "[DRY RUN] Would stop VM: $vm"
+                vms_stopped_by_script+=("$vm")
+                continue
+            fi
+
+            # REAL EXECUTION
             echo "Stopping VM: $vm"
             vms_stopped_by_script+=("$vm")
 
@@ -2963,16 +2983,21 @@ if [[ "$stop_vms" == "yes" ]]; then
     echo "Starting VMs that were stopped by this script..."
 
     for vm in "${vms_stopped_by_script[@]}"; do
+        if [[ "$DRY_RUN" == "yes" ]]; then
+            echo "[DRY RUN] Would start VM: $vm"
+            continue
+        fi
+
         echo "Starting VM: $vm"
         virsh start "$vm"
     done
 
     echo "VM restart phase complete."
-else
-    echo "stop_vms is set to no — skipping VM start."
 fi
 
 find "$backup_location" -type f -size 0 -delete
+find "$backup_location" -type d -empty -delete
+trap 'rm -f "$LOCK_FILE"' EXIT SIGTERM SIGINT SIGHUP SIGQUIT
 
   exit 0
 
