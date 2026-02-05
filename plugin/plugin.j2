@@ -40,7 +40,6 @@ PACKAGE_TXZ="/boot/config/plugins/{{ name }}/{{ package_name }}-{{ env['PLUGIN_V
 USER_CFG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
 DEFAULT_CFG="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/default_settings.cfg"
 TMP_CFG="/tmp/vm-backup-and-restore_settings.tmp"
-CRON_FILE="/boot/config/plugins/vm-backup-and-restore/vm-backup-and-restore.cron"
 
 # Install the package
 upgradepkg --install-new "$PACKAGE_TXZ"
