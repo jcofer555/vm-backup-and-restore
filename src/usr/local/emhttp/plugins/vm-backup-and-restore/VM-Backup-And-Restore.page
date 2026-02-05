@@ -1272,4 +1272,7 @@ if (is_file($plg)) {
           });
       }
 
+if ( typeof caPluginUpdateCheck === "function" ) {
+        caPluginUpdateCheck("VM-Backup-And-Restore.plg",{name:"VM-Backup-And-Restore"});
+    }
     </script>
