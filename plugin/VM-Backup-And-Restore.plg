@@ -4,7 +4,7 @@
 <PLUGIN 
   name="VM-Backup-And-Restore"
   author="jcofer555"
-  version="2026.02.03.01"
+  version="2026.02.04.01"
   launch="Settings/VM-Backup-And-Restore"
   pluginURL="https://raw.githubusercontent.com/jcofer555/vm-backup-and-restore/main/plugin/VM-Backup-And-Restore.plg"
   support="https://forums.unraid.net/topic/192216-vm-backup-and-restore-for-unraid/"
@@ -16,7 +16,7 @@
 <CHANGES>
 <![CDATA[
 
-### 2026.02.03.01
+### 2026.02.04.01
 
 - 1
 
@@ -25,9 +25,9 @@ For older releases, see https://github.com/jcofer555/vm-backup-and-restore/relea
 ]]>
 </CHANGES>
 
-<FILE Name="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.03.01-noarch-1.txz">
-<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.02.03.01/unraid-vm-backup-and-restore-2026.02.03.01-noarch-1.txz</URL>
-<SHA256>c1ce94213a05bf59d32e9c7af35e842b018ba43f4677bfd2b762a21dba4037cc</SHA256>
+<FILE Name="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.04.01-noarch-1.txz">
+<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.02.04.01/unraid-vm-backup-and-restore-2026.02.04.01-noarch-1.txz</URL>
+<SHA256>c442617a9c13fc57c01cb04075348f775e61152e094d4523371da18eaa6ff792</SHA256>
 </FILE>
 
 <!-- ==========================================================
@@ -40,7 +40,7 @@ For older releases, see https://github.com/jcofer555/vm-backup-and-restore/relea
 #  INSTALL / UPGRADE LOGIC
 # ==========================================================
 
-PACKAGE_TXZ="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.03.01-noarch-1.txz"
+PACKAGE_TXZ="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.04.01-noarch-1.txz"
 USER_CFG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
 DEFAULT_CFG="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/default_settings.cfg"
 TMP_CFG="/tmp/vm-backup-and-restore_settings.tmp"
@@ -52,21 +52,12 @@ upgradepkg --install-new "$PACKAGE_TXZ"
 # Ordered config keys
 ordered_keys=(
     "VM_NAME"
+    "BACKUP_DESTINATION"
+    "NUMBER_OF_BACKUPS"
+    "STOP_VMS"
     "DRY_RUN"
-    "ALLOW_DURING_PARITY"
-    "AUTOSTART"
-    "CRON_MODE"
-    "MINUTES_FREQUENCY"
-    "HOURLY_FREQUENCY"
-    "DAILY_TIME"
-    "WEEKLY_DAY"
-    "WEEKLY_TIME"
-    "MONTHLY_DAY"
-    "MONTHLY_TIME"
-    "CUSTOM_CRON"
-    "CRON_EXPRESSION"
     "ENABLE_NOTIFICATIONS"
-    "WEBHOOK_URL"
+    "BACKUP_OWNER"
 )
 
 # ==========================================================
@@ -102,71 +93,12 @@ if [ -f "$SETTINGS" ]; then
 fi
 
 # Remove older txz packages (keep only the current one)
-find /boot/config/plugins/VM-Backup-And-Restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.02.03.01-noarch-1.txz" -delete
-
-# ==========================================================
-#  HANDLE AUTOSTART + CRON GENERATION
-# ==========================================================
-if [ "$AUTOSTART" == "no" ]; then
-    rm -f "$CRON_FILE"
-    echo ""
-    echo "----------------------------------------------------"
-    echo " VM-Backup-And-Restore has been installed."
-    echo " Version: 2026.02.03.01"
-    echo "----------------------------------------------------"
-    echo ""
-else
-    MODE="${MODE:-minutes}"
-    INTERVAL=${INTERVAL:-60}
-    CRON_EXPRESSION="${CRON_EXPRESSION:-}"
-    CRON_CMD="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/vm-backup-and-restore.sh &> /dev/null 2>&1"
-
-    # Build cron entry based on MODE
-    if [ "$MODE" = "cron" ] && [ -n "$CRON_EXPRESSION" ]; then
-        cronEntry="${CRON_EXPRESSION} ${CRON_CMD}"
-    else
-        # INTERVAL mode — convert minutes into cron schedule
-        if [ "$INTERVAL" -lt 60 ]; then
-            # every X minutes
-            minutes=$(( INTERVAL > 0 ? INTERVAL : 1 ))
-            cronEntry="*/${minutes} * * * * ${CRON_CMD}"
-        elif [ "$INTERVAL" -lt 1440 ]; then
-            # every X hours
-            hours=$(( INTERVAL / 60 ))
-            [ "$hours" -lt 1 ] && hours=1
-            minute=$(( INTERVAL % 60 ))
-            cronEntry="$(printf "%d */%d * * * %s" "$minute" "$hours" "$CRON_CMD")"
-        elif [ "$INTERVAL" -lt 10080 ]; then
-            # every X days
-            days=$(( INTERVAL / 1440 ))
-            [ "$days" -lt 1 ] && days=1
-            hour=$(( (INTERVAL % 1440) / 60 ))
-            minute=$(( INTERVAL % 60 ))
-            cronEntry="$(printf "%d %d */%d * * %s" "$minute" "$hour" "$days" "$CRON_CMD")"
-        elif [ "$INTERVAL" -lt 43200 ]; then
-            # every X weeks (7-day multiples)
-            weeks=$(( INTERVAL / 10080 ))
-            [ "$weeks" -lt 1 ] && weeks=1
-            day=0  # Sunday
-            hour=$(( (INTERVAL % 1440) / 60 ))
-            minute=$(( INTERVAL % 60 ))
-            cronEntry="$(printf "%d %d * * %d %s" "$minute" "$hour" "$day" "$CRON_CMD")"
-        else
-            # every X months (~30-day multiples)
-            months=$(( INTERVAL / 43200 ))
-            [ "$months" -lt 1 ] && months=1
-            cronEntry="$(printf "0 0 1 */%d * %s" "$months" "$CRON_CMD")"
-        fi
-    fi
-
-    # Write to cron file and apply
-    echo "$cronEntry" > "$CRON_FILE"
-    update_cron
+find /boot/config/plugins/VM-Backup-And-Restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.02.04.01-noarch-1.txz" -delete
 
     echo ""
     echo "----------------------------------------------------"
     echo " VM-Backup-And-Restore has been installed."
-    echo " Version: 2026.02.03.01"
+    echo " Version: 2026.02.04.01"
     echo "----------------------------------------------------"
     echo ""
 fi
