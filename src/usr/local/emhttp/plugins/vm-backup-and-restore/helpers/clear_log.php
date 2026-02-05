@@ -21,8 +21,8 @@ if ($csrfHeader !== $cookieToken && $postToken !== $cookieToken) {
 
 $log = $_POST['log'] ?? '';
 $files = [
-    'mover' => '/tmp/automover/files_moved.log',
-    'last'  => '/tmp/automover/last_run.log'
+    'mover' => '/tmp/vm-backup-and-restore/files_moved.log',
+    'last'  => '/tmp/vm-backup-and-restore/last_run.log'
 ];
 
 if (!isset($files[$log])) {

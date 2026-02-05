@@ -10,22 +10,13 @@ $cfgPath = '/boot/config/plugins/vm-backup-and-restore/settings.cfg';
 
 // Define all default keys and their order
 $defaults = [
-    'VM_NAME' => 'vm1',
-    'DRY_RUN' => 'no',
-    'ALLOW_DURING_PARITY' => 'no',
-    'AUTOSTART' => 'no',
-    'CRON_MODE' => 'minutes',
-    'MINUTES_FREQUENCY' => '2',
-    'HOURLY_FREQUENCY' => '',
-    'DAILY_TIME' => '',
-    'WEEKLY_DAY' => '',
-    'WEEKLY_TIME' => '',
-    'MONTHLY_DAY' => '',
-    'MONTHLY_TIME' => '',
-    'CUSTOM_CRON' => '',
-    'CRON_EXPRESSION' => '',
-    'ENABLE_NOTIFICATIONS' => 'no',
-    'WEBHOOK_URL' => ''
+    'VM_NAME' => '',
+    'BACKUP_DESTINATION' => '',
+    'NUMBER_OF_BACKUPS' => '0',
+    'STOP_VMS' => 'yes', 
+    'DRY_RUN' => '1',
+    'ENABLE_NOTIFICATIONS' => '0',
+    'BACKUP_OWNER' => 'nobody'
 ];
 
 // Load existing config if present
@@ -319,9 +310,8 @@ if (file_exists("/etc/unraid-version")) {
     width: 75px;
   }
 
-  #status-text,
-  #last-run-text {
-    color: var(--status-green);
+  #version-text {
+    color: #fff;
   }
 
   .tooltip {
@@ -761,15 +751,6 @@ if (file_exists("/etc/unraid-version")) {
     cursor: pointer;
   }
 
-  #cron-warning-fields,
-  #cron-warning-minute,
-  #cron-warning-interval {
-    max-width: 360px;
-    width: 100%;
-    box-sizing: border-box;
-    word-wrap: break-word;
-  }
-
   .vm-multiselect {
     position: relative;
     width: 200px;
@@ -855,45 +836,6 @@ if (file_exists("/etc/unraid-version")) {
     background: #111;
   }
 
-  #cron_mode,
-  #minutes_frequency,
-  #hourly_frequency,
-  #daily_time,
-  #weekly_day,
-  #weekly_time,
-  #monthly_day,
-  #monthly_time {
-    background-color: #111 !important;
-    color: #fff !important;
-    border: 1px solid var(--primary-blue);
-  }
-
-  select option {
-    background-color: #111 !important;
-    color: #fff !important;
-  }
-
-  select:focus,
-  select:hover {
-    background-color: #111 !important;
-    color: #fff !important;
-  }
-
-  /* Scheduling dropdown (single select) */
-  #cron-dropdown {
-    width: 200px;
-  }
-
-  #cron-dropdown.active {
-    border-color: #ff4444;
-    box-shadow: 0 0 0 2px #111;
-  }
-
-  #cron-dropdown .vm-dropdown-list {
-    border: 1px solid #ff4444;
-    background: #111;
-  }
-
   .checkbox-row label.vm-backup-and-restoretip {
     display: inline-flex;
     /* shrink to content */
@@ -915,7 +857,35 @@ if (file_exists("/etc/unraid-version")) {
     cursor: default;
     font-style: italic;
   }
+
+  #move-now-confirmation {
+    animation: flash .4s ease;
+    background: var(--primary-blue);
+    border-radius: 6px;
+    clear: both;
+    color: #fff;
+    display: block;
+    font-weight: bold;
+    opacity: 0;
+    padding: 6px 12px;
+    transition: opacity .4s ease;
+    width: fit-content;
+    display: inline-block;
+    margin-bottom: 10px;
+  }
 </style>
+
+<?php
+$plg = "/boot/config/plugins/VM-Backup-And-Restore.plg";
+$version = "unknown";
+
+if (is_file($plg)) {
+    $xml = @simplexml_load_file($plg);
+    if ($xml && isset($xml['version'])) {
+        $version = (string)$xml['version'];
+    }
+}
+?>
 
 <div id="vm-backup-and-restore-wrapper">
   <form id="vm-backup-and-restore-settings">
@@ -948,269 +918,123 @@ if (file_exists("/etc/unraid-version")) {
 
       <span class="vm-backup-and-restoretip"
         title="Choose destination for backup. Each VM will be saved to a subdirectory with the name the same as the VM">
-        <input type="text" id="backup_destination" placeholder="e.g. /mnt/user/backups/vms">
+        <input type="text" id="backup_destination" name="BACKUP_DESTINATION" placeholder="e.g. /mnt/user/backups/vms"
+          value="<?php echo htmlspecialchars($settings['BACKUP_DESTINATION'] ?? ''); ?>">
       </span>
     </div>
 
-    <!-- Hidden select for existing JS -->
-    <select id="cron_mode" style="display:none;">
-      <option value="minutes"></option>
-      <option value="hourly"></option>
-      <option value="daily"></option>
-      <option value="weekly"></option>
-      <option value="monthly"></option>
-      <option value="custom"></option>
-    </select>
-
-    <!-- Scheduling Selection -->
-    <div class="form-pair" id="cron-expression-row">
-      <label>
-        <span class="vm-backup-and-restoretip" title="Select scheduling selection">
-          Scheduling:
+    <!-- NUMBER OF BACKUPS -->
+    <div class="form-pair">
+      <label for="number_of_backups">
+        <span title="Choose the amount of backups to keep for the VM" class="vm-backup-and-restoretip">
+          Number Of Backups:
         </span>
       </label>
 
-      <div class="input-wrapper">
-        <div id="cron-dropdown" class="vm-multiselect vm-backup-and-restoretip" title="Select scheduling selection"
-          data-selected="<?php echo htmlspecialchars($settings['CRON_MODE'] ?? 'minutes'); ?>">
+      <span title="Choose the amount of backups to keep for the VM" class="vm-backup-and-restoretip">
+        <select id="number_of_backups" class="short-input" name="number_of_backups">
+          <?php
+        $current = $settings['NUMBER_OF_BACKUPS'] ?? 0;
 
-          <div class="vm-dropdown-label">Select Schedule</div>
+        for ($i = 0; $i <= 99; $i++) {
+          $selected = ((int)$current === $i) ? 'selected' : '';
 
-          <div class="vm-dropdown-list">
-            <div data-value="minutes">Minutes</div>
-            <div data-value="hourly">Hourly</div>
-            <div data-value="daily">Daily</div>
-            <div data-value="weekly">Weekly</div>
-            <div data-value="monthly">Monthly</div>
-            <div data-value="custom">Custom</div>
-          </div>
-        </div>
-
-        <input type="hidden" id="cron-hidden" name="CRON_MODE"
-          value="<?php echo htmlspecialchars($settings['CRON_MODE'] ?? 'minutes'); ?>">
-      </div>
-    </div>
-
-    <!-- Minutes Options -->
-    <div id="minutes-options" style="display:none; margin-top:10px;">
-      <div class="form-pair">
-        <label for="minutes_frequency">
-          <span class="vm-backup-and-restoretip" title="Select minute frequency">
-            Select Frequency:
-          </span>
-        </label>
-        <div class="input-wrapper">
-          <span class="vm-backup-and-restoretip" title="Select minute frequency">
-            <select id="minutes_frequency" name="MINUTES_FREQUENCY" class="short-input">
-              <?php
-            for ($i = 2; $i <= 59; $i++) {
-              $selected = (($settings['MINUTES_FREQUENCY'] ?? '') == strval($i)) ? 'selected' : '';
-              echo "<option value=\"$i\" $selected>Every $i Minutes</option>";
-            }
-          ?>
-            </select>
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Hourly Options -->
-    <div id="hourly-options" style="display:none; margin-top:10px;">
-      <div class="form-pair">
-        <label for="hourly_frequency">
-          <span class="vm-backup-and-restoretip" title="Select hourly frequency">
-            Select Frequency:
-          </span>
-        </label>
-        <div class="input-wrapper">
-          <span class="vm-backup-and-restoretip" title="Select hourly frequency">
-            <select id="hourly_frequency" name="HOURLY_FREQUENCY" class="short-input">
-              <?php
-          for ($i = 1; $i <= 23; $i++) {
-              $selected = (($settings['HOURLY_FREQUENCY'] ?? '') === (string)$i) ? 'selected' : '';
-              echo "<option value=\"$i\" $selected>Every $i Hour" . ($i > 1 ? 's' : '') . "</option>";
+          if ($i === 0) {
+            echo "<option value=\"0\" $selected>Infinitely</option>";
+          } else {
+            echo "<option value=\"$i\" $selected>$i</option>";
           }
-          ?>
-            </select>
-          </span>
-        </div>
-      </div>
+        }
+      ?>
+        </select>
+      </span>
     </div>
 
-    <!-- Daily Options -->
-    <div id="daily-options" style="display:none; margin-top:10px;">
-      <div class="form-pair">
-        <label for="daily_time">
-          <span class="vm-backup-and-restoretip" title="Select the time of day for daily execution">
-            Time Of Day:
-          </span>
-        </label>
-        <div class="input-wrapper">
-          <span class="vm-backup-and-restoretip" title="Select the time of day for daily execution">
-            <select id="daily_time" name="DAILY_TIME" class="short-input">
-              <?php for ($h = 0; $h < 24; $h++): 
-            $time = str_pad($h, 2, "0", STR_PAD_LEFT) . ":00"; ?>
-              <option value="<?php echo $time; ?>" <?php echo (($settings['DAILY_TIME'] ?? '' )===$time) ? 'selected'
-                : '' ; ?>>
-                <?php echo $time; ?>
-              </option>
-              <?php endfor; ?>
-            </select>
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Weekly Options -->
-    <div id="weekly-options" style="display:none; margin-top:10px;">
-      <div class="form-pair">
-        <label for="weekly_day">
-          <span class="vm-backup-and-restoretip" title="Select day of the week">
-            Day Of Week:
-          </span>
-        </label>
-        <div class="input-wrapper">
-          <span class="vm-backup-and-restoretip" title="Select day of the week">
-            <select id="weekly_day" name="WEEKLY_DAY" class="short-input">
-              <?php 
-            $days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-            foreach ($days as $day): ?>
-              <option value="<?php echo $day; ?>" <?php echo (($settings['WEEKLY_DAY'] ?? '' )===$day) ? 'selected' : ''
-                ; ?>>
-                <?php echo $day; ?>
-              </option>
-              <?php endforeach; ?>
-            </select>
-          </span>
-        </div>
-      </div>
-
-      <div class="form-pair">
-        <label for="weekly_time">
-          <span class="vm-backup-and-restoretip" title="Select time of day for weekly execution">
-            Time Of Day:
-          </span>
-        </label>
-        <div class="input-wrapper">
-          <span class="vm-backup-and-restoretip" title="Select time of day for weekly execution">
-            <select id="weekly_time" name="WEEKLY_TIME" class="short-input">
-              <?php for ($h = 0; $h < 24; $h++): 
-            $time = str_pad($h, 2, "0", STR_PAD_LEFT) . ":00"; ?>
-              <option value="<?php echo $time; ?>" <?php echo (($settings['WEEKLY_TIME'] ?? '' )===$time) ? 'selected'
-                : '' ; ?>>
-                <?php echo $time; ?>
-              </option>
-              <?php endfor; ?>
-            </select>
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Monthly Options -->
-    <div id="monthly-options" style="display:none; margin-top:10px;">
-      <div class="form-pair">
-        <label for="monthly_day">
-          <span class="vm-backup-and-restoretip" title="Select day of the month">
-            Day Of Month:
-          </span>
-        </label>
-        <div class="input-wrapper">
-          <span class="vm-backup-and-restoretip" title="Select day of the month">
-            <select id="monthly_day" name="MONTHLY_DAY" class="short-input">
-              <?php for ($d = 1; $d <= 31; $d++): 
-            $day = str_pad($d, 2, "0", STR_PAD_LEFT); ?>
-              <option value="<?php echo $day; ?>" <?php echo (($settings['MONTHLY_DAY'] ?? '' )===$day) ? 'selected'
-                : '' ; ?>>
-                <?php echo $day; ?>
-              </option>
-              <?php endfor; ?>
-            </select>
-          </span>
-        </div>
-      </div>
-
-      <div class="form-pair">
-        <label for="monthly_time">
-          <span class="vm-backup-and-restoretip" title="Select time of day for monthly execution">
-            Time Of Day:
-          </span>
-        </label>
-        <div class="input-wrapper">
-          <span class="vm-backup-and-restoretip" title="Select time of day for monthly execution">
-            <select id="monthly_time" name="MONTHLY_TIME" class="short-input">
-              <?php for ($h = 0; $h < 24; $h++): 
-            $time = str_pad($h, 2, "0", STR_PAD_LEFT) . ":00"; ?>
-              <option value="<?php echo $time; ?>" <?php echo (($settings['MONTHLY_TIME'] ?? '' )===$time) ? 'selected'
-                : '' ; ?>>
-                <?php echo $time; ?>
-              </option>
-              <?php endfor; ?>
-            </select>
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Custom Option -->
-    <div id="custom-options" style="display:none; margin-top:10px;">
-      <div class="form-pair">
-        <label for="custom_cron">
-          <span class="vm-backup-and-restoretip"
-            title="Enter a valid cron expression 5 fields with spaces between each for example */2 * * * * visit https://crontab.guru for help">
-            Cron Expression:
-          </span>
-        </label>
-        <div class="input-wrapper">
-          <span class="vm-backup-and-restoretip"
-            title="Enter a valid cron expression 5 fields with spaces between each for example */2 * * * * visit https://crontab.guru for help">
-            <input type="text" id="custom_cron" name="CUSTOM_CRON" class="short-input" placeholder="*/2 * * * *"
-              value="<?php echo htmlspecialchars($settings['CUSTOM_CRON'] ?? ''); ?>">
-          </span>
-        </div>
-      </div>
-
-      <div class="form-pair">
-        <div id="cron-warning-fields" class="field-warning" role="alert" style="display:none;">
-          ⚠️ Enter a valid cron expression 5 fields with spaces between each for example */2 * * * *
-          visit <a href="https://crontab.guru/" target="_blank">https://crontab.guru</a> for help
-        </div>
-        <div id="cron-warning-minute" class="field-warning" role="alert" style="display:none;">
-          ⚠️ First field cannot be * use */2 or higher
-        </div>
-        <div id="cron-warning-interval" class="field-warning" role="alert" style="display:none;">
-          ⚠️ First field must be */2 or higher
-        </div>
-      </div>
-    </div>
-
-    <!-- Checkboxes -->
-    <div class="checkbox-row" style="display:flex; gap:20px; flex-wrap:wrap; align-items:center;">
-
-      <label class="vm-backup-and-restoretip" title="Start vm-backup-and-restore automatically when Unraid boots">
-        <input type="checkbox" id="autostart" <?php echo ($settings['AUTOSTART'] ?? '' )==='yes' ? 'checked' : '' ?>>
-        Autostart on Boot
+    <!-- STOP VMS -->
+    <div class="form-pair">
+      <label for="stop_vms">
+        <span title="Choose whether VMs should be stopped during backup" class="vm-backup-and-restoretip">
+          Stop VMs:
+        </span>
       </label>
 
-      <label class="vm-backup-and-restoretip"
-        title="Allow vm-backup-and-restore to run even when Unraid is doing a parity check">
-        <input type="checkbox" id="allow_during_parity" <?php echo ($settings['ALLOW_DURING_PARITY'] ?? '' )==='yes'
-          ? 'checked' : '' ?>>
-        Allow During Parity
+      <span title="Choose whether VMs should be stopped during backup" class="vm-backup-and-restoretip">
+        <select id="stop_vms" class="short-input" name="stop_vms">
+          <option value="yes" <?=($settings['STOP_VMS'] ?? 'yes' )==='yes' ? 'selected' : '' ?>>
+            Yes - Full backup
+          </option>
+          <option value="no" <?=($settings['STOP_VMS'] ?? 'yes' )==='no' ? 'selected' : '' ?>>
+            No - Snapshot backup
+          </option>
+        </select>
+      </span>
+    </div>
+
+    <!-- DRY RUN -->
+    <div class="form-pair">
+      <label for="dry_run">
+        <span class="vm-backup-and-restoretip" title="Enable to simulate backup">
+          Dry Run:
+        </span>
       </label>
 
-      <label class="vm-backup-and-restoretip" title="Enable to simulate moves without actually transferring files">
-        <input type="checkbox" id="dry_run" <?php echo ($settings['DRY_RUN'] ?? '' )==='yes' ? 'checked' : '' ?>>
-        Dry Run
+      <span class="vm-backup-and-restoretip" title="Enable to simulate backup">
+        <select id="dry_run" class="short-input" name="dry_run">
+          <option value="0" <?=((string)($settings['DRY_RUN'] ?? '1' )==='0' ) ? 'selected' : '' ?>>Yes</option>
+          <option value="1" <?=((string)($settings['DRY_RUN'] ?? '1' )==='1' ) ? 'selected' : '' ?>>No</option>
+        </select>
+      </span>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="form-pair">
+      <label for="enable_notifications">
+        <span class="vm-backup-and-restoretip"
+          title="Send Unraid system notifications when VM backup starts and finishes">
+          Enable Notifications:
+        </span>
       </label>
 
-      <label class="vm-backup-and-restoretip"
-        title="Send Unraid system notifications when vm-backup-and-restore starts and finishes">
-        <input type="checkbox" id="enable_notifications" <?php echo ($settings['ENABLE_NOTIFICATIONS'] ?? '' )==='yes'
-          ? 'checked' : '' ?>>
-        Enable Notifications
+      <span class="vm-backup-and-restoretip"
+        title="Send Unraid system notifications when VM backup starts and finishes">
+        <select id="enable_notifications" class="short-input" name="enable_notifications">
+          <option value="1" <?=((int)($settings['ENABLE_NOTIFICATIONS'] ?? 0)===1) ? 'selected' : '' ?>>
+            Yes
+          </option>
+          <option value="0" <?=((int)($settings['ENABLE_NOTIFICATIONS'] ?? 0)===0) ? 'selected' : '' ?>>
+            No
+          </option>
+        </select>
+      </span>
+    </div>
+
+    <!-- BACKUP OWNER -->
+    <div class="form-pair">
+      <label>
+        <span class="vm-backup-and-restoretip"
+          title="Choose the owner for the backup if you wanted it owned by one of your created users">
+          Backup Owner:
+        </span>
       </label>
 
+      <span class="vm-backup-and-restoretip"
+        title="Choose the owner for the backup if you wanted it owned by one of your created users">
+        <input type="text" id="backup_owner" name="BACKUP_OWNER" placeholder="e.g. nobody"
+          value="<?php echo htmlspecialchars($settings['BACKUP_OWNER'] ?? ''); ?>">
+      </span>
+    </div>
+
+    <!-- Backup Button-->
+    <div class="form-group">
+      <span title="Run backup of selected VM's" class="vm-backup-and-restoretip">
+        <button type="button" id="moveNowBtn">Backup</button>
+      </span>
+    </div>
+
+    <div class="status-container">
+      <div class="status-row"><span class="status-label">Plugin Version:</span><span id="version-text">
+          <?= $version ?>
+        </span></div>
     </div>
 
     <script>
@@ -1383,5 +1207,69 @@ if (file_exists("/etc/unraid-version")) {
       $('.vm-dropdown-label, .vm-dropdown-list, select, .custom-dropdown').on('click', function () {
         closeTooltips();
       });
+
+      $('#moveNowBtn').on('click', function () {
+
+        // Optional: basic validation
+        const vms = $('#vm-hidden').val();
+        const dest = $('#backup_destination').val().trim();
+
+        if (!vms) {
+          alert('Please select at least one VM');
+          return;
+        }
+
+        if (!dest) {
+          alert('Please set a backup destination');
+          return;
+        }
+
+        // Build query params
+        const params = $.param({
+          VM_NAME: vms,
+          BACKUP_DESTINATION: dest,
+          NUMBER_OF_BACKUPS: $('#number_of_backups').val(),
+          STOP_VMS: $('#stop_vms').val(),
+          BACKUP_OWNER: $('#backup_owner').val(),
+          DRY_RUN: $('#dry_run').val(),
+          ENABLE_NOTIFICATIONS: $('#enable_notifications').val(),
+          csrf_token: csrfToken
+        });
+
+        // Save settings first
+        $.get(
+          '/plugins/vm-backup-and-restore/helpers/save_settings.php?' + params
+        )
+          .done(function (res) {
+            if (res && res.status === 'ok') {
+              console.log('Settings saved');
+
+              // 👉 NOW trigger the actual backup
+              startBackup();
+            } else {
+              alert('Failed to save settings');
+            }
+          })
+          .fail(function () {
+            alert('Error saving settings');
+          });
+
+      });
+
+      function startBackup() {
+        $.get('/plugins/vm-backup-and-restore/helpers/backup.php', {
+          csrf_token: csrfToken
+        })
+          .done(function (res) {
+            if (res && res.status === 'ok') {
+              console.log('Backup started, PID:', res.pid);
+            } else {
+              alert(res.message || 'Failed to start backup');
+            }
+          })
+          .fail(function () {
+            alert('Error starting backup');
+          });
+      }
 
     </script>

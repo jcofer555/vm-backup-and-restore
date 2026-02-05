@@ -2,26 +2,17 @@
 header('Content-Type: application/json');
 
 // Path to your shell script
-$cmd = '/usr/local/emhttp/plugins/automover/helpers/save_settings.sh';
+$cmd = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/save_settings.sh';
 
 // Grab arguments from query string
 $args = [
     $_GET['VM_NAME'] ?? '',
+    $_GET['BACKUP_DESTINATION'] ?? '',
+    $_GET['NUMBER_OF_BACKUPS'] ?? '',
+    $_GET['STOP_VMS'] ?? '',
     $_GET['DRY_RUN'] ?? '',
-    $_GET['ALLOW_DURING_PARITY'] ?? '',
-    $_GET['AUTOSTART'] ?? '',
-    $_GET['CRON_MODE'] ?? '',
-    $_GET['MINUTES_FREQUENCY'] ?? '',
-    $_GET['HOURLY_FREQUENCY'] ?? '',
-    $_GET['DAILY_TIME'] ?? '',
-    $_GET['WEEKLY_DAY'] ?? '',
-    $_GET['WEEKLY_TIME'] ?? '',
-    $_GET['MONTHLY_DAY'] ?? '',
-    $_GET['MONTHLY_TIME'] ?? '',
-    $_GET['CUSTOM_CRON'] ?? '',
-    $_GET['CRON_EXPRESSION'] ?? '',
     $_GET['ENABLE_NOTIFICATIONS'] ?? '',
-    $_GET['WEBHOOK_URL'] ?? '',
+    $_GET['BACKUP_OWNER'] ?? '',
 ];
 
 // Escape each argument for safety

@@ -1,55 +1,28 @@
 #!/bin/bash
 
-CONFIG="/boot/config/plugins/automover/settings.cfg"
+CONFIG="/boot/config/plugins/VM-Backup-And-Restore/settings.cfg"
 mkdir -p "$(dirname "$CONFIG")"
 
 # Safely assign defaults if missing
-VM_NAME="${1:-vm1}"
-DRY_RUN="${2:-no}"
-ALLOW_DURING_PARITY="${3:-no}"
-AUTOSTART="${4:-no}"
-CRON_MODE="${5:-minutes}"
-MINUTES_FREQUENCY="${6:-2}"
-HOURLY_FREQUENCY="${7:-}"
-DAILY_TIME="${8:-}"
-WEEKLY_DAY="${9:-}"
-WEEKLY_TIME="${10:-}"
-MONTHLY_DAY="${11:-}"
-MONTHLY_TIME="${12:-}"
-CUSTOM_CRON="${13:-}"
-CRON_EXPRESSION="${14:-}"
-ENABLE_NOTIFICATIONS="${15:-no}"
-WEBHOOK_URL="${16:-}"
-
-# ==========================================================
-#  Normalize and sanitize CONTAINER_NAMES
-# ==========================================================
-if [[ -n "$CONTAINER_NAMES_RAW" ]]; then
-  CONTAINER_NAMES=$(echo "$CONTAINER_NAMES_RAW" | sed 's/, */,/g' | xargs)
-else
-  CONTAINER_NAMES=""
-fi
+VM_NAME="${1:-}"
+BACKUP_DESTINATION="${2:-}"
+NUMBER_OF_BACKUPS="${3:-0}"
+STOP_VMS="${4:-yes}"
+DRY_RUN="${5:-1}"
+ENABLE_NOTIFICATIONS="${6:-0}"
+BACKUP_OWNER="${7:-nobody}"
 
 # ==========================================================
 #  Write all settings cleanly and atomically
 # ==========================================================
 {
   echo "VM_NAME=\"$VM_NAME\""
+  echo "BACKUP_DESTINATION=\"$BACKUP_DESTINATION\""
+  echo "NUMBER_OF_BACKUPS=\"$NUMBER_OF_BACKUPS\""
+  echo "STOP_VMS=\"$STOP_VMS\""
   echo "DRY_RUN=\"$DRY_RUN\""
-  echo "ALLOW_DURING_PARITY=\"$ALLOW_DURING_PARITY\""
-  echo "AUTOSTART=\"$AUTOSTART\""
-  echo "CRON_MODE=\"$CRON_MODE\""
-  echo "MINUTES_FREQUENCY=\"$MINUTES_FREQUENCY\""
-  echo "HOURLY_FREQUENCY=\"$HOURLY_FREQUENCY\""
-  echo "DAILY_TIME=\"$DAILY_TIME\""
-  echo "WEEKLY_DAY=\"$WEEKLY_DAY\""
-  echo "WEEKLY_TIME=\"$WEEKLY_TIME\""
-  echo "MONTHLY_DAY=\"$MONTHLY_DAY\""
-  echo "MONTHLY_TIME=\"$MONTHLY_TIME\""
-  echo "CUSTOM_CRON=\"$CUSTOM_CRON\""
-  echo "CRON_EXPRESSION=\"$CRON_EXPRESSION\""
   echo "ENABLE_NOTIFICATIONS=\"$ENABLE_NOTIFICATIONS\""
-  echo "WEBHOOK_URL=\"$WEBHOOK_URL\""
+  echo "BACKUP_OWNER=\"$BACKUP_OWNER\""
 } > "$CONFIG"
 
 echo '{"status":"ok"}'

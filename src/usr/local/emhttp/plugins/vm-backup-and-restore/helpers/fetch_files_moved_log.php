@@ -1,5 +1,5 @@
 <?php
-$logDir = '/tmp/automover';
+$logDir = '/tmp/vm-backup-and-restore';
 $logFile = "$logDir/files_moved.log";
 $prevLog = "$logDir/files_moved_prev.log";
 $lastRunLog = "$logDir/last_run.log";
