@@ -48,21 +48,12 @@ upgradepkg --install-new "$PACKAGE_TXZ"
 # Ordered config keys
 ordered_keys=(
     "VM_NAME"
+    "BACKUP_DESTINATION"
+    "NUMBER_OF_BACKUPS"
+    "STOP_VMS"
     "DRY_RUN"
-    "ALLOW_DURING_PARITY"
-    "AUTOSTART"
-    "CRON_MODE"
-    "MINUTES_FREQUENCY"
-    "HOURLY_FREQUENCY"
-    "DAILY_TIME"
-    "WEEKLY_DAY"
-    "WEEKLY_TIME"
-    "MONTHLY_DAY"
-    "MONTHLY_TIME"
-    "CUSTOM_CRON"
-    "CRON_EXPRESSION"
     "ENABLE_NOTIFICATIONS"
-    "WEBHOOK_URL"
+    "BACKUP_OWNER"
 )
 
 # ==========================================================
@@ -99,65 +90,6 @@ fi
 
 # Remove older txz packages (keep only the current one)
 find /boot/config/plugins/{{ name }}/ -maxdepth 1 -type f -name "{{ package_name }}-*.txz" ! -name "{{ package_name }}-{{ env['PLUGIN_VERSION'] }}-noarch-1.txz" -delete
-
-# ==========================================================
-#  HANDLE AUTOSTART + CRON GENERATION
-# ==========================================================
-if [ "$AUTOSTART" == "no" ]; then
-    rm -f "$CRON_FILE"
-    echo ""
-    echo "----------------------------------------------------"
-    echo " {{ name }} has been installed."
-    echo " Version: {{ env['PLUGIN_VERSION'] }}"
-    echo "----------------------------------------------------"
-    echo ""
-else
-    MODE="${MODE:-minutes}"
-    INTERVAL=${INTERVAL:-60}
-    CRON_EXPRESSION="${CRON_EXPRESSION:-}"
-    CRON_CMD="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/vm-backup-and-restore.sh &> /dev/null 2>&1"
-
-    # Build cron entry based on MODE
-    if [ "$MODE" = "cron" ] && [ -n "$CRON_EXPRESSION" ]; then
-        cronEntry="${CRON_EXPRESSION} ${CRON_CMD}"
-    else
-        # INTERVAL mode — convert minutes into cron schedule
-        if [ "$INTERVAL" -lt 60 ]; then
-            # every X minutes
-            minutes=$(( INTERVAL > 0 ? INTERVAL : 1 ))
-            cronEntry="*/${minutes} * * * * ${CRON_CMD}"
-        elif [ "$INTERVAL" -lt 1440 ]; then
-            # every X hours
-            hours=$(( INTERVAL / 60 ))
-            [ "$hours" -lt 1 ] && hours=1
-            minute=$(( INTERVAL % 60 ))
-            cronEntry="$(printf "%d */%d * * * %s" "$minute" "$hours" "$CRON_CMD")"
-        elif [ "$INTERVAL" -lt 10080 ]; then
-            # every X days
-            days=$(( INTERVAL / 1440 ))
-            [ "$days" -lt 1 ] && days=1
-            hour=$(( (INTERVAL % 1440) / 60 ))
-            minute=$(( INTERVAL % 60 ))
-            cronEntry="$(printf "%d %d */%d * * %s" "$minute" "$hour" "$days" "$CRON_CMD")"
-        elif [ "$INTERVAL" -lt 43200 ]; then
-            # every X weeks (7-day multiples)
-            weeks=$(( INTERVAL / 10080 ))
-            [ "$weeks" -lt 1 ] && weeks=1
-            day=0  # Sunday
-            hour=$(( (INTERVAL % 1440) / 60 ))
-            minute=$(( INTERVAL % 60 ))
-            cronEntry="$(printf "%d %d * * %d %s" "$minute" "$hour" "$day" "$CRON_CMD")"
-        else
-            # every X months (~30-day multiples)
-            months=$(( INTERVAL / 43200 ))
-            [ "$months" -lt 1 ] && months=1
-            cronEntry="$(printf "0 0 1 */%d * %s" "$months" "$CRON_CMD")"
-        fi
-    fi
-
-    # Write to cron file and apply
-    echo "$cronEntry" > "$CRON_FILE"
-    update_cron
 
     echo ""
     echo "----------------------------------------------------"
