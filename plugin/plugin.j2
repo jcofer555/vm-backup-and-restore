@@ -90,12 +90,12 @@ fi
 # Remove older txz packages (keep only the current one)
 find /boot/config/plugins/{{ name }}/ -maxdepth 1 -type f -name "{{ package_name }}-*.txz" ! -name "{{ package_name }}-{{ env['PLUGIN_VERSION'] }}-noarch-1.txz" -delete
 
-    echo ""
-    echo "----------------------------------------------------"
-    echo " {{ name }} has been installed."
-    echo " Version: {{ env['PLUGIN_VERSION'] }}"
-    echo "----------------------------------------------------"
-    echo ""
+echo ""
+echo "----------------------------------------------------"
+echo " {{ name }} has been installed."
+echo " Version: {{ env['PLUGIN_VERSION'] }}"
+echo "----------------------------------------------------"
+echo ""
 
 ]]>
 </INLINE>
