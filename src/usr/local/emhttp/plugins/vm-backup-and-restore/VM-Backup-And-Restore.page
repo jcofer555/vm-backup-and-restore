@@ -1021,8 +1021,9 @@ if (is_file($plg)) {
 
       <span class="vm-backup-and-restoretip"
         title="Choose the owner for the backup if you wanted it owned by one of your created users">
-        <input type="text" id="backup_owner" name="BACKUP_OWNER" placeholder="e.g. nobody"
-          value="<?php echo htmlspecialchars($settings['BACKUP_OWNER'] ?? ''); ?>">
+        <select id="backup_owner" name="BACKUP_OWNER"
+          data-selected="<?php echo htmlspecialchars($settings['BACKUP_OWNER'] ?? 'nobody'); ?>">
+        </select>
       </span>
     </div>
 
@@ -1044,6 +1045,28 @@ if (is_file($plg)) {
     </div>
 
     <script>
+      $(document).ready(function () {
+        const select = $('#backup_owner');
+        const selected = select.data('selected') || 'nobody';
+
+        $.getJSON('/plugins/vm-backup-and-restore/helpers/list_users_group100.php', function (data) {
+          select.empty();
+
+          data.users.forEach(user => {
+            const opt = $('<option>', {
+              value: user,
+              text: user
+            });
+
+            if (user === selected) {
+              opt.prop('selected', true);
+            }
+
+            select.append(opt);
+          });
+        });
+      });
+
       $(document).ready(function () {
         const dropdown = $('#vm-dropdown');
         const label = dropdown.find('.vm-dropdown-label');
