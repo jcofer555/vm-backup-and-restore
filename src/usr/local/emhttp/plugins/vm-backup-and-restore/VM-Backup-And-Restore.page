@@ -114,7 +114,7 @@ if (file_exists("/etc/unraid-version")) {
   #last-run-container {
     background: #111;
     border-radius: 12px;
-    box-shadow: 0 0 12px rgba(0, 128, 128, .3);
+    box-shadow: 0 0 12px rgba(255, 0, 0, .3);
     color: #f0f8ff;
     padding: 20px;
     flex: 1 1 auto;
