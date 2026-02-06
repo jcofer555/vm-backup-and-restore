@@ -1,7 +1,7 @@
 #!/bin/bash
 
 mkdir -p /tmp/vm-backup-and-restore
-LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
+LOCK_FILE="/tmp/vm-backup-and-restore/backup_lock.txt"
 
 # Prevent double-run
 if [[ -f "$LOCK_FILE" ]]; then
