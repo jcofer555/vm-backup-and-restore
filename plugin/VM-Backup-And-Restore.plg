@@ -4,7 +4,7 @@
 <PLUGIN 
   name="VM-Backup-And-Restore"
   author="jcofer555"
-  version="2026.02.05.09"
+  version="2026.02.06.01"
   launch="Settings/VM-Backup-And-Restore"
   pluginURL="https://raw.githubusercontent.com/jcofer555/vm-backup-and-restore/main/plugin/VM-Backup-And-Restore.plg"
   support="https://forums.unraid.net/topic/192216-vm-backup-and-restore-for-unraid/"
@@ -16,7 +16,7 @@
 <CHANGES>
 <![CDATA[
 
-### 2026.02.05.09
+### 2026.02.06.01
 
 - 1
 
@@ -25,9 +25,9 @@ For older releases, see https://github.com/jcofer555/vm-backup-and-restore/relea
 ]]>
 </CHANGES>
 
-<FILE Name="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.05.09-noarch-1.txz">
-<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.02.05.09/unraid-vm-backup-and-restore-2026.02.05.09-noarch-1.txz</URL>
-<SHA256>50f20eaa9b8bd8a473c1533c277e5b738d0d4fa193594f2c252139ee8f9fdb21</SHA256>
+<FILE Name="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.06.01-noarch-1.txz">
+<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.02.06.01/unraid-vm-backup-and-restore-2026.02.06.01-noarch-1.txz</URL>
+<SHA256>c59277c96b8d05c7f7709f0ebce1ac2eb85d8b7eadc05e1f377a04f5585c3d05</SHA256>
 </FILE>
 
 <!-- ==========================================================
@@ -40,10 +40,13 @@ For older releases, see https://github.com/jcofer555/vm-backup-and-restore/relea
 #  INSTALL / UPGRADE LOGIC
 # ==========================================================
 
-PACKAGE_TXZ="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.05.09-noarch-1.txz"
+PACKAGE_TXZ="/boot/config/plugins/VM-Backup-And-Restore/unraid-vm-backup-and-restore-2026.02.06.01-noarch-1.txz"
 USER_CFG="/boot/config/plugins/VM-Backup-And-Restore/settings.cfg"
+RESTORE_USER_CFG="/boot/config/plugins/VM-Backup-And-Restore/settings_restore.cfg"
 DEFAULT_CFG="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/default_settings.cfg"
+RESTORE_DEFAULT_CFG="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/default_settings_restore.cfg"
 TMP_CFG="/tmp/vm-backup-and-restore_settings.tmp"
+RESTORE_TMP_CFG="/tmp/vm-backup-and-restore_settings_restore.tmp"
 
 # Install the package
 upgradepkg --install-new "$PACKAGE_TXZ"
@@ -83,21 +86,44 @@ fi
 
 mv "$TMP_CFG" "$USER_CFG"
 
+# Ordered config keys
+restore_ordered_keys=(
+    "RESTORE_LOCATION"
+    "DRY_RUN_RESTORE"
+    "ENABLE_NOTIFICATIONS_RESTORE"
+)
+
 # ==========================================================
-#  LOAD SETTINGS & SETUP CRON
+#  CONFIG MANAGEMENT
 # ==========================================================
-SETTINGS="/boot/config/plugins/VM-Backup-And-Restore/settings.cfg"
-if [ -f "$SETTINGS" ]; then
-    source "$SETTINGS"
+if [ ! -f "$RESTORE_USER_CFG" ]; then
+    cp "$RESTORE_DEFAULT_CFG" "$RESTORE_USER_CFG"
+else
+    # Add missing keys from default
+    while IFS='=' read -r key val; do
+        [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+        if ! grep -q -E "^[[:space:]]*${key}[[:space:]]*=" "$RESTORE_USER_CFG"; then
+            echo "$key=$val" >> "$RESTORE_USER_CFG"
+        fi
+    done < "$RESTORE_DEFAULT_CFG"
 fi
 
+# Rebuild ordered version (only known keys, drop extra lines)
+{
+    for key in "${restore_ordered_keys[@]}"; do
+        grep -E "^[[:space:]]*${key}[[:space:]]*=" "$RESTORE_USER_CFG"
+    done
+} > "$RESTORE_TMP_CFG"
+
+mv "$RESTORE_TMP_CFG" "$RESTORE_USER_CFG"
+
 # Remove older txz packages (keep only the current one)
-find /boot/config/plugins/VM-Backup-And-Restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.02.05.09-noarch-1.txz" -delete
+find /boot/config/plugins/VM-Backup-And-Restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.02.06.01-noarch-1.txz" -delete
 
 echo ""
 echo "----------------------------------------------------"
 echo " VM-Backup-And-Restore has been installed."
-echo " Version: 2026.02.05.09"
+echo " Version: 2026.02.06.01"
 echo "----------------------------------------------------"
 echo ""
 
