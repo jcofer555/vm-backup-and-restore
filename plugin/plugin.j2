@@ -38,8 +38,11 @@ For older releases, see https://github.com/{{ env['GITHUB_REPOSITORY'] }}/releas
 
 PACKAGE_TXZ="/boot/config/plugins/{{ name }}/{{ package_name }}-{{ env['PLUGIN_VERSION'] }}-noarch-1.txz"
 USER_CFG="/boot/config/plugins/VM-Backup-And-Restore/settings.cfg"
+RESTORE_USER_CFG="/boot/config/plugins/VM-Backup-And-Restore/settings_restore.cfg"
 DEFAULT_CFG="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/default_settings.cfg"
+RESTORE_DEFAULT_CFG="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/default_settings_restore.cfg"
 TMP_CFG="/tmp/vm-backup-and-restore_settings.tmp"
+RESTORE_TMP_CFG="/tmp/vm-backup-and-restore_settings_restore.tmp"
 
 # Install the package
 upgradepkg --install-new "$PACKAGE_TXZ"
@@ -53,9 +56,6 @@ ordered_keys=(
     "DRY_RUN"
     "ENABLE_NOTIFICATIONS"
     "BACKUP_OWNER"
-    "RESTORE_LOCATION"
-    "DRY_RUN_RESTORE"
-    "ENABLE_NOTIFICATIONS_RESTORE"
 )
 
 # ==========================================================
@@ -82,13 +82,36 @@ fi
 
 mv "$TMP_CFG" "$USER_CFG"
 
+# Ordered config keys
+restore_ordered_keys=(
+    "RESTORE_LOCATION"
+    "DRY_RUN_RESTORE"
+    "ENABLE_NOTIFICATIONS_RESTORE"
+)
+
 # ==========================================================
-#  LOAD SETTINGS & SETUP CRON
+#  CONFIG MANAGEMENT
 # ==========================================================
-SETTINGS="/boot/config/plugins/VM-Backup-And-Restore/settings.cfg"
-if [ -f "$SETTINGS" ]; then
-    source "$SETTINGS"
+if [ ! -f "$RESTORE_USER_CFG" ]; then
+    cp "$RESTORE_DEFAULT_CFG" "$RESTORE_USER_CFG"
+else
+    # Add missing keys from default
+    while IFS='=' read -r key val; do
+        [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+        if ! grep -q -E "^[[:space:]]*${key}[[:space:]]*=" "$RESTORE_USER_CFG"; then
+            echo "$key=$val" >> "$RESTORE_USER_CFG"
+        fi
+    done < "$RESTORE_DEFAULT_CFG"
 fi
+
+# Rebuild ordered version (only known keys, drop extra lines)
+{
+    for key in "${restore_ordered_keys[@]}"; do
+        grep -E "^[[:space:]]*${key}[[:space:]]*=" "$RESTORE_USER_CFG"
+    done
+} > "$RESTORE_TMP_CFG"
+
+mv "$RESTORE_TMP_CFG" "$RESTORE_USER_CFG"
 
 # Remove older txz packages (keep only the current one)
 find /boot/config/plugins/{{ name }}/ -maxdepth 1 -type f -name "{{ package_name }}-*.txz" ! -name "{{ package_name }}-{{ env['PLUGIN_VERSION'] }}-noarch-1.txz" -delete
