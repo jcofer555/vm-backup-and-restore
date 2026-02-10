@@ -1,7 +1,7 @@
 #!/bin/bash
 
-mkdir -p /tmp/vm-backup-and-restore
-LOCK_FILE="/tmp/vm-backup-and-restore/backup_lock.txt"
+mkdir -p /tmp/vm-backup-&-restore
+LOCK_FILE="/tmp/vm-backup-&-restore/backup_lock.txt"
 
 # Prevent double-run
 if [[ -f "$LOCK_FILE" ]]; then
@@ -10,7 +10,7 @@ fi
 
 touch "$LOCK_FILE"
 
-CONFIG="/boot/config/plugins/VM-Backup-And-Restore/settings.cfg"
+CONFIG="/boot/config/plugins/vm-backup-&-restore/settings.cfg"
 source "$CONFIG" || exit 1
 
 stop_vms="$STOP_VMS"

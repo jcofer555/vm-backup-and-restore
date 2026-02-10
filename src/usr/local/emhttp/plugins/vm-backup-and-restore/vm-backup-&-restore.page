@@ -1,12 +1,12 @@
 Menu="Utilities"
 Type="xmenu"
-Title="VM-Backup-And-Restore"
+Title="VM Backup & Restore"
 Icon="icon.png"
 Tag="icon.png"
 Markdown="false"
 ---
 <?php
-$cfgPath = '/boot/config/plugins/VM-Backup-And-Restore/settings.cfg';
+$cfgPath = '/boot/config/plugins/vm-backup-&-restore/settings.cfg';
 
 // Define all default keys and their order
 $defaults = [
@@ -41,13 +41,14 @@ $settings = $existing;
 ?>
 
 <?php
-$restoreCfgPath = '/boot/config/plugins/VM-Backup-And-Restore/settings_restore.cfg';
+$restoreCfgPath = '/boot/config/plugins/vm-backup-&-restore/settings_restore.cfg';
 
 // Define all default keys and their order for restore
 $restoreDefaults = [
     'RESTORE_LOCATION' => '',
     'DRY_RUN_RESTORE' => '1',
-    'ENABLE_NOTIFICATIONS_RESTORE' => '0'
+    'ENABLE_NOTIFICATIONS_RESTORE' => '0',
+    'RESTORE_VERSIONS' => ''
 ];
 
 // Load existing restore config if present
@@ -131,7 +132,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   /* === Layout Wrapper === */
-  #vm-backup-and-restore-wrapper {
+  #vm-backup-&-restore-wrapper {
     display: flex;
     flex-wrap: nowrap;
     /* stay side-by-side */
@@ -146,7 +147,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   /* === Each Panel (auto-sizing) === */
-  #vm-backup-and-restore-settings,
+  #vm-backup-&-restore-settings,
   #moved-log-container,
   #last-run-container {
     background: #111;
@@ -167,7 +168,7 @@ if (file_exists("/etc/unraid-version")) {
     box-sizing: border-box;
   }
 
-  #vm-backup-and-restore-settings {
+  #vm-backup-&-restore-settings {
     padding-top: 0px !important;
     /* reduce from default 20px */
   }
@@ -197,7 +198,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   /* === Optional: fine-tune widths === */
-  #vm-backup-and-restore-settings {
+  #vm-backup-&-restore-settings {
     flex-basis: 25%;
   }
 
@@ -209,7 +210,7 @@ if (file_exists("/etc/unraid-version")) {
     flex-basis: 22%;
   }
 
-  .unraid-71 #vm-backup-and-restore-settings {
+  .unraid-71 #vm-backup-&-restore-settings {
     min-height: 77vh;
     max-height: 77vh;
     overflow-y: auto;
@@ -228,7 +229,7 @@ if (file_exists("/etc/unraid-version")) {
     margin: 0;
   }
 
-  .unraid-72 #vm-backup-and-restore-settings {
+  .unraid-72 #vm-backup-&-restore-settings {
     min-height: 76vh;
     max-height: 76vh;
     overflow-y: auto;
@@ -248,11 +249,11 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   @media (max-width: 1100px) {
-    #vm-backup-and-restore-wrapper {
+    #vm-backup-&-restore-wrapper {
       flex-wrap: wrap;
     }
 
-    #vm-backup-and-restore-settings,
+    #vm-backup-&-restore-settings,
     #moved-log-container,
     #last-run-container {
       flex: 1 1 100%;
@@ -280,11 +281,11 @@ if (file_exists("/etc/unraid-version")) {
     padding: 8px;
   }
 
-  .unraid-71 #vm-backup-and-restore-wrapper {
+  .unraid-71 #vm-backup-&-restore-wrapper {
     margin-top: -31px !important;
   }
 
-  .unraid-72 #vm-backup-and-restore-wrapper {
+  .unraid-72 #vm-backup-&-restore-wrapper {
     margin-top: -20px !important;
   }
 
@@ -468,7 +469,7 @@ if (file_exists("/etc/unraid-version")) {
     }
   }
 
-  #vm-backup-and-restore-settings.shake {
+  #vm-backup-&-restore-settings.shake {
     animation: shake .3s;
   }
 
@@ -495,7 +496,7 @@ if (file_exists("/etc/unraid-version")) {
     margin-bottom: 12px;
   }
 
-  #vm-backup-and-restore-log {
+  #vm-backup-&-restore-log {
     background: #111;
     border: 1px solid var(--primary-blue);
     border-radius: 8px;
@@ -880,7 +881,7 @@ if (file_exists("/etc/unraid-version")) {
     background: #111;
   }
 
-  .checkbox-row label.vm-backup-and-restoretip {
+  .checkbox-row label.vm-backup-&-restoretip {
     display: inline-flex;
     /* shrink to content */
     align-items: center;
@@ -919,7 +920,7 @@ if (file_exists("/etc/unraid-version")) {
     margin-bottom: 10px;
   }
 
-  #vm-backup-and-restore-wrapper {
+  #vm-backup-&-restore-wrapper {
     width: 25vw;
     /* 25% of viewport width */
     max-width: 480px;
@@ -928,16 +929,23 @@ if (file_exists("/etc/unraid-version")) {
     /* optional: avoids it being too narrow */
   }
 
-  #vm-backup-and-restore-layout {
+  #vm-backup-&-restore-layout {
     display: grid;
     grid-template-columns: 25% 25%;
     gap: 20px;
     align-items: start;
   }
+
+  .status-row2 {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    /* optional spacing between label and value */
+  }
 </style>
 
 <?php
-$plg = "/boot/config/plugins/VM-Backup-And-Restore.plg";
+$plg = "/boot/config/plugins/vm-backup-&-restore.plg";
 $version = "unknown";
 
 if (is_file($plg)) {
@@ -948,21 +956,21 @@ if (is_file($plg)) {
 }
 ?>
 
-<div id="vm-backup-and-restore-layout">
-  <div id="vm-backup-and-restore-wrapper">
-    <form id="vm-backup-and-restore-settings">
+<div id="vm-backup-&-restore-layout">
+  <div id="vm-backup-&-restore-wrapper">
+    <form id="vm-backup-&-restore-settings">
 
       <h2>Backup:</h2>
 
       <!-- VM -->
       <div class="form-pair">
         <label>
-          <span class="vm-backup-and-restoretip" title="Choose which VM(s) to backup">
+          <span class="vm-backup-&-restoretip" title="Choose which VM(s) to backup">
             VM(s) To Backup:
           </span>
         </label>
 
-        <div id="vm-dropdown" class="vm-multiselect vm-backup-and-restoretip" title="Choose which VM(s) to backup"
+        <div id="vm-dropdown" class="vm-multiselect vm-backup-&-restoretip" title="Choose which VM(s) to backup"
           data-selected="<?php echo htmlspecialchars($settings['VM_NAME'] ?? '') ?>">
           <div class="vm-dropdown-label">Select VM(s)</div>
           <div class="vm-dropdown-list"></div>
@@ -972,13 +980,13 @@ if (is_file($plg)) {
       <!-- DESTINATION -->
       <div class="form-pair">
         <label>
-          <span class="vm-backup-and-restoretip"
+          <span class="vm-backup-&-restoretip"
             title="Choose destination for backup. Each VM will be saved to a subdirectory with the name the same as the VM">
             Destination:
           </span>
         </label>
 
-        <span class="vm-backup-and-restoretip"
+        <span class="vm-backup-&-restoretip"
           title="Choose destination for backup. Each VM will be saved to a subdirectory with the name the same as the VM">
           <input type="text" id="backup_destination" name="BACKUP_DESTINATION" placeholder="e.g. /mnt/user/backups/vms"
             value="<?php echo htmlspecialchars($settings['BACKUP_DESTINATION'] ?? ''); ?>">
@@ -988,12 +996,12 @@ if (is_file($plg)) {
       <!-- NUMBER OF BACKUPS -->
       <div class="form-pair">
         <label for="number_of_backups">
-          <span title="Choose the amount of backups to keep for the VM" class="vm-backup-and-restoretip">
+          <span title="Choose the amount of backups to keep for the VM" class="vm-backup-&-restoretip">
             Number Of Backups:
           </span>
         </label>
 
-        <span title="Choose the amount of backups to keep for the VM" class="vm-backup-and-restoretip">
+        <span title="Choose the amount of backups to keep for the VM" class="vm-backup-&-restoretip">
           <select id="number_of_backups" class="short-input" name="number_of_backups">
             <?php
         $current = $settings['NUMBER_OF_BACKUPS'] ?? 0;
@@ -1017,12 +1025,12 @@ if (is_file($plg)) {
       <!-- STOP VMS -->
       <div class="form-pair">
         <label for="stop_vms">
-          <span title="Choose whether VMs should be stopped during backup" class="vm-backup-and-restoretip">
+          <span title="Choose whether VMs should be stopped during backup" class="vm-backup-&-restoretip">
             Stop VMs:
           </span>
         </label>
 
-        <span title="Choose whether VMs should be stopped during backup" class="vm-backup-and-restoretip">
+        <span title="Choose whether VMs should be stopped during backup" class="vm-backup-&-restoretip">
           <select id="stop_vms" class="short-input" name="stop_vms">
             <option value="yes" <?=($settings['STOP_VMS'] ?? 'yes' )==='yes' ? 'selected' : '' ?>>
               Yes - Full backup
@@ -1037,12 +1045,12 @@ if (is_file($plg)) {
       <!-- DRY RUN -->
       <div class="form-pair">
         <label for="dry_run">
-          <span class="vm-backup-and-restoretip" title="Enable to simulate backup">
+          <span class="vm-backup-&-restoretip" title="Enable to simulate backup">
             Dry Run:
           </span>
         </label>
 
-        <span class="vm-backup-and-restoretip" title="Enable to simulate backup">
+        <span class="vm-backup-&-restoretip" title="Enable to simulate backup">
           <select id="dry_run" class="short-input" name="dry_run">
             <option value="0" <?=((string)($settings['DRY_RUN'] ?? '1' )==='0' ) ? 'selected' : '' ?>>Yes</option>
             <option value="1" <?=((string)($settings['DRY_RUN'] ?? '1' )==='1' ) ? 'selected' : '' ?>>No</option>
@@ -1053,13 +1061,13 @@ if (is_file($plg)) {
       <!-- NOTIFICATIONS -->
       <div class="form-pair">
         <label for="enable_notifications">
-          <span class="vm-backup-and-restoretip"
+          <span class="vm-backup-&-restoretip"
             title="Send Unraid system notifications when VM backup starts and finishes">
             Enable Notifications:
           </span>
         </label>
 
-        <span class="vm-backup-and-restoretip"
+        <span class="vm-backup-&-restoretip"
           title="Send Unraid system notifications when VM backup starts and finishes">
           <select id="enable_notifications" class="short-input" name="enable_notifications">
             <option value="1" <?=((int)($settings['ENABLE_NOTIFICATIONS'] ?? 0)===1) ? 'selected' : '' ?>>
@@ -1075,13 +1083,13 @@ if (is_file($plg)) {
       <!-- BACKUP OWNER -->
       <div class="form-pair">
         <label>
-          <span class="vm-backup-and-restoretip"
+          <span class="vm-backup-&-restoretip"
             title="Choose the owner for the backup if you wanted it owned by one of your created users">
             Backup Owner:
           </span>
         </label>
 
-        <span class="vm-backup-and-restoretip"
+        <span class="vm-backup-&-restoretip"
           title="Choose the owner for the backup if you wanted it owned by one of your created users">
           <select id="backup_owner" name="BACKUP_OWNER"
             data-selected="<?php echo htmlspecialchars($settings['BACKUP_OWNER'] ?? 'nobody'); ?>">
@@ -1096,34 +1104,28 @@ if (is_file($plg)) {
       <!-- Backup Button-->
       <div class="form-group">
         <span title="Run backup of selected VM's. Last 20 logs kept at destination/logs"
-          class="vm-backup-and-restoretip">
+          class="vm-backup-&-restoretip">
           <button type="button" id="backupbtn">Backup</button>
         </span>
-      </div>
-
-      <div class="status-container">
-        <div class="status-row"><span class="status-label">Plugin Version:</span><span id="version-text">
-            <?= $version ?>
-          </span></div>
       </div>
     </form>
   </div>
 
-  <div id="vm-backup-and-restore-wrapper">
-    <form id="vm-backup-and-restore-settings">
+  <div id="vm-backup-&-restore-wrapper">
+    <form id="vm-backup-&-restore-settings">
 
       <h2>Restore:</h2>
 
       <!-- LOCATION -->
       <div class="form-pair">
         <label>
-          <span class="vm-backup-and-restoretip"
+          <span class="vm-backup-&-restoretip"
             title="Choose location where restore is located, typically your backup destination location">
             Location:
           </span>
         </label>
 
-        <span class="vm-backup-and-restoretip"
+        <span class="vm-backup-&-restoretip"
           title="Choose location where restore is located, typically your backup destination location">
           <input type="text" id="restore_location" name="RESTORE_LOCATION" placeholder="your backup destination"
             value="<?php echo htmlspecialchars($restoreSettings['RESTORE_LOCATION'] ?? ''); ?>">
@@ -1131,31 +1133,34 @@ if (is_file($plg)) {
       </div>
 
       <!-- VM RESTORE -->
-        <div class="form-pair">
-          <label>
-            <span class="vm-backup-and-restoretip" title="Choose which VM(s) to restore">
-              VM(s) To Restore:
-            </span>
-          </label>
+      <div class="form-pair">
+        <label>
+          <span class="vm-backup-&-restoretip" title="Choose which VM(s) to restore">
+            VM(s) To Restore:
+          </span>
+        </label>
 
-          <div id="vm-dropdown-restore" class="vm-multiselect vm-backup-and-restoretip"
-            title="Choose which VM(s) to restore"
-            data-selected="<?php echo htmlspecialchars($restoreSettings['VM_NAME_RESTORE'] ?? '') ?>">
+        <div id="vm-dropdown-restore" class="vm-multiselect vm-backup-&-restoretip"
+          title="Choose which VM(s) to restore"
+          data-selected="<?php echo htmlspecialchars($restoreSettings['VM_NAME_RESTORE'] ?? '') ?>">
 
-            <div class="vm-dropdown-label-restore">Select VM(s)</div>
-            <div class="vm-dropdown-list-restore"></div>
-          </div>
+          <div class="vm-dropdown-label-restore">Select VM(s)</div>
+          <div class="vm-dropdown-list-restore"></div>
         </div>
+      </div>
+
+      <!-- VERSION FIELDS (auto-generated) -->
+      <div id="version-fields-container"></div>
 
       <!-- DRY RUN -->
       <div class="form-pair">
         <label for="dry_run_restore">
-          <span class="vm-backup-and-restoretip" title="Enable to simulate restore">
+          <span class="vm-backup-&-restoretip" title="Enable to simulate restore">
             Dry Run:
           </span>
         </label>
 
-        <span class="vm-backup-and-restoretip" title="Enable to simulate restore">
+        <span class="vm-backup-&-restoretip" title="Enable to simulate restore">
           <select id="dry_run_restore" class="short-input" name="dry_run_restore">
             <option value="0" <?=((string)($restoreSettings['DRY_RUN_RESTORE'] ?? '1' )==='0' ) ? 'selected' : '' ?>>Yes
             </option>
@@ -1168,19 +1173,21 @@ if (is_file($plg)) {
       <!-- NOTIFICATIONS -->
       <div class="form-pair">
         <label for="enable_notifications_restore">
-          <span class="vm-backup-and-restoretip"
+          <span class="vm-backup-&-restoretip"
             title="Send Unraid system notifications when VM restore starts and finishes">
             Enable Notifications:
           </span>
         </label>
 
-        <span class="vm-backup-and-restoretip"
+        <span class="vm-backup-&-restoretip"
           title="Send Unraid system notifications when VM restore starts and finishes">
           <select id="enable_notifications_restore" class="short-input" name="enable_notifications_restore">
-            <option value="1" <?=((int)($restoreSettings['ENABLE_NOTIFICATIONS_RESTORE'] ?? 0)===1) ? 'selected' : '' ?>>
+            <option value="1" <?=((int)($restoreSettings['ENABLE_NOTIFICATIONS_RESTORE'] ?? 0)===1) ? 'selected' : '' ?>
+              >
               Yes
             </option>
-            <option value="0" <?=((int)($restoreSettings['ENABLE_NOTIFICATIONS_RESTORE'] ?? 0)===0) ? 'selected' : '' ?>>
+            <option value="0" <?=((int)($restoreSettings['ENABLE_NOTIFICATIONS_RESTORE'] ?? 0)===0) ? 'selected' : '' ?>
+              >
               No
             </option>
           </select>
@@ -1193,9 +1200,14 @@ if (is_file($plg)) {
 
       <!-- Restore Button-->
       <div class="form-group">
-        <span title="Restore selected VM" class="vm-backup-and-restoretip">
+        <span title="Restore selected VM" class="vm-backup-&-restoretip">
           <button type="button" id="restorebtn">Restore</button>
         </span>
+      </div>
+      <div class="status-container">
+        <div class="status-row2"><span class="status-label">Plugin Version:</span><span id="version-text">
+            <?= $version ?>
+          </span></div>
       </div>
     </form>
   </div>
@@ -1223,7 +1235,7 @@ if (is_file($plg)) {
     const select = $('#backup_owner');
     const selected = select.data('selected') || 'nobody';
 
-    $.getJSON('/plugins/vm-backup-and-restore/helpers/list_users_group100.php', function (data) {
+    $.getJSON('/plugins/vm-backup-&-restore/helpers/list_users_group100.php', function (data) {
       select.empty();
 
       data.users.forEach(user => {
@@ -1241,50 +1253,50 @@ if (is_file($plg)) {
     });
   });
 
-$(document).ready(function () {
-  const dropdown = $('#vm-dropdown-restore');
-  const list = dropdown.find('.vm-dropdown-list-restore');
-  const label = dropdown.find('.vm-dropdown-label-restore');
+  $(document).ready(function () {
+    const dropdown = $('#vm-dropdown-restore');
+    const list = dropdown.find('.vm-dropdown-list-restore');
+    const label = dropdown.find('.vm-dropdown-label-restore');
 
-  // Saved selections (comma-separated)
-  const selectedRaw = dropdown.data('selected') || '';
-  const selected = selectedRaw.split(',').map(s => s.trim()).filter(s => s !== '');
+    // Saved selections (comma-separated)
+    const selectedRaw = dropdown.data('selected') || '';
+    const selected = selectedRaw.split(',').map(s => s.trim()).filter(s => s !== '');
 
-  // Toggle dropdown
-  dropdown.on('click', function (e) {
-    e.stopPropagation();
-    list.toggle();
-    dropdown.toggleClass('active', list.is(':visible'));
-  });
+    // Toggle dropdown
+    dropdown.on('click', function (e) {
+      e.stopPropagation();
+      list.toggle();
+      dropdown.toggleClass('active', list.is(':visible'));
+    });
 
-  // Close when clicking outside
-  $(document).on('click', function () {
-    list.hide();
-    dropdown.removeClass('active');
-  });
+    // Close when clicking outside
+    $(document).on('click', function () {
+      list.hide();
+      dropdown.removeClass('active');
+    });
 
-  // Load restore folders
-  function loadRestoreFolders() {
-    const restorePath = $('#restore_location').val();
-    if (!restorePath) {
-      list.empty();
-      label.text('Select VM(s)');
-      return;
-    }
-
-    $.getJSON('/plugins/vm-backup-and-restore/helpers/list_restore_folders.php', { restore_path: restorePath }, function (data) {
-      list.empty();
-
-      if (data.error) {
-        console.warn(data.error);
-        label.text('No VMs here');
+    // Load restore folders
+    function loadRestoreFolders() {
+      const restorePath = $('#restore_location').val();
+      if (!restorePath) {
+        list.empty();
+        label.text('Select VM(s)');
         return;
       }
 
-      data.folders.forEach(folder => {
-        const id = 'vmrestore-' + folder.replace(/\s+/g, '_');
+      $.getJSON('/plugins/vm-backup-&-restore/helpers/list_restore_folders.php', { restore_path: restorePath }, function (data) {
+        list.empty();
 
-        const item = $(`
+        if (data.error) {
+          console.warn(data.error);
+          label.text('No VMs here');
+          return;
+        }
+
+        data.folders.forEach(folder => {
+          const id = 'vmrestore-' + folder.replace(/\s+/g, '_');
+
+          const item = $(`
           <div>
             <label>
               <input type="checkbox" value="${folder}" id="${id}">
@@ -1293,55 +1305,59 @@ $(document).ready(function () {
           </div>
         `);
 
-        if (selected.includes(folder)) {
-          item.find('input').prop('checked', true);
-        }
+          if (selected.includes(folder)) {
+            item.find('input').prop('checked', true);
+          }
 
-        list.append(item);
+          list.append(item);
+        });
+
+        updateRestoreLabel();
       });
+    }
 
+    // **NEW: Update label & hidden field**
+    function updateRestoreLabel() {
+      const checked = list.find('input:checked').map(function () {
+        return $(this).val();
+      }).get();
+
+      if (checked.length === 0) {
+        label.text('Select VM(s)');
+      } else {
+        label.text(checked.join(', '));
+      }
+
+      ensureHiddenFieldRestore(checked.join(','));
+    }
+
+    function ensureHiddenFieldRestore(value) {
+      let hidden = $('#vm-hidden-restore');
+      if (!hidden.length) {
+        hidden = $('<input>', {
+          type: 'hidden',
+          id: 'vm-hidden-restore',
+          name: 'VM_NAME_RESTORE'
+        }).appendTo(dropdown.parent());
+      }
+      hidden.val(value);
+    }
+
+    // Listen for checkbox changes
+    list.on('change', 'input[type=checkbox]', updateRestoreLabel);
+    list.on('change', 'input[type=checkbox]', function () {
       updateRestoreLabel();
+      rebuildVersionFields();
     });
-  }
 
-  // **NEW: Update label & hidden field**
-  function updateRestoreLabel() {
-    const checked = list.find('input:checked').map(function () {
-      return $(this).val();
-    }).get();
+    // Load folders on restore path change
+    $('#restore_location').on('input blur change', function () {
+      loadRestoreFolders();
+    });
 
-    if (checked.length === 0) {
-      label.text('Select VM(s)');
-    } else {
-      label.text(checked.join(', '));
-    }
-
-    ensureHiddenFieldRestore(checked.join(','));
-  }
-
-  function ensureHiddenFieldRestore(value) {
-    let hidden = $('#vm-hidden-restore');
-    if (!hidden.length) {
-      hidden = $('<input>', {
-        type: 'hidden',
-        id: 'vm-hidden-restore',
-        name: 'VM_NAME_RESTORE'
-      }).appendTo(dropdown.parent());
-    }
-    hidden.val(value);
-  }
-
-  // Listen for checkbox changes
-  list.on('change', 'input[type=checkbox]', updateRestoreLabel);
-
-  // Load folders on restore path change
-  $('#restore_location').on('input blur change', function () {
+    // Initial load if restore_location already has a value
     loadRestoreFolders();
   });
-
-  // Initial load if restore_location already has a value
-  loadRestoreFolders();
-});
 
   $(document).ready(function () {
     const dropdown = $('#vm-dropdown');
@@ -1377,7 +1393,7 @@ $(document).ready(function () {
     /* -----------------------------
        LOAD VM LIST
        ----------------------------- */
-    $.getJSON('/plugins/vm-backup-and-restore/helpers/list_vms.php', function (data) {
+    $.getJSON('/plugins/vm-backup-&-restore/helpers/list_vms.php', function (data) {
       list.empty();
 
       if (!data.vms || data.vms.length === 0) {
@@ -1444,18 +1460,94 @@ $(document).ready(function () {
     /* -----------------------------
        TOOLTIPSTER INIT
        ----------------------------- */
-    $('.vm-backup-and-restoretip').tooltipster({
+    $('.vm-backup-&-restoretip').tooltipster({
       maxWidth: 300
     });
   });
 
   // Force-close any Dynamix tooltip when dropdown opens
   function closeTooltips() {
-    $('.vm-backup-and-restoretip').trigger('mouseleave');
+    $('.vm-backup-&-restoretip').trigger('mouseleave');
   }
 
   $('.vm-dropdown-label, .vm-dropdown-list, select, .custom-dropdown').on('click', function () {
     closeTooltips();
+  });
+
+  const versionSelections = {};
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const vmDropdownRestore = document.getElementById("vm-dropdown-restore");
+    const versionContainer = document.getElementById("version-fields-container");
+
+    function rebuildVersionFields() {
+      const container = $('#version-fields-container');
+      container.empty(); // atomic reset
+
+      const selected = ($('#vm-hidden-restore').val() || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      if (selected.length === 0) return;
+
+      selected.forEach(vm => {
+        $.getJSON(
+          '/plugins/vm-backup-&-restore/helpers/get_vm_versions.php',
+          { vm: vm, restore_path: $('#restore_location').val() },
+          function (versions) {
+
+            const wrapper = $(`
+          <div class="form-pair version-field">
+            <label>
+              <span class="vm-backup-&-restoretip" title="Choose version for ${vm}">
+                Version for ${vm}:
+              </span>
+            </label>
+            <select name="VERSION_${vm}" class="version-select" data-vm="${vm}"></select>
+          </div>
+        `);
+
+            const select = wrapper.find('select');
+
+            if (!versions || versions.length === 0) {
+              select.append(`<option value="">NONE FOUND</option>`);
+            } else {
+              versions.forEach((v, idx) => {
+                let label = v.display;
+
+                if (versions.length === 1 || idx === 0) {
+                  label += ' (LATEST)';
+                } else if (idx === versions.length - 1) {
+                  label += ' (OLDEST)';
+                }
+
+                select.append(`<option value="${v.raw}">${label}</option>`);
+              });
+
+              // 🔁 Restore previous selection if it still exists
+              const saved = versionSelections[vm];
+              if (saved && select.find(`option[value="${saved}"]`).length) {
+                select.val(saved);
+              }
+            }
+
+            // 💾 Persist selection on change
+            select.on('change', function () {
+              versionSelections[vm] = this.value;
+            });
+
+            container.append(wrapper);
+          }
+        );
+      });
+    }
+
+    // Trigger rebuild when VM selection changes
+    vmDropdownRestore.addEventListener("change", rebuildVersionFields);
+
+    // Initial load
+    rebuildVersionFields();
   });
 </script>
 
@@ -1476,7 +1568,7 @@ $(document).ready(function () {
   }
 
   function pollBackupStatus() {
-    $.getJSON('/plugins/vm-backup-and-restore/helpers/backup_status.php', function (res) {
+    $.getJSON('/plugins/vm-backup-&-restore/helpers/backup_status.php', function (res) {
       updateBackupUI(res.running);
     });
   }
@@ -1491,7 +1583,7 @@ $(document).ready(function () {
 
   // Force-close any Dynamix tooltip
   function closeTooltips() {
-    $('.vm-backup-and-restoretip').trigger('mouseleave');
+    $('.vm-backup-&-restoretip').trigger('mouseleave');
   }
 
   // When your dropdown opens, close tooltips
@@ -1533,7 +1625,7 @@ $(document).ready(function () {
 
     // Save settings first
     $.get(
-      '/plugins/vm-backup-and-restore/helpers/save_settings.php?' + params
+      '/plugins/vm-backup-&-restore/helpers/save_settings.php?' + params
     )
       .done(function (res) {
         if (res && res.status === 'ok') {
@@ -1552,7 +1644,7 @@ $(document).ready(function () {
   });
 
   function startBackup() {
-    $.get('/plugins/vm-backup-and-restore/helpers/backup.php', {
+    $.get('/plugins/vm-backup-&-restore/helpers/backup.php', {
       csrf_token: csrfToken
     })
       .done(function (res) {
@@ -1585,7 +1677,7 @@ $(document).ready(function () {
   }
 
   function pollRestoreStatus() {
-    $.getJSON('/plugins/vm-backup-and-restore/helpers/restore_status.php', function (res) {
+    $.getJSON('/plugins/vm-backup-&-restore/helpers/restore_status.php', function (res) {
       updateRestoreUI(res.running);
     });
   }
@@ -1600,7 +1692,7 @@ $(document).ready(function () {
 
   // Force-close any Dynamix tooltip
   function closeTooltips() {
-    $('.vm-backup-and-restoretip').trigger('mouseleave');
+    $('.vm-backup-&-restoretip').trigger('mouseleave');
   }
 
   // When your dropdown opens, close tooltips
@@ -1608,9 +1700,25 @@ $(document).ready(function () {
     closeTooltips();
   });
 
+  // 🔧 Collect per-VM version selections
+  function collectRestoreVersions() {
+    const versions = {};
+
+    $('#version-fields-container select.version-select').each(function () {
+      const vm = $(this).data('vm');
+      const val = $(this).val();
+
+      if (vm && val) {
+        versions[vm] = val;
+      }
+    });
+
+    return versions;
+  }
+
   $('#restorebtn').on('click', function () {
 
-    // Optional: basic validation
+    // Basic validation
     const vms_restore = $('#vm-hidden-restore').val();
     const dest = $('#restore_location').val().trim();
 
@@ -1628,17 +1736,23 @@ $(document).ready(function () {
       return;
     }
 
-    // Build query params
+    // 🔧 Build restore versions string (vm=version,vm=version)
+    const restoreVersions = collectRestoreVersions();
+    const restoreVersionsStr = Object.entries(restoreVersions)
+      .map(([vm, ver]) => `${vm}=${ver}`)
+      .join(',');
+
     const params = $.param({
       RESTORE_LOCATION: dest,
       DRY_RUN_RESTORE: $('#dry_run_restore').val(),
       ENABLE_NOTIFICATIONS_RESTORE: $('#enable_notifications_restore').val(),
+      RESTORE_VERSIONS: restoreVersionsStr,
       csrf_token: csrfToken
     });
 
     // Save settings first
     $.get(
-      '/plugins/vm-backup-and-restore/helpers/save_settings_restore.php?' + params
+      '/plugins/vm-backup-&-restore/helpers/save_settings_restore.php?' + params
     )
       .done(function (res) {
         if (res && res.status === 'ok') {
@@ -1657,7 +1771,7 @@ $(document).ready(function () {
   });
 
   function startRestore() {
-    $.get('/plugins/vm-backup-and-restore/helpers/restore.php', {
+    $.get('/plugins/vm-backup-&-restore/helpers/restore.php', {
       csrf_token: csrfToken
     })
       .done(function (res) {
@@ -1673,6 +1787,6 @@ $(document).ready(function () {
   }
 
   if (typeof caPluginUpdateCheck === "function") {
-    caPluginUpdateCheck("VM-Backup-And-Restore.plg", { name: "VM-Backup-And-Restore" });
+    caPluginUpdateCheck("vm-backup-&-restore.plg", { name: "vm-backup-&-restore" });
   }
 </script>

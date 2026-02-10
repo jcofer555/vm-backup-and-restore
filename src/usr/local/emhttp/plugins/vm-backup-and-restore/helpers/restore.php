@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
 
-$script = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/restore.sh';
+$script = '/usr/local/emhttp/plugins/vm-backup-&-restore/helpers/restore.sh';
 
 if (!is_file($script) || !is_executable($script)) {
     echo json_encode([

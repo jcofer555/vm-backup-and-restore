@@ -2,13 +2,14 @@
 header('Content-Type: application/json');
 
 // Path to your shell script
-$cmd = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/save_settings_restore.sh';
+$cmd = '/usr/local/emhttp/plugins/vm-backup-&-restore/helpers/save_settings_restore.sh';
 
 // Grab arguments from query string
 $args = [
     $_GET['RESTORE_LOCATION'] ?? '',
     $_GET['DRY_RUN_RESTORE'] ?? '',
     $_GET['ENABLE_NOTIFICATIONS_RESTORE'] ?? '',
+    $_GET['RESTORE_VERSIONS'] ?? '',
 ];
 
 // Escape each argument for safety
