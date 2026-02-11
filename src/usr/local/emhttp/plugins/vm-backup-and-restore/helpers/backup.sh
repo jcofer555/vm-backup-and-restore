@@ -9,6 +9,38 @@ if [[ -f "$LOCK_FILE" ]]; then
 fi
 
 touch "$LOCK_FILE"
+cleanup() {
+  # whatever you want to run on exit
+  echo "Cleaning up…"
+  rm -f "$LOCK_FILE"
+echo "changing owner to $backup_owner"
+vm_backup_folder="$backup_location/$vm"
+
+# Only change ownership of this VM's folder
+chown -R "$backup_owner:users" "$vm_backup_folder"
+
+if [[ "$stop_vms" == "yes" ]]; then
+    echo "Starting VMs that were stopped by this script..."
+
+    for vm in "${vms_stopped_by_script[@]}"; do
+        if [[ "$DRY_RUN" == "yes" ]]; then
+            echo "[DRY RUN] Would start VM: $vm"
+            continue
+        fi
+
+        echo "Starting VM: $vm"
+        virsh start "$vm"
+    done
+
+    echo "VM restart phase complete."
+fi
+
+mkdir -p /tmp/vm-backup-and-restore/backup_logs
+rsync -a --delete "$BACKUP_DESTINATION/logs/" "/tmp/vm-backup-and-restore/backup_logs/"
+find "$backup_location" -type f -size 0 -delete
+find "$backup_location" -type d -empty -delete
+}
+trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT
 
 CONFIG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
 source "$CONFIG" || exit 1
@@ -58,7 +90,7 @@ if [[ "$stop_vms" == "yes" ]]; then
             echo "VM $vm is running."
 
             # DRY RUN MODE
-            if [[ "$DRY_RUN" == "yes" ]]; then
+            if [[ "$DRY_RUN" == "0" ]]; then
                 echo "[DRY RUN] Would stop VM: $vm"
                 vms_stopped_by_script+=("$vm")
                 continue
@@ -71,13 +103,21 @@ if [[ "$stop_vms" == "yes" ]]; then
             virsh shutdown "$vm"
 
             echo -n "Waiting for $vm to stop"
-            while [[ "$(virsh domstate "$vm" 2>/dev/null)" != "shut off" ]]; do
+            timeout=60
+            while [[ "$(virsh domstate "$vm" 2>/dev/null)" != "shut off" && $timeout -gt 0 ]]; do
                 echo -n "."
                 sleep 2
+                ((timeout-=2))
             done
-
             echo ""
-            echo "VM $vm is now stopped."
+
+            if [[ $timeout -le 0 ]]; then
+                echo "Graceful shutdown timed out — forcing power off for $vm"
+                virsh destroy "$vm"
+            else
+                echo "VM $vm is now stopped."
+            fi
+
         else
             echo "Skipping stop for $vm (already off)"
         fi
@@ -85,7 +125,6 @@ if [[ "$stop_vms" == "yes" ]]; then
 else
     echo "stop_vms is set to no — skipping VM shutdown."
 fi
-
 
 # list of specific vdisks to be skipped separated by a new line. use the full path.
 # NOTE: must match path in vm config file. remember this if you change the virtual disk path to enable snapshots.
@@ -209,10 +248,10 @@ rsync_only="1"
 actually_copy_files="$DRY_RUN"
 
 # default is 20. set this to the number of times you would like to check if a clean shutdown of a vm has been successful.
-clean_shutdown_checks="20"
+clean_shutdown_checks="1"
 
 # default is 30. set this to the number of seconds to wait in between checks to see if a clean shutdown has been successful.
-seconds_to_wait="30"
+seconds_to_wait="1"
 
 # default is 1. set to 0 to have error log files deleted after the backup has completed.
 keep_error_log_file="1"
@@ -225,7 +264,7 @@ only_send_error_notifications="0"
 
 ################################################## script variables end #########################################################
 
-trap 'rm -f "$LOCK_FILE"' EXIT SIGTERM SIGINT SIGHUP SIGQUIT
+sleep 5
 
 ###################################################### script start #############################################################
 
@@ -2975,34 +3014,6 @@ trap 'rm -f "$LOCK_FILE"' EXIT SIGTERM SIGINT SIGHUP SIGQUIT
     fi
 
   fi
-
-echo "changing owner to $backup_owner"
-vm_backup_folder="$backup_location/$vm"
-
-# Only change ownership of this VM's folder
-chown -R "$backup_owner:users" "$vm_backup_folder"
-
-
-if [[ "$stop_vms" == "yes" ]]; then
-    echo "Starting VMs that were stopped by this script..."
-
-    for vm in "${vms_stopped_by_script[@]}"; do
-        if [[ "$DRY_RUN" == "yes" ]]; then
-            echo "[DRY RUN] Would start VM: $vm"
-            continue
-        fi
-
-        echo "Starting VM: $vm"
-        virsh start "$vm"
-    done
-
-    echo "VM restart phase complete."
-fi
-
-mkdir -p /tmp/vm-backup-and-restore/backup_logs
-rsync -a --delete "$BACKUP_DESTINATION/logs/" "/tmp/vm-backup-and-restore/backup_logs/"
-find "$backup_location" -type f -size 0 -delete
-find "$backup_location" -type d -empty -delete
 
   exit 0
 

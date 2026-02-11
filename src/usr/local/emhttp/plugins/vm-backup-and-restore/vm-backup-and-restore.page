@@ -1022,7 +1022,7 @@ if (is_file($plg)) {
           if ($i === 0) {
             echo "<option value=\"0\" $selected>Unlimited</option>";
           } elseif ($i === 1) {
-            echo "<option value=\"1\" $selected>Current Only</option>";
+            echo "<option value=\"1\" $selected>Only Latest</option>";
           } else {
             echo "<option value=\"$i\" $selected>$i</option>";
           }
@@ -1043,10 +1043,10 @@ if (is_file($plg)) {
         <span title="Choose whether VMs should be stopped during backup" class="vm-backup-and-restoretip">
           <select id="stop_vms" class="short-input" name="stop_vms">
             <option value="yes" <?=($settings['STOP_VMS'] ?? 'yes' )==='yes' ? 'selected' : '' ?>>
-              Yes - Full backup
+              Yes - Full Backup
             </option>
             <option value="no" <?=($settings['STOP_VMS'] ?? 'yes' )==='no' ? 'selected' : '' ?>>
-              No - Snapshot backup
+              No - Snapshot Backup
             </option>
           </select>
         </span>
@@ -1055,12 +1055,12 @@ if (is_file($plg)) {
       <!-- DRY RUN -->
       <div class="form-pair">
         <label for="dry_run">
-          <span class="vm-backup-and-restoretip" title="Enable to simulate backup">
+          <span class="vm-backup-and-restoretip" title="Enable to simulate a backup">
             Dry Run:
           </span>
         </label>
 
-        <span class="vm-backup-and-restoretip" title="Enable to simulate backup">
+        <span class="vm-backup-and-restoretip" title="Enable to simulate a backup">
           <select id="dry_run" class="short-input" name="dry_run">
             <option value="0" <?=((string)($settings['DRY_RUN'] ?? '1' )==='0' ) ? 'selected' : '' ?>>Yes</option>
             <option value="1" <?=((string)($settings['DRY_RUN'] ?? '1' )==='1' ) ? 'selected' : '' ?>>No</option>
@@ -1107,7 +1107,7 @@ if (is_file($plg)) {
         </span>
       </div>
 
-      <div id="backup-status" style="color:red; font-weight:bold; margin-bottom:6px; display:none;">
+      <div id="backup-status" style="color:yellow; font-weight:bold; margin-bottom:6px; display:none;">
         Backup in progress!
       </div>
 
@@ -1181,12 +1181,12 @@ if (is_file($plg)) {
       <!-- DRY RUN -->
       <div class="form-pair">
         <label for="dry_run_restore">
-          <span class="vm-backup-and-restoretip" title="Enable to simulate restore">
+          <span class="vm-backup-and-restoretip" title="Enable to simulate a restore">
             Dry Run:
           </span>
         </label>
 
-        <span class="vm-backup-and-restoretip" title="Enable to simulate restore">
+        <span class="vm-backup-and-restoretip" title="Enable to simulate a restore">
           <select id="dry_run_restore" class="short-input" name="DRY_RUN_RESTORE">
             <?php
         $val = (string)($restoreSettings['DRY_RUN_RESTORE'] ?? 'true');
@@ -1221,7 +1221,7 @@ if (is_file($plg)) {
         </span>
       </div>
 
-      <div id="restore-status" style="color:red; font-weight:bold; margin-bottom:6px; display:none;">
+      <div id="restore-status" style="color:yellow; font-weight:bold; margin-bottom:6px; display:none;">
         Restore in progress!
       </div>
 
@@ -1231,11 +1231,7 @@ if (is_file($plg)) {
           <button type="button" id="restorebtn">Restore</button>
         </span>
       </div>
-      <div class="status-container">
-        <div class="status-row2"><span class="status-label">Plugin Version:</span><span id="version-text">
-            <?= $version ?>
-          </span></div>
-      </div>
+
     </form>
   </div>
 
@@ -1421,15 +1417,15 @@ if (is_file($plg)) {
           },
           function (versions) {
             const wrapper = $(`
-          <div class="form-pair version-field">
-            <label>
-              <span class="vm-backup-and-restoretip" title="Choose version for ${vm}">
-                Version for ${vm}:
-              </span>
-            </label>
-            <select name="VERSION_${vm}" class="version-select"></select>
-          </div>
-        `);
+  <div class="form-pair version-field">
+    <label>
+      <span class="vm-backup-and-restoretip" title="Choose version for ${vm}">
+        Version for ${vm}:
+      </span>
+    </label>
+    <select name="VERSION_${vm}" class="version-select" data-vm="${vm}"></select>
+  </div>
+`);
 
             const select = wrapper.find('select');
 
@@ -1438,8 +1434,16 @@ if (is_file($plg)) {
             } else {
               versions.forEach((v, idx) => {
                 let label = v.display;
-                if (idx === 0) label += ' (LATEST)';
-                if (idx === versions.length - 1) label += ' (OLDEST)';
+
+                if (idx === 0) {
+                  label += ' (LATEST)';
+                }
+
+                // Only mark OLDEST if there is more than one version
+                if (versions.length > 1 && idx === versions.length - 1) {
+                  label += ' (OLDEST)';
+                }
+
                 select.append(`<option value="${v.raw}">${label}</option>`);
               });
             }

@@ -9,9 +9,29 @@ if [[ -f "$LOCK_FILE" ]]; then
 fi
 
 touch "$LOCK_FILE"
+trap 'rm -f "$LOCK_FILE"' EXIT SIGTERM SIGINT SIGHUP SIGQUIT
 
 CONFIG="/boot/config/plugins/vm-backup-and-restore/settings_restore.cfg"
 source "$CONFIG" || exit 1
+
+notify_unraid() {
+    local title="$1"
+    local message="$2"
+
+    # Only send if enabled
+    if [[ "$ENABLE_NOTIFICATIONS_RESTORE" == "1" ]]; then
+        /usr/local/emhttp/webGui/scripts/notify \
+            -e "unRAID Status" \
+            -s "$title" \
+            -d "$message" \
+            -i "normal"
+    fi
+}
+
+# Send startup notification
+timestamp="$(date +"%d-%m-%Y %H:%M")"
+notify_unraid "unRAID VM Restore script" \
+"script starting"
 
 LOG_DIR="/tmp/vm-backup-and-restore"
 ARCHIVE_DIR="$LOG_DIR/restore_logs"
@@ -31,6 +51,7 @@ fi
 LOG_FILE="$ARCHIVE_DIR/restore_$(date +%Y%m%d_%H%M%S).txt"
 
 exec > >(tee -a "$LOG_FILE") 2>&1
+sleep 5
 
 # ============================================================
 # Variables to change
@@ -215,10 +236,12 @@ for vm in "${vm_names[@]}"; do
 
 done
 
-trap 'rm -f "$LOCK_FILE"' EXIT SIGTERM SIGINT SIGHUP SIGQUIT
-
 echo ""
 echo "============================================================"
 echo "       VM RESTORE PROCESS COMPLETE"
 echo "============================================================"
 $DRY_RUN && echo "[DRY RUN] No changes were made."
+
+timestamp="$(date +"%d-%m-%Y %H:%M")"
+notify_unraid "unRAID VM Restore script" \
+"script finished"
