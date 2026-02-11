@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CONFIG="/boot/config/plugins/vm-backup-&-restore/settings.cfg"
+CONFIG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
 mkdir -p "$(dirname "$CONFIG")"
 
 # Safely assign defaults if missing

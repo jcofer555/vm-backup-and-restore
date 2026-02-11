@@ -2,7 +2,7 @@
 header('Content-Type: application/json');
 
 // Path to your shell script
-$cmd = '/usr/local/emhttp/plugins/vm-backup-&-restore/helpers/save_settings.sh';
+$cmd = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/save_settings.sh';
 
 // Grab arguments from query string
 $args = [

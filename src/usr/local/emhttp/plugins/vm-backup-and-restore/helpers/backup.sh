@@ -1,7 +1,7 @@
 #!/bin/bash
 
-mkdir -p /tmp/vm-backup-&-restore
-LOCK_FILE="/tmp/vm-backup-&-restore/backup_lock.txt"
+mkdir -p /tmp/vm-backup-and-restore
+LOCK_FILE="/tmp/vm-backup-and-restore/backup_lock.txt"
 
 # Prevent double-run
 if [[ -f "$LOCK_FILE" ]]; then
@@ -10,7 +10,7 @@ fi
 
 touch "$LOCK_FILE"
 
-CONFIG="/boot/config/plugins/vm-backup-&-restore/settings.cfg"
+CONFIG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
 source "$CONFIG" || exit 1
 
 stop_vms="$STOP_VMS"
@@ -225,9 +225,9 @@ only_send_error_notifications="0"
 
 ################################################## script variables end #########################################################
 
+trap 'rm -f "$LOCK_FILE"' EXIT SIGTERM SIGINT SIGHUP SIGQUIT
 
 ###################################################### script start #############################################################
-
 
 #### define functions start ####
 
@@ -2977,7 +2977,11 @@ only_send_error_notifications="0"
   fi
 
 echo "changing owner to $backup_owner"
-chown -R "$backup_owner:users" "$backup_location"
+vm_backup_folder="$backup_location/$vm"
+
+# Only change ownership of this VM's folder
+chown -R "$backup_owner:users" "$vm_backup_folder"
+
 
 if [[ "$stop_vms" == "yes" ]]; then
     echo "Starting VMs that were stopped by this script..."
@@ -2995,9 +2999,10 @@ if [[ "$stop_vms" == "yes" ]]; then
     echo "VM restart phase complete."
 fi
 
+mkdir -p /tmp/vm-backup-and-restore/backup_logs
+rsync -a --delete "$BACKUP_DESTINATION/logs/" "/tmp/vm-backup-and-restore/backup_logs/"
 find "$backup_location" -type f -size 0 -delete
 find "$backup_location" -type d -empty -delete
-trap 'rm -f "$LOCK_FILE"' EXIT SIGTERM SIGINT SIGHUP SIGQUIT
 
   exit 0
 
