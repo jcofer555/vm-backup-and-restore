@@ -1,0 +1,11 @@
+unraid-plugin: VM Backup & Restore
+unraid-plugin:
+unraid-plugin: A utility to backup a VM's vdisk, nvram, and xml
+unraid-plugin: and restore when needed
+unraid-plugin:
+unraid-plugin: Homepage: https://github.com/jcofer555/vm-backup-and-restore
+unraid-plugin:
+unraid-plugin:
+unraid-plugin:
+unraid-plugin:
+unraid-plugin:
