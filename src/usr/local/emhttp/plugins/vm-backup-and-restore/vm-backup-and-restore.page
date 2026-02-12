@@ -1062,26 +1062,9 @@ if (is_file($plg)) {
         <span class="vm-backup-and-restoretip"
           title="Choose destination for backup. Each VM will be saved to a subdirectory with the name the same as the VM">
           <input type="text" id="backup_destination" name="BACKUP_DESTINATION"
-            data-picker-title="Select Backup Destination" readonly style="cursor:pointer;"
+            data-picker-title="Select Backup Destination" placeholder="Click here" readonly style="cursor:pointer;"
             value="<?php echo htmlspecialchars($settings['BACKUP_DESTINATION'] ?? ''); ?>">
         </span>
-      </div>
-
-      <div id="folderPickerModal" class="vm-modal">
-        <div class="vm-modal-content">
-          <div class="vm-modal-header">
-            <span id="folderPickerTitle">Select Folder</span>
-            <button type="button" id="closeFolderPicker">Close</button>
-          </div>
-
-          <div id="folderBreadcrumb" class="vm-breadcrumb"></div>
-
-          <div id="folderList" class="vm-folder-list"></div>
-
-          <div class="vm-modal-footer">
-            <button type="button" id="confirmFolderSelection">Select</button>
-          </div>
-        </div>
       </div>
 
       <!-- NUMBER OF BACKUPS -->
@@ -1217,7 +1200,7 @@ if (is_file($plg)) {
 
         <span class="vm-backup-and-restoretip" title="Choose location where backups are located">
           <input type="text" id="restore_location" name="RESTORE_LOCATION"
-            data-picker-title="Select Location Of Backups" readonly style="cursor:pointer;"
+            data-picker-title="Select Location Of Backups" placeholder="Click here" readonly style="cursor:pointer;"
             value="<?php echo htmlspecialchars($restoreSettings['RESTORE_LOCATION'] ?? ''); ?>">
         </span>
       </div>
@@ -1256,7 +1239,7 @@ if (is_file($plg)) {
 
         <span class="vm-backup-and-restoretip" title="Choose destination to restore VM(s) to">
           <input type="text" id="restore_destination" name="RESTORE_DESTINATION"
-            data-picker-title="Select Restore Destination" readonly style="cursor:pointer;"
+            data-picker-title="Select Restore Destination" placeholder="Click here" readonly style="cursor:pointer;"
             value="<?php echo htmlspecialchars($restoreSettings['RESTORE_DESTINATION'] ?? ''); ?>">
         </span>
       </div>
@@ -1318,6 +1301,23 @@ if (is_file($plg)) {
     </form>
   </div>
 
+</div>
+
+<div id="folderPickerModal" class="vm-modal">
+  <div class="vm-modal-content">
+    <div class="vm-modal-header">
+      <span id="folderPickerTitle">Select Folder</span>
+      <button type="button" id="closeFolderPicker">Close</button>
+    </div>
+
+    <div id="folderBreadcrumb" class="vm-breadcrumb"></div>
+
+    <div id="folderList" class="vm-folder-list"></div>
+
+    <div class="vm-modal-footer">
+      <button type="button" id="confirmFolderSelection">Select</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1391,6 +1391,7 @@ if (is_file($plg)) {
     /* -----------------------------
        LOAD VM LIST
        ----------------------------- */
+    $vmDropdown.empty();
     $.getJSON('/plugins/vm-backup-and-restore/helpers/list_vms.php', function (data) {
       list.empty();
 
@@ -1580,18 +1581,17 @@ if (is_file($plg)) {
     // Load restore folders
     function loadRestoreFolders() {
       const restorePath = $('#restore_location').val();
+      list.empty(); // <-- CLEAR THE DROPDOWN IMMEDIATELY
+      label.text('No backups at this location'); // <-- default placeholder
+
       if (!restorePath) {
-        list.empty();
-        label.text('No backups at this location');
-        return;
+        return; // empty path, label already set
       }
 
       $.getJSON('/plugins/vm-backup-and-restore/helpers/list_restore_folders.php', { restore_path: restorePath }, function (data) {
-        list.empty();
-
-        if (data.error) {
-          console.warn(data.error);
-          label.text('No VMs here');
+        list.empty(); // clear again just in case
+        if (!data.folders || data.folders.length === 0) {
+          // No folders found, label is already set
           return;
         }
 
@@ -1599,13 +1599,13 @@ if (is_file($plg)) {
           const id = 'vmrestore-' + folder.replace(/\s+/g, '_');
 
           const item = $(`
-          <div>
-            <label>
-              <input type="checkbox" value="${folder}" id="${id}">
-              ${folder}
-            </label>
-          </div>
-        `);
+                <div>
+                    <label>
+                        <input type="checkbox" value="${folder}" id="${id}">
+                        ${folder}
+                    </label>
+                </div>
+            `);
 
           if (selected.includes(folder)) {
             item.find('input').prop('checked', true);
@@ -1614,6 +1614,7 @@ if (is_file($plg)) {
           list.append(item);
         });
 
+        // After adding folders, reset label
         updateRestoreLabel();
       });
     }
@@ -2105,7 +2106,11 @@ if (is_file($plg)) {
 
     if (!selectedFolder || !activeInputFieldId) return;
 
-    $('#' + activeInputFieldId).val(selectedFolder);
+    const $field = $('#' + activeInputFieldId);
+    $field.val(selectedFolder);
+
+    // Trigger change event so any dependent UI updates
+    $field.trigger('change');
 
     $('#folderPickerModal').hide();
   });
