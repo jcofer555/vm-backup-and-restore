@@ -46,7 +46,7 @@ if [[ "$stop_vms" == "yes" ]]; then
     echo "Starting VMs that were stopped by this script..."
 
     for vm in "${vms_stopped_by_script[@]}"; do
-        if [[ "$DRY_RUN" == "yes" ]]; then
+        if [[ "$DRY_RUN" == "0" ]]; then
             echo "[DRY RUN] Would start VM: $vm"
             continue
         fi
@@ -59,7 +59,8 @@ if [[ "$stop_vms" == "yes" ]]; then
 fi
 
 mkdir -p /tmp/vm-backup-and-restore/backup_logs
-rsync -a --delete "$BACKUP_DESTINATION/logs/" "/tmp/vm-backup-and-restore/backup_logs/"
+rsync -a "$BACKUP_DESTINATION/logs/" "/tmp/vm-backup-and-restore/backup_logs/"
+rm -rf "$BACKUP_DESTINATION/logs/"
 find "$backup_location" -type f -size 0 -delete
 find "$backup_location" -type d -empty -delete
 timestamp="$(date +"%d-%m-%Y %H:%M")"
@@ -99,8 +100,6 @@ me=$(basename "$0")
 # default 0 but set the master switch to 1 if you want to enable the script otherwise it will not run.
 enabled="1"
 
-# default is 0. backup all vms or use vms_to_backup.
-# when set to 1, vms_to_backup will be used as an exclusion list.
 backup_all_vms="0"
 
 if [[ "$stop_vms" == "yes" ]]; then
@@ -149,12 +148,9 @@ else
     echo "stop_vms is set to no — skipping VM shutdown."
 fi
 
-# list of specific vdisks to be skipped separated by a new line. use the full path.
-# NOTE: must match path in vm config file. remember this if you change the virtual disk path to enable snapshots.
 vdisks_to_skip="
 "
 
-# list of specific vdisk extensions to be skipped separated by a new line. this replaces the old ignore_isos variable.
 vdisk_extensions_to_skip="
 iso
 "
@@ -195,8 +191,6 @@ compress_backups="0"
 # default is 1. set this to 0 if you would like to have backups without a timestamp. Timestamps are dropped only when number_of_backups_to_keep is equal to 1.
 timestamp_files="0"
 
-#### logging and notifications ####
-
 # default is 1. set to 0 to have log file deleted after the backup has completed.
 # NOTE: error logs are separate. settings for error logs can be found in the advanced variables.
 keep_log_file="1"
@@ -216,9 +210,6 @@ send_notifications="0"
 # default is 0. set to 1 to receive more detailed notifications. will not work with send_notifications disabled or only_send_error_notifications enabled.
 detailed_notifications="0"
 
-
-#### advanced variables ####
-
 # default is snap. extension used when creating snapshots.
 # WARNING: do not choose an extension that is the same as one of your vdisks or the script will error out. cannot be blank.
 snapshot_extension="snap"
@@ -227,8 +218,6 @@ snapshot_extension="snap"
 # NOTE: this will act as though use_snapshots was disabled for just the vm with the failed snapshot command.
 snapshot_fallback="0"
 
-# default is 0. pause vms instead of shutting them down during standard backups.
-# WARNING: this could result in unusable backups, but I have not thoroughly tested.
 pause_vms="0"
 
 # list of vms that will be backed up WITHOUT first shutting down separated by a new line. these must also be listed in vms_to_backup.
@@ -237,20 +226,13 @@ pause_vms="0"
 vms_to_backup_running="
 "
 
-# default is 0. set to 1 to have reconstruct write (a.k.a. turbo write) enabled during the backup and then disabled after the backup completes.
-# NOTE: may break auto functionality when it is implemented. do not use if reconstruct write is already enabled. backups may run faster with this enabled.
 enable_reconstruct_write="0"
 
 # default is 0. set this to 1 to compare files after copy and run rsync in the event of failure. could add significant amount of time depending on the size of vms.
 compare_files="0"
 
-# default is 1. set to 0 if you would like to skip backing up xml configuration files.
 backup_xml="1"
-
-# default is 1. set to 0 if you would like to skip backing up nvram files.
 backup_nvram="1"
-
-# default is 1. set to 0 if you would like to skip backing up vdisks. setting this to 0 will automatically disable compression.
 backup_vdisks="1"
 
 # default is 0. set this to 1 if you would like to start a vm after it has successfully been backed up. will override set_vm_to_original_state when set to 1.
@@ -263,7 +245,6 @@ start_vm_after_failure="0"
 disable_delta_sync="0"
 
 # default is 0. set this to 1 to always use rsync instead of cp.
-# NOTE: rsync was significantly slower in my tests.
 rsync_only="1"
 
 # default is 1. set this to 0 if you would like to perform a dry-run backup.
@@ -282,7 +263,6 @@ keep_error_log_file="1"
 # default is 10. number of error log files to keep. 0 means infinitely.
 number_of_error_log_files_to_keep="1"
 
-# default is 0. set to 1 to only send error notifications.
 only_send_error_notifications="0"
 
 ################################################## script variables end #########################################################
@@ -772,6 +752,10 @@ sleep 5
                     if [[ "$vm_to_keep_running" == "$vm" ]]; then
                       skip_vm_shutdown=true
                     fi
+
+                   if [[ "$DRY_RUN" == "0" ]]; then
+                      skip_vm_shutdown=true
+                    fi 
                   done
 
                   # if vm is not found in vms_to_backup_running and use_snapshots is disabled, then skip shutdown proceedure.
@@ -2234,7 +2218,7 @@ sleep 5
     vm_original_state=$vm_state
 
     # initialize skip_vm_shutdown variable as false.
-    skip_vm_shutdown=false
+    skip_vm_shutdown=true
 
     # determine if vm should be kept running.
     # first check to see if vm exists in vms_to_backup_running variable.
@@ -2244,6 +2228,10 @@ sleep 5
       if [[ "$vm_to_keep_running" == "$vm" ]]; then
         skip_vm_shutdown=true
       fi
+
+if [[ "$DRY_RUN" == "0" ]]; then
+    skip_vm_shutdown=true
+fi
 
     done
 
@@ -2371,6 +2359,10 @@ sleep 5
       log_message "information: the extensions of the vdisks that were backed up are ${vdisk_extensions[*]}."
 
       # check to see if set_vm_to_original_state is 1 and then check the vm's original state.
+if [[ "$DRY_RUN" == "0" ]]; then
+    echo "Dry run enabled — skipping VM shutdown/start logic."
+else
+
       if [ "$set_vm_to_original_state" -eq 1 ]; then
 
         # get the current state of the vm for checking against its orginal state.
@@ -2406,6 +2398,7 @@ sleep 5
 
       fi
 
+fi
 
       # if start_vm_after_backup is set to 1 then start the vm but dont check that it has been successful.
       if [ "$start_vm_after_backup" -eq 1 ]; then
