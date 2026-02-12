@@ -105,23 +105,23 @@ if (file_exists("/etc/unraid-version")) {
   // Try dynamic lookup from global scope, cookie, or meta
   if (!csrfToken || csrfToken === "undefined" || csrfToken === "") {
     try {
-      // 1️⃣ Try the global variable used by Unraid's WebGUI JS
+      // 1️Try the global variable used by Unraid's WebGUI JS
       if (typeof window.csrf_token !== "undefined" && window.csrf_token) {
         csrfToken = window.csrf_token;
       }
 
-      // 2️⃣ Try any embedded meta tag
+      // 2️Try any embedded meta tag
       if ((!csrfToken || csrfToken === "") && document.querySelector("meta[name='csrf_token']")) {
         csrfToken = document.querySelector("meta[name='csrf_token']").getAttribute("content");
       }
 
-      // 3️⃣ Try cookie (most Unraid builds set it)
+      // 3️Try cookie (most Unraid builds set it)
       if ((!csrfToken || csrfToken === "") && document.cookie.includes("csrf_token=")) {
         const m = document.cookie.match(/csrf_token=([^;]+)/);
         if (m) csrfToken = decodeURIComponent(m[1]);
       }
 
-      // 4️⃣ Fallback: try to extract from any script tag in the parent frame
+      // 4️Fallback: try to extract from any script tag in the parent frame
       if ((!csrfToken || csrfToken === "") && window.parent) {
         try {
           if (window.parent.csrf_token) csrfToken = window.parent.csrf_token;
@@ -1137,7 +1137,7 @@ if (is_file($plg)) {
         <label for="enable_notifications">
           <span class="vm-backup-and-restoretip"
             title="Send Unraid system notifications when VM backup starts and finishes">
-            Enable Notifications:
+            Notifications:
           </span>
         </label>
 
@@ -1221,23 +1221,23 @@ if (is_file($plg)) {
           <div class="vm-dropdown-list-restore"></div>
         </div>
 
-        <!-- 🔥 CRITICAL: Hidden field that JS reads on page load -->
+        <!-- Hidden field that JS reads on page load -->
         <input type="hidden" id="vm-hidden-restore" name="VM_NAME_RESTORE"
           value="<?php echo htmlspecialchars($restoreSettings['VM_NAME_RESTORE'] ?? '') ?>">
       </div>
 
-      <!-- VERSION FIELDS (auto-generated) -->
+      <!-- VERSION FIELDS -->
       <div id="version-fields-container"></div>
 
       <!-- RESTORE DESTINATION -->
       <div class="form-pair">
         <label>
-          <span class="vm-backup-and-restoretip" title="Choose destination to restore VM(s) to">
+          <span class="vm-backup-and-restoretip" title="Choose destination to restore VM(s)">
             Restore Destination:
           </span>
         </label>
 
-        <span class="vm-backup-and-restoretip" title="Choose destination to restore VM(s) to">
+        <span class="vm-backup-and-restoretip" title="Choose destination to restore VM(s)">
           <input type="text" id="restore_destination" name="RESTORE_DESTINATION"
             data-picker-title="Select Restore Destination" placeholder="Click here" readonly style="cursor:pointer;"
             value="<?php echo htmlspecialchars($restoreSettings['RESTORE_DESTINATION'] ?? ''); ?>">
@@ -1268,7 +1268,7 @@ if (is_file($plg)) {
         <label for="enable_notifications_restore">
           <span class="vm-backup-and-restoretip"
             title="Send Unraid system notifications when VM restore starts and finishes">
-            Enable Notifications:
+            Notifications:
           </span>
         </label>
 
@@ -1485,7 +1485,7 @@ if (is_file($plg)) {
 
     const restorePath = $('#restore_location').val();
     if (!restorePath) {
-      return; // No path → nothing to build
+      return;
     }
 
     const raw = $('#vm-hidden-restore').val() || '';
@@ -1509,7 +1509,7 @@ if (is_file($plg)) {
         },
         function (versions) {
 
-          // 🔥 If no versions found, skip this VM completely
+          // If no versions found, skip this VM completely
           if (!versions || versions.length === 0) {
             return;
           }
@@ -1771,7 +1771,7 @@ if (is_file($plg)) {
       return;
     }
 
-    backupRequestInProgress = true;  // 🔒 prevent double-click
+    backupRequestInProgress = true;
 
     const params = $.param({
       VM_NAME: vms,
@@ -1788,7 +1788,7 @@ if (is_file($plg)) {
       .done(function (res) {
 
         if (res && res.status === 'ok') {
-          startBackup();  // let polling detect running state
+          startBackup();
         } else {
           alert('Failed to save settings');
         }
@@ -1798,7 +1798,7 @@ if (is_file($plg)) {
         alert('Error saving settings');
       })
       .always(function () {
-        // 🔓 ALWAYS release click lock after request finishes
+        // ALWAYS release click lock after request finishes
         backupRequestInProgress = false;
       });
 
@@ -1928,7 +1928,7 @@ if (is_file($plg)) {
       return;
     }
 
-    // 🔧 Build restore versions string (vm=version,vm=version)
+    // Build restore versions string
     const restoreVersions = collectRestoreVersions();
     const restoreVersionsStr = Object.entries(restoreVersions)
       .map(([vm, ver]) => `${vm}=${ver}`)
@@ -2108,7 +2108,7 @@ if (is_file($plg)) {
   let activeInputFieldId = null;
 
   $('input[data-picker-title]').on('click', function () {
-    activeInputFieldId = $(this).attr('id'); // store ID
+    activeInputFieldId = $(this).attr('id');
     const modalTitle = $(this).data('picker-title');
 
     $('#folderPickerTitle').text(modalTitle);

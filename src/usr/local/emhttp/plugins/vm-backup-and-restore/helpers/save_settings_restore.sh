@@ -14,7 +14,7 @@ DRY_RUN_RESTORE="${5:-false}"
 ENABLE_NOTIFICATIONS_RESTORE="${6:-false}"
 
 # ==========================================================
-#  Write all settings cleanly and atomically
+#  Write all settings
 # ==========================================================
 {
   echo "RESTORE_LOCATION=\"$RESTORE_LOCATION\""
@@ -25,8 +25,6 @@ ENABLE_NOTIFICATIONS_RESTORE="${6:-false}"
   echo "ENABLE_NOTIFICATIONS_RESTORE=\"$ENABLE_NOTIFICATIONS_RESTORE\""
 } > "$TMP"
 
-# Atomic replace
 mv "$TMP" "$CONFIG"
-
 echo '{"status":"ok"}'
 exit 0

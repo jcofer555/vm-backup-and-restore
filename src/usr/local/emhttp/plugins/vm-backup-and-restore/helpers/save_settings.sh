@@ -1,6 +1,8 @@
 #!/bin/bash
 
 CONFIG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
+TMP="${CONFIG}.tmp"
+
 mkdir -p "$(dirname "$CONFIG")"
 
 # Safely assign defaults if missing
@@ -13,7 +15,7 @@ ENABLE_NOTIFICATIONS="${6:-0}"
 BACKUP_OWNER="${7:-nobody}"
 
 # ==========================================================
-#  Write all settings cleanly and atomically
+#  Write all settings
 # ==========================================================
 {
   echo "VM_NAME=\"$VM_NAME\""
@@ -23,7 +25,8 @@ BACKUP_OWNER="${7:-nobody}"
   echo "DRY_RUN=\"$DRY_RUN\""
   echo "ENABLE_NOTIFICATIONS=\"$ENABLE_NOTIFICATIONS\""
   echo "BACKUP_OWNER=\"$BACKUP_OWNER\""
-} > "$CONFIG"
+} > "$TMP"
 
+mv "$TMP" "$CONFIG"
 echo '{"status":"ok"}'
 exit 0
