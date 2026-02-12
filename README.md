@@ -1,2 +1,2 @@
-# vm-backup-and-restore
-A utility to backup a vm's vdisk, nvram, and xml and restore when needed
+# VM Backup & Restore
+A utility to backup a VM's vdisk, nvram, and xml and restore when needed
