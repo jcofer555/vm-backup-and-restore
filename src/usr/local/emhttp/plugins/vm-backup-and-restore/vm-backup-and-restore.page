@@ -952,6 +952,69 @@ if (file_exists("/etc/unraid-version")) {
     gap: 6px;
     /* optional spacing between label and value */
   }
+
+  .vm-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+  }
+
+  .vm-modal-content {
+    width: 600px;
+    margin: 8% auto;
+    background: #000;
+    border: 2px solid red;
+    border-radius: 8px;
+    color: red;
+    padding: 15px;
+  }
+
+  .vm-modal-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+
+  .vm-folder-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid red;
+    padding: 5px;
+  }
+
+  .vm-folder-item {
+    padding: 6px;
+    cursor: pointer;
+  }
+
+  .vm-folder-item:hover {
+    background: #111;
+  }
+
+  .vm-folder-item label {
+    cursor: pointer;
+  }
+
+  .vm-breadcrumb {
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: #ff4444;
+  }
+
+  .vm-modal-footer {
+    margin-top: 10px;
+    text-align: right;
+  }
+
+  #folderPickerModal .vm-modal-header span {
+    color: #ffffff;
+  }
 </style>
 
 <?php
@@ -998,9 +1061,27 @@ if (is_file($plg)) {
 
         <span class="vm-backup-and-restoretip"
           title="Choose destination for backup. Each VM will be saved to a subdirectory with the name the same as the VM">
-          <input type="text" id="backup_destination" name="BACKUP_DESTINATION" placeholder="e.g. /mnt/user/backups/vms"
+          <input type="text" id="backup_destination" name="BACKUP_DESTINATION"
+            data-picker-title="Select Backup Destination" readonly style="cursor:pointer;"
             value="<?php echo htmlspecialchars($settings['BACKUP_DESTINATION'] ?? ''); ?>">
         </span>
+      </div>
+
+      <div id="folderPickerModal" class="vm-modal">
+        <div class="vm-modal-content">
+          <div class="vm-modal-header">
+            <span id="folderPickerTitle">Select Folder</span>
+            <button type="button" id="closeFolderPicker">Close</button>
+          </div>
+
+          <div id="folderBreadcrumb" class="vm-breadcrumb"></div>
+
+          <div id="folderList" class="vm-folder-list"></div>
+
+          <div class="vm-modal-footer">
+            <button type="button" id="confirmFolderSelection">Select</button>
+          </div>
+        </div>
       </div>
 
       <!-- NUMBER OF BACKUPS -->
@@ -1135,7 +1216,8 @@ if (is_file($plg)) {
         </label>
 
         <span class="vm-backup-and-restoretip" title="Choose location where backups are located">
-          <input type="text" id="restore_location" name="RESTORE_LOCATION" placeholder="your backup destination"
+          <input type="text" id="restore_location" name="RESTORE_LOCATION"
+            data-picker-title="Select Location Of Backups" readonly style="cursor:pointer;"
             value="<?php echo htmlspecialchars($restoreSettings['RESTORE_LOCATION'] ?? ''); ?>">
         </span>
       </div>
@@ -1173,7 +1255,8 @@ if (is_file($plg)) {
         </label>
 
         <span class="vm-backup-and-restoretip" title="Choose destination to restore VM(s) to">
-          <input type="text" id="restore_destination" name="RESTORE_DESTINATION" placeholder="e.g. /mnt/user/domains"
+          <input type="text" id="restore_destination" name="RESTORE_DESTINATION"
+            data-picker-title="Select Restore Destination" readonly style="cursor:pointer;"
             value="<?php echo htmlspecialchars($restoreSettings['RESTORE_DESTINATION'] ?? ''); ?>">
         </span>
       </div>
@@ -1874,4 +1957,156 @@ if (is_file($plg)) {
     caPluginUpdateCheck("vm-backup-and-restore.plg", { name: "vm-backup-and-restore" });
   }
 
+</script>
+
+<script>
+  let currentPath = "/mnt";
+  let selectedFolder = null;
+
+  function loadFolders(path) {
+
+    $.getJSON('/plugins/vm-backup-and-restore/helpers/list_folders.php',
+      { path: path },
+      function (data) {
+
+        currentPath = data.current;
+        selectedFolder = null;
+
+        /* -----------------------
+           Build Breadcrumb
+        ----------------------- */
+        const parts = currentPath.split('/').filter(p => p !== '');
+        let breadcrumbHTML = '';
+        let buildPath = '';
+
+        parts.forEach((part, index) => {
+          buildPath += '/' + part;
+
+          breadcrumbHTML += `
+          <span class="breadcrumb-part"
+                data-path="${buildPath}"
+                style="cursor:pointer;">
+            ${part}
+          </span>
+        `;
+
+          if (index < parts.length - 1) {
+            breadcrumbHTML += ' / ';
+          }
+        });
+
+        $('#folderBreadcrumb').html(breadcrumbHTML);
+
+
+        /* -----------------------
+           Build Folder List
+        ----------------------- */
+        let html = '';
+
+        // Up Directory (never above /mnt)
+        if (data.parent) {
+          html += `
+          <div class="vm-folder-item browse-row"
+               data-path="${data.parent}"
+               style="cursor:pointer; display:flex; align-items:center;">
+            .. Up Directory
+          </div>
+        `;
+        }
+
+        data.folders.forEach(folder => {
+
+          const disabledAttr = folder.selectable ? '' : 'disabled';
+          const tooltip = folder.selectable ? '' : 'title="Can’t select. Browse deeper"';
+          const disabledStyle = folder.selectable ? '' : 'style="opacity:0.4;"';
+
+          html += `
+          <div class="vm-folder-item browse-row"
+               data-path="${folder.path}"
+               style="cursor:pointer; display:flex; align-items:center; gap:8px;">
+
+            <input type="checkbox"
+                   class="folder-checkbox"
+                   value="${folder.path}"
+                   ${disabledAttr}
+                   ${tooltip}
+                   ${disabledStyle}>
+
+            <span>${folder.name}</span>
+          </div>
+        `;
+        });
+
+        $('#folderList').html(html);
+
+
+        /* -----------------------
+           Breadcrumb Click
+        ----------------------- */
+        $('.breadcrumb-part').off('click').on('click', function () {
+          const newPath = $(this).data('path');
+          loadFolders(newPath);
+        });
+
+
+        /* -----------------------
+           Browse Row Click
+           (except checkbox)
+        ----------------------- */
+        $('.browse-row').off('click').on('click', function (e) {
+
+          if ($(e.target).is('input')) return;
+
+          const newPath = $(this).data('path');
+          loadFolders(newPath);
+        });
+
+
+        /* -----------------------
+           Single Checkbox Selection
+        ----------------------- */
+        $('.folder-checkbox').off('change').on('change', function (e) {
+
+          if (this.disabled) return;
+
+          $('.folder-checkbox').not(this).prop('checked', false);
+          selectedFolder = this.checked ? $(this).val() : null;
+
+          e.stopPropagation();
+        });
+
+      });
+  }
+
+  let activeInputFieldId = null;
+
+  $('input[data-picker-title]').on('click', function () {
+    activeInputFieldId = $(this).attr('id'); // store ID
+    const modalTitle = $(this).data('picker-title');
+
+    $('#folderPickerTitle').text(modalTitle);
+    $('#folderPickerModal').show();
+
+    const savedPath = $(this).val();
+
+    if (savedPath && savedPath.startsWith('/mnt')) {
+      loadFolders(savedPath);
+    } else {
+      loadFolders('/mnt');
+    }
+  });
+
+  $('#closeFolderPicker').on('click', function () {
+    $('#folderPickerModal').hide();
+  });
+
+  $('#confirmFolderSelection').off('click').on('click', function (e) {
+    e.preventDefault();
+
+    if (!selectedFolder || !activeInputFieldId) return;
+
+    $('#' + activeInputFieldId).val(selectedFolder);
+
+    $('#folderPickerModal').hide();
+  });
 </script>
