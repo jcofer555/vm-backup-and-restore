@@ -45,12 +45,12 @@ $restoreCfgPath = '/boot/config/plugins/vm-backup-and-restore/settings_restore.c
 
 // Define all default keys and their order for restore
 $restoreDefaults = [
-    'VM_NAME_RESTORE' => '',
     'RESTORE_LOCATION' => '',
-    'DRY_RUN_RESTORE' => 'false',
-    'ENABLE_NOTIFICATIONS_RESTORE' => '0',
+    'VM_NAME_RESTORE' => '',
     'RESTORE_VERSIONS' => '',
-    'RESTORE_DESTINATION' => '/mnt/user/domains'
+    'RESTORE_DESTINATION' => '/mnt/user/domains',
+    'DRY_RUN_RESTORE' => 'false',
+    'ENABLE_NOTIFICATIONS_RESTORE' => '0'
 ];
 
 // Load existing restore config if present
@@ -1391,7 +1391,6 @@ if (is_file($plg)) {
     /* -----------------------------
        LOAD VM LIST
        ----------------------------- */
-    $vmDropdown.empty();
     $.getJSON('/plugins/vm-backup-and-restore/helpers/list_vms.php', function (data) {
       list.empty();
 
@@ -1475,75 +1474,96 @@ if (is_file($plg)) {
 
   const versionSelections = {};
 
-  document.addEventListener("DOMContentLoaded", () => {
-    const vmDropdownRestore = document.getElementById("vm-dropdown-restore");
-    const versionContainer = document.getElementById("version-fields-container");
+  /* =========================================
+     VERSION FIELDS (RESTORE)
+  ========================================= */
 
-    function rebuildVersionFields() {
-      const container = $('#version-fields-container');
-      container.empty(); // atomic reset
+  function rebuildVersionFields() {
 
-      const raw = $('#vm-hidden-restore').val() || '';
-      const selected = raw
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean);
+    const container = $('#version-fields-container');
+    container.empty(); // atomic reset
 
-      // If nothing selected, nothing to build
-      if (selected.length === 0) return;
-
-      selected.forEach(vm => {
-        $.getJSON(
-          '/plugins/vm-backup-and-restore/helpers/get_vm_versions.php',
-          {
-            vm: vm,
-            restore_path: $('#restore_location').val()
-          },
-          function (versions) {
-            const wrapper = $(`
-  <div class="form-pair version-field">
-    <label>
-      <span class="vm-backup-and-restoretip" title="Choose version for ${vm}">
-        Version for ${vm}:
-      </span>
-    </label>
-    <select name="VERSION_${vm}" class="version-select" data-vm="${vm}"></select>
-  </div>
-`);
-
-            const select = wrapper.find('select');
-
-            if (!versions || versions.length === 0) {
-              select.append(`<option value="">NONE FOUND</option>`);
-            } else {
-              versions.forEach((v, idx) => {
-                let label = v.display;
-
-                if (idx === 0) {
-                  label += ' (LATEST)';
-                }
-
-                // Only mark OLDEST if there is more than one version
-                if (versions.length > 1 && idx === versions.length - 1) {
-                  label += ' (OLDEST)';
-                }
-
-                select.append(`<option value="${v.raw}">${label}</option>`);
-              });
-            }
-
-            container.append(wrapper);
-          }
-        );
-      });
+    const restorePath = $('#restore_location').val();
+    if (!restorePath) {
+      return; // No path → nothing to build
     }
 
-    // Trigger rebuild when VM selection changes
-    vmDropdownRestore.addEventListener("change", rebuildVersionFields);
+    const raw = $('#vm-hidden-restore').val() || '';
+    const selected = raw
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
 
-    // Initial load — will work ONLY if #vm-hidden-restore has persisted values
+    // If nothing selected, nothing to build
+    if (selected.length === 0) return;
+
+    let renderedCount = 0; // Track how many version fields actually render
+
+    selected.forEach(vm => {
+
+      $.getJSON(
+        '/plugins/vm-backup-and-restore/helpers/get_vm_versions.php',
+        {
+          vm: vm,
+          restore_path: restorePath
+        },
+        function (versions) {
+
+          // 🔥 If no versions found, skip this VM completely
+          if (!versions || versions.length === 0) {
+            return;
+          }
+
+          renderedCount++;
+
+          const wrapper = $(`
+          <div class="form-pair version-field">
+            <label>
+              <span class="vm-backup-and-restoretip" title="Choose version for ${vm}">
+                Version for ${vm}:
+              </span>
+            </label>
+            <select name="VERSION_${vm}" 
+                    class="version-select" 
+                    data-vm="${vm}">
+            </select>
+          </div>
+        `);
+
+          const select = wrapper.find('select');
+
+          versions.forEach((v, idx) => {
+            let label = v.display;
+
+            if (idx === 0) {
+              label += ' (LATEST)';
+            }
+
+            if (versions.length > 1 && idx === versions.length - 1) {
+              label += ' (OLDEST)';
+            }
+
+            select.append(`<option value="${v.raw}">${label}</option>`);
+          });
+
+          container.append(wrapper);
+
+          // Optional: re-init tooltip if needed
+          $('.vm-backup-and-restoretip').tooltipster({
+            maxWidth: 300
+          });
+        }
+      );
+    });
+  }
+
+  /* =========================================
+     LIVE REBUILD TRIGGERS
+  ========================================= */
+
+  $(document).ready(function () {
+    // Initial load (if values already exist)
     rebuildVersionFields();
-
   });
 
   $(document).ready(function () {
@@ -1647,14 +1667,15 @@ if (is_file($plg)) {
     }
 
     // Listen for checkbox changes
-    list.on('change', 'input[type=checkbox]', updateRestoreLabel);
     list.on('change', 'input[type=checkbox]', function () {
       updateRestoreLabel();
+      rebuildVersionFields();
     });
 
     // Load folders on restore path change
     $('#restore_location').on('input blur change', function () {
       loadRestoreFolders();
+      rebuildVersionFields();
     });
 
     // Initial load if restore_location already has a value
@@ -1894,9 +1915,14 @@ if (is_file($plg)) {
     }
 
     if (!dest) {
-      alert('Please set a restore location');
+      alert('Please set location of backups');
       return;
     }
+
+    if (!restore_dest) {
+      alert('Please set a restore destination');
+      return;
+    }    
 
     if ($('#restorebtn').prop('disabled')) {
       return;
@@ -1909,12 +1935,12 @@ if (is_file($plg)) {
       .join(',');
 
     const params = $.param({
-      VM_NAME_RESTORE: vms_restore,
       RESTORE_LOCATION: dest,
-      DRY_RUN_RESTORE: $('#dry_run_restore').val(),
-      ENABLE_NOTIFICATIONS_RESTORE: $('#enable_notifications_restore').val(),
+      VM_NAME_RESTORE: vms_restore,
       RESTORE_VERSIONS: restoreVersionsStr,
       RESTORE_DESTINATION: restore_dest,
+      DRY_RUN_RESTORE: $('#dry_run_restore').val(),
+      ENABLE_NOTIFICATIONS_RESTORE: $('#enable_notifications_restore').val(),
       csrf_token: csrfToken
     });
 

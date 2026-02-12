@@ -6,12 +6,12 @@ $cmd = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/save_settings_re
 
 // Grab arguments from query string
 $args = [
-    $_GET['VM_NAME_RESTORE'] ?? '',
     $_GET['RESTORE_LOCATION'] ?? '',
-    $_GET['DRY_RUN_RESTORE'] ?? '',
-    $_GET['ENABLE_NOTIFICATIONS_RESTORE'] ?? '',
+    $_GET['VM_NAME_RESTORE'] ?? '',
     $_GET['RESTORE_VERSIONS'] ?? '',
     $_GET['RESTORE_DESTINATION'] ?? '',
+    $_GET['DRY_RUN_RESTORE'] ?? '',
+    $_GET['ENABLE_NOTIFICATIONS_RESTORE'] ?? '',
 ];
 
 // Escape each argument for safety

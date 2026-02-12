@@ -9,6 +9,29 @@ if [[ -f "$LOCK_FILE" ]]; then
 fi
 
 touch "$LOCK_FILE"
+
+CONFIG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
+source "$CONFIG" || exit 1
+
+notify_unraid() {
+    local title="$1"
+    local message="$2"
+
+    # Only send if enabled
+    if [[ "$ENABLE_NOTIFICATIONS" == "1" ]]; then
+        /usr/local/emhttp/webGui/scripts/notify \
+            -e "unRAID Status" \
+            -s "$title" \
+            -d "$message" \
+            -i "normal"
+    fi
+}
+
+# Send startup notification
+timestamp="$(date +"%d-%m-%Y %H:%M")"
+notify_unraid "unRAID VM Backup script" \
+"script starting"
+
 cleanup() {
   # whatever you want to run on exit
   echo "Cleaning up…"
@@ -39,11 +62,11 @@ mkdir -p /tmp/vm-backup-and-restore/backup_logs
 rsync -a --delete "$BACKUP_DESTINATION/logs/" "/tmp/vm-backup-and-restore/backup_logs/"
 find "$backup_location" -type f -size 0 -delete
 find "$backup_location" -type d -empty -delete
+timestamp="$(date +"%d-%m-%Y %H:%M")"
+notify_unraid "unRAID VM Backup script" \
+"script finished"
 }
 trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT
-
-CONFIG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
-source "$CONFIG" || exit 1
 
 stop_vms="$STOP_VMS"
 backup_owner="$BACKUP_OWNER"
@@ -188,7 +211,7 @@ log_file_subfolder="logs"
 enable_vm_log_file="0"
 
 # default is 1. set to 0 to prevent notification system from being used. Script failures that occur before logging can start, and before this variable is validated will still be sent.
-send_notifications="$ENABLE_NOTIFICATIONS"
+send_notifications="0"
 
 # default is 0. set to 1 to receive more detailed notifications. will not work with send_notifications disabled or only_send_error_notifications enabled.
 detailed_notifications="0"
@@ -248,7 +271,7 @@ rsync_only="1"
 actually_copy_files="$DRY_RUN"
 
 # default is 20. set this to the number of times you would like to check if a clean shutdown of a vm has been successful.
-clean_shutdown_checks="1"
+clean_shutdown_checks="0"
 
 # default is 30. set this to the number of seconds to wait in between checks to see if a clean shutdown has been successful.
 seconds_to_wait="1"
