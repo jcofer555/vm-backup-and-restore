@@ -1,12 +1,28 @@
 #!/bin/bash
 set -u
 
+SCRIPT_START_EPOCH=$(date +%s)
+
+format_duration() {
+    local total=$1
+    local h=$(( total / 3600 ))
+    local m=$(( (total % 3600) / 60 ))
+    local s=$(( total % 60 ))
+
+    local out=""
+    (( h > 0 )) && out+="${h}h "
+    (( m > 0 )) && out+="${m}m "
+    out+="${s}s"
+
+    echo "$out"
+}
+
 # ------------------------------------------------------------------------------
 # Lock + working directory
 # ------------------------------------------------------------------------------
 
 mkdir -p /tmp/vm-backup-and-restore
-LOCK_FILE="/tmp/vm-backup-and-restore/backup_lock.txt"
+LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
 
 # Prevent double-run
 if [[ -f "$LOCK_FILE" ]]; then
@@ -14,6 +30,36 @@ if [[ -f "$LOCK_FILE" ]]; then
 fi
 
 touch "$LOCK_FILE"
+
+# Logging
+LOG_DIR="/tmp/vm-backup-and-restore"
+LAST_RUN_FILE="$LOG_DIR/last_run.log"
+ROTATE_DIR="$LOG_DIR/archived_logs"
+mkdir -p "$ROTATE_DIR"
+# Rotate last_run.log if >= 10MB
+if [[ -f "$LAST_RUN_FILE" ]]; then
+    size_bytes=$(stat -c%s "$LAST_RUN_FILE")
+    max_bytes=$((10 * 1024 * 1024))  # 10MB
+
+    if (( size_bytes >= max_bytes )); then
+        ts="$(date +%Y%m%d_%H%M%S)"
+        rotated="$ROTATE_DIR/last_run_$ts.log"
+        mv "$LAST_RUN_FILE" "$rotated"
+    fi
+fi
+
+# Cleanup: keep only 10 most recent rotated logs
+mapfile -t rotated_logs < <(ls -1t "$ROTATE_DIR"/last_run_*.log 2>/dev/null)
+
+if (( ${#rotated_logs[@]} > 10 )); then
+    for (( i=10; i<${#rotated_logs[@]}; i++ )); do
+        rm -f "${rotated_logs[$i]}"
+    done
+fi
+exec > >(tee -a "$LAST_RUN_FILE") 2>&1
+
+echo "--------------------------------------------"
+echo "Backup session started - $(date '+%Y-%m-%d %H:%M:%S')"
 
 CONFIG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
 source "$CONFIG" || exit 1
@@ -56,24 +102,6 @@ timestamp="$(date +"%d-%m-%Y %H:%M")"
 notify_unraid "unRAID VM Backup script" \
 "script starting"
 
-LOG_DIR="/tmp/vm-backup-and-restore"
-ARCHIVE_DIR="$LOG_DIR/backup_logs"
-
-mkdir -p "$ARCHIVE_DIR"
-
-# Rotate logs: keep only the 20 most recent backup_*.txt files
-log_files=( "$ARCHIVE_DIR"/backup_*.txt )
-
-if (( ${#log_files[@]} > 20 )); then
-    mapfile -t sorted < <(ls -1t "$ARCHIVE_DIR"/backup_*.txt)
-    for (( i=20; i<${#sorted[@]}; i++ )); do
-        rm -f "${sorted[$i]}"
-    done
-fi
-
-LOG_FILE="$ARCHIVE_DIR/backup_$(date +%Y%m%d_%H%M%S).txt"
-
-exec > >(tee -a "$LOG_FILE") 2>&1
 sleep 5
 
 # ------------------------------------------------------------------------------
@@ -108,26 +136,22 @@ declare -a vms_stopped_by_script=()
 cleanup() {
     echo "Cleaning up…"
 
-    # --------------------------------------------------------------
-    # Remove empty directories ONLY when dry-run is enabled
-    # --------------------------------------------------------------
-    if is_dry_run; then
-        find "$backup_location" -mindepth 1 -type d -empty -delete
-    fi
-    # --------------------------------------------------------------
-
     # Remove lock file even in dry-run
     rm -f "$LOCK_FILE"
 
+    # Compute duration
+    SCRIPT_END_EPOCH=$(date +%s)
+    SCRIPT_DURATION=$(( SCRIPT_END_EPOCH - SCRIPT_START_EPOCH ))
+    SCRIPT_DURATION_HUMAN="$(format_duration "$SCRIPT_DURATION")"
+
     if is_dry_run; then
         echo "[DRY-RUN] Skipping VM restarts"
-        echo ""
-        echo "============================================================"
-        echo "       VM BACKUP PROCESS COMPLETE (DRY-RUN)"
-        echo "============================================================"
+        echo "Duration: $SCRIPT_DURATION_HUMAN"
+        echo "Backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
+
         timestamp="$(date +"%d-%m-%Y %H:%M")"
         notify_unraid "unRAID VM Backup script" \
-        "script finished"
+        "script finished - Duration: $SCRIPT_DURATION_HUMAN"
         return
     fi
 
@@ -143,13 +167,12 @@ cleanup() {
         echo "No VMs were stopped by this script."
     fi
 
-    echo ""
-    echo "============================================================"
-    echo "       VM BACKUP PROCESS COMPLETE"
-    echo "============================================================"
+    echo "Duration: $SCRIPT_DURATION_HUMAN"
+    echo "Backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
+
     timestamp="$(date +"%d-%m-%Y %H:%M")"
     notify_unraid "unRAID VM Backup script" \
-    "script finished"
+    "script finished - Duration: $SCRIPT_DURATION_HUMAN"
 }
 
 trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT
@@ -159,7 +182,7 @@ trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT
 # ------------------------------------------------------------------------------
 
 RUN_TS="$(date +%Y%m%d_%H%M)"
-mkdir -p "$backup_location"
+run_cmd mkdir -p "$backup_location"
 
 while IFS= read -r vm; do
     [[ -z "$vm" ]] && continue
@@ -213,7 +236,7 @@ while IFS= read -r vm; do
     # Backup folder
     # ------------------------------
     vm_backup_folder="$backup_location/$vm"
-    mkdir -p "$vm_backup_folder"
+    run_cmd mkdir -p "$vm_backup_folder"
 
     # ------------------------------
     # Extract vdisk paths from XML (clean, no warnings)

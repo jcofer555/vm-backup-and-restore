@@ -1,7 +1,23 @@
 #!/bin/bash
 
+SCRIPT_START_EPOCH=$(date +%s)
+
+format_duration() {
+    local total=$1
+    local h=$(( total / 3600 ))
+    local m=$(( (total % 3600) / 60 ))
+    local s=$(( total % 60 ))
+
+    local out=""
+    (( h > 0 )) && out+="${h}h "
+    (( m > 0 )) && out+="${m}m "
+    out+="${s}s"
+
+    echo "$out"
+}
+
 mkdir -p /tmp/vm-backup-and-restore
-LOCK_FILE="/tmp/vm-backup-and-restore/restore_lock.txt"
+LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
 
 # Prevent double-run
 if [[ -f "$LOCK_FILE" ]]; then
@@ -9,7 +25,61 @@ if [[ -f "$LOCK_FILE" ]]; then
 fi
 
 touch "$LOCK_FILE"
-trap 'rm -f "$LOCK_FILE"' EXIT SIGTERM SIGINT SIGHUP SIGQUIT
+
+# Logging
+LOG_DIR="/tmp/vm-backup-and-restore"
+LAST_RUN_FILE="$LOG_DIR/last_run.log"
+ROTATE_DIR="$LOG_DIR/archived_logs"
+mkdir -p "$ROTATE_DIR"
+# Rotate last_run.log if >= 10MB
+if [[ -f "$LAST_RUN_FILE" ]]; then
+    size_bytes=$(stat -c%s "$LAST_RUN_FILE")
+    max_bytes=$((10 * 1024 * 1024))  # 10MB
+
+    if (( size_bytes >= max_bytes )); then
+        ts="$(date +%Y%m%d_%H%M%S)"
+        rotated="$ROTATE_DIR/last_run_$ts.log"
+        mv "$LAST_RUN_FILE" "$rotated"
+    fi
+fi
+
+# Cleanup: keep only 10 most recent rotated logs
+mapfile -t rotated_logs < <(ls -1t "$ROTATE_DIR"/last_run_*.log 2>/dev/null)
+
+if (( ${#rotated_logs[@]} > 10 )); then
+    for (( i=10; i<${#rotated_logs[@]}; i++ )); do
+        rm -f "${rotated_logs[$i]}"
+    done
+fi
+exec > >(tee -a "$LAST_RUN_FILE") 2>&1
+
+echo "--------------------------------------------"
+echo "Restore session started - $(date '+%Y-%m-%d %H:%M:%S')"
+
+# ------------------------------------------------------------------------------
+# Cleanup trap
+# ------------------------------------------------------------------------------
+
+cleanup() {
+    echo "Cleaning up…"
+
+    # Remove lock file even in dry-run
+    rm -f "$LOCK_FILE"
+
+    # Compute duration
+    SCRIPT_END_EPOCH=$(date +%s)
+    SCRIPT_DURATION=$(( SCRIPT_END_EPOCH - SCRIPT_START_EPOCH ))
+    SCRIPT_DURATION_HUMAN="$(format_duration "$SCRIPT_DURATION")"
+
+    echo "Duration: $SCRIPT_DURATION_HUMAN"
+    echo "Restore session finished - $(date '+%Y-%m-%d %H:%M:%S')"
+
+    timestamp="$(date +"%d-%m-%Y %H:%M")"
+    notify_unraid "unRAID VM Restore script" \
+    "script finished - Duration: $SCRIPT_DURATION_HUMAN"
+}
+
+trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT
 
 CONFIG="/boot/config/plugins/vm-backup-and-restore/settings_restore.cfg"
 source "$CONFIG" || exit 1
@@ -101,6 +171,13 @@ run_cmd() {
     if [[ "$DRY_RUN" == "true" ]]; then
         printf '[DRY RUN] %q ' "$@"
         echo
+        return
+    fi
+
+    # Special case: virsh define is noisy on stdout
+    if [[ "$1" == "virsh" && "$2" == "define" ]]; then
+        # Suppress stdout, keep stderr
+        "$@" >/dev/null
     else
         "$@"
     fi
@@ -237,12 +314,4 @@ for vm in "${vm_names[@]}"; do
 
 done
 
-echo ""
-echo "============================================================"
-echo "       VM RESTORE PROCESS COMPLETE"
-echo "============================================================"
 $DRY_RUN && echo "[DRY RUN] No changes were made."
-
-timestamp="$(date +"%d-%m-%Y %H:%M")"
-notify_unraid "unRAID VM Restore script" \
-"script finished"

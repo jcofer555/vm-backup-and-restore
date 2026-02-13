@@ -1151,7 +1151,7 @@ if (is_file($plg)) {
       </div>
 
       <div id="backup-status" style="color:yellow; font-weight:bold; margin-bottom:6px; display:none;">
-        Backup in progress!
+        Backup or restore in progress!
       </div>
 
       <!-- Backup Button-->
@@ -1267,7 +1267,7 @@ if (is_file($plg)) {
       </div>
 
       <div id="restore-status" style="color:yellow; font-weight:bold; margin-bottom:6px; display:none;">
-        Restore in progress!
+        Backup or restore in progress!
       </div>
 
       <!-- Restore Button-->

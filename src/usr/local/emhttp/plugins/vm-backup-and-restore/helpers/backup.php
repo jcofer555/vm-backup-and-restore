@@ -12,7 +12,7 @@ if (!is_file($script) || !is_executable($script)) {
 }
 
 // Run in background
-$cmd = "nohup $script > /tmp/vm-backup.log 2>&1 & echo $!";
+$cmd = "nohup $script >/dev/null 2>&1 & echo $!";
 $pid = trim(shell_exec($cmd));
 
 echo json_encode([
