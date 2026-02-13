@@ -23,10 +23,10 @@ if (!is_dir($restorePath)) {
 }
 
 // Safety: restrict to Unraid user shares
-if (strpos($restorePath, '/mnt/user') !== 0) {
+if (strpos($restorePath, '/mnt') !== 0) {
     echo json_encode([
         'folders' => [],
-        'error' => 'Restore path must be under /mnt/user'
+        'error' => 'Restore path must be under /mnt'
     ]);
     exit;
 }

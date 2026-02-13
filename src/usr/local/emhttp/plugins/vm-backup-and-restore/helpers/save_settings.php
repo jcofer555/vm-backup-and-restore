@@ -9,7 +9,6 @@ $args = [
     $_GET['VM_NAME'] ?? '',
     $_GET['BACKUP_DESTINATION'] ?? '',
     $_GET['NUMBER_OF_BACKUPS'] ?? '',
-    $_GET['STOP_VMS'] ?? '',
     $_GET['DRY_RUN'] ?? '',
     $_GET['ENABLE_NOTIFICATIONS'] ?? '',
     $_GET['BACKUP_OWNER'] ?? '',

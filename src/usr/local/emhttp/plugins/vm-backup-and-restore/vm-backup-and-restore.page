@@ -13,7 +13,6 @@ $defaults = [
     'VM_NAME' => '',
     'BACKUP_DESTINATION' => '',
     'NUMBER_OF_BACKUPS' => '0',
-    'STOP_VMS' => 'yes', 
     'DRY_RUN' => '1',
     'ENABLE_NOTIFICATIONS' => '0',
     'BACKUP_OWNER' => 'nobody'
@@ -1071,7 +1070,7 @@ if (is_file($plg)) {
       <div class="form-pair">
         <label for="number_of_backups">
           <span title="Choose the amount of backups to keep for the VM" class="vm-backup-and-restoretip">
-            Number Of Backups:
+            Backups To Keep:
           </span>
         </label>
 
@@ -1092,26 +1091,6 @@ if (is_file($plg)) {
           }
         }
       ?>
-          </select>
-        </span>
-      </div>
-
-      <!-- STOP VMS -->
-      <div class="form-pair">
-        <label for="stop_vms">
-          <span title="Choose whether VMs should be stopped during backup" class="vm-backup-and-restoretip">
-            Stop VMs:
-          </span>
-        </label>
-
-        <span title="Choose whether VMs should be stopped during backup" class="vm-backup-and-restoretip">
-          <select id="stop_vms" class="short-input" name="stop_vms">
-            <option value="yes" <?=($settings['STOP_VMS'] ?? 'yes' )==='yes' ? 'selected' : '' ?>>
-              Yes - Full Backup
-            </option>
-            <option value="no" <?=($settings['STOP_VMS'] ?? 'yes' )==='no' ? 'selected' : '' ?>>
-              No - Snapshot Backup
-            </option>
           </select>
         </span>
       </div>
@@ -1177,7 +1156,7 @@ if (is_file($plg)) {
 
       <!-- Backup Button-->
       <div class="form-group">
-        <span title="Run backup of selected VM's. Last 20 logs kept at destination/logs"
+        <span title="Run backup of selected VM(s). Last 20 logs kept at /tmp/vm-backup-and-restore/backup_logs"
           class="vm-backup-and-restoretip">
           <button type="button" id="backupbtn">Backup</button>
         </span>
@@ -1293,7 +1272,8 @@ if (is_file($plg)) {
 
       <!-- Restore Button-->
       <div class="form-group">
-        <span title="Restore selected VM" class="vm-backup-and-restoretip">
+        <span title="Run restore of selected VM(s). Last 20 logs kept at /tmp/vm-backup-and-restore/restore_logs"
+          class="vm-backup-and-restoretip">
           <button type="button" id="restorebtn">Restore</button>
         </span>
       </div>
@@ -1777,7 +1757,6 @@ if (is_file($plg)) {
       VM_NAME: vms,
       BACKUP_DESTINATION: dest,
       NUMBER_OF_BACKUPS: $('#number_of_backups').val(),
-      STOP_VMS: $('#stop_vms').val(),
       DRY_RUN: $('#dry_run').val(),
       ENABLE_NOTIFICATIONS: $('#enable_notifications').val(),
       BACKUP_OWNER: $('#backup_owner').val(),
@@ -1922,7 +1901,7 @@ if (is_file($plg)) {
     if (!restore_dest) {
       alert('Please set a restore destination');
       return;
-    }    
+    }
 
     if ($('#restorebtn').prop('disabled')) {
       return;

@@ -99,9 +99,10 @@ validation_fail() {
 # ============================================================
 run_cmd() {
     if [[ "$DRY_RUN" == "true" ]]; then
-        echo "[DRY RUN] $*"
+        printf '[DRY RUN] %q ' "$@"
+        echo
     else
-        eval "$@"
+        "$@"
     fi
 }
 
