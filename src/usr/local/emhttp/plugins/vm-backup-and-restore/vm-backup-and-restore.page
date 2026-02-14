@@ -641,7 +641,7 @@ if (file_exists("/etc/unraid-version")) {
     background: #111;
     border: 1px solid var(--primary-blue);
     border-radius: 8px;
-    color: #00ffaa;
+    color: white;
     font-family: monospace;
     font-size: 13px;
     max-height: 95vh;
