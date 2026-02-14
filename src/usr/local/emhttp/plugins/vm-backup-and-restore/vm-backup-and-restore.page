@@ -942,7 +942,7 @@ if (file_exists("/etc/unraid-version")) {
 
   #vm-backup-and-restore-layout {
     display: grid;
-    grid-template-columns: 25% 25% 48%;
+    grid-template-columns: 25% 25% 47%;
     gap: 20px;
     align-items: start;
   }
