@@ -1,2 +1,13 @@
-# VM Backup & Restore
-A utility to backup a VM's vdisk, nvram, and xml and restore when needed
+### VM Backup & Restore ###
+
+**A utility to backup a VM's vdisk, nvram, and xml and restore when needed**
+
+## Features ##
+- Backing up of a single VM or multiple VMs
+- Restoring of a sing VM or multiple VMs
+- Ability to set how many backups you want to keep
+- Dry run support
+- Basic Notification support
+- Ability to set an owner for your backups
+- Logging available in the webui and at /tmp/vm-backup-and-restore
+- NOTE: this does stop the vms if they aren't already stopped prior to backing up each VM
