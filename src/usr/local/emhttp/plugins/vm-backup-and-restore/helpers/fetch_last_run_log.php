@@ -3,7 +3,7 @@ $logPath = '/tmp/vm-backup-and-restore/vm_backup_and_restore_last_run.log';
 header('Content-Type: text/plain');
 
 if (!file_exists($logPath)) {
-    echo "Last run log not found.";
+    echo "Backup & restore log not found.";
     exit;
 }
 
