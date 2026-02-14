@@ -63,24 +63,22 @@ echo "Restore session started - $(date '+%Y-%m-%d %H:%M:%S')"
 # ------------------------------------------------------------------------------
 
 cleanup() {
-    echo "Cleaning up…"
-
     # Remove lock file even in dry-run
     rm -f "$LOCK_FILE"
 
     ### Restart VMs that were running before restore ###
     if [[ "$DRY_RUN" != "true" ]]; then
         if (( ${#STOPPED_VMS[@]} > 0 )); then
-            echo "Restarting VMs that were previously running…"
+            :
             for vm in "${STOPPED_VMS[@]}"; do
-                echo "Starting VM: $vm"
-                virsh start "$vm"
+                echo "Starting $vm"
+                run_cmd virsh start "$vm"
             done
         else
-            echo "No VMs needed to be restarted."
+            :
         fi
     else
-        echo "[DRY RUN] Skipping VM restarts."
+        echo "Skipping VM restarts"
     fi
 
     # Compute duration
@@ -157,7 +155,7 @@ err() { echo -e "[ERROR] $1"; }
 # ============================================================
 validation_fail() {
     err "$1"
-    warn "Skipping VM: $vm"
+    warn "Skipping $vm"
 }
 
 # ============================================================
@@ -171,11 +169,22 @@ run_cmd() {
         return
     fi
 
+    # Quiet virsh define
     if [[ "$1" == "virsh" && "$2" == "define" ]]; then
         "$@" >/dev/null
-    else
-        "$@"
+        return
     fi
+
+    # Quiet virsh shutdown/destroy/start
+    if [[ "$1" == "virsh" && ( "$2" == "shutdown" || "$2" == "destroy" || "$2" == "start" ) ]]; then
+        # Insert --quiet right after "virsh"
+        shift
+        virsh --quiet "$@" >/dev/null
+        return
+    fi
+
+    # Default execution
+    "$@"
 }
 
 # ============================================================
@@ -195,16 +204,14 @@ done
 # Process each VM
 # ============================================================
 for vm in "${vm_names[@]}"; do
-    echo "===================================="
-    echo " Restoring VM: $vm"
-    echo "===================================="
+    :
 
     backup_dir="$backup_path/$vm"
 
     version="${version_map[$vm]}"
 
     if [[ -z "$version" ]]; then
-        validation_fail "No restore version specified for VM '$vm'"
+        validation_fail "No restore version specified for VM $vm"
         continue
     fi
 
@@ -231,8 +238,6 @@ for vm in "${vm_names[@]}"; do
         continue
     fi
 
-    log "Backup validated for version $version."
-
     # ============================================================
     # Determine if VM was running before restore
     # ============================================================
@@ -241,17 +246,19 @@ for vm in "${vm_names[@]}"; do
         WAS_RUNNING=true
     fi
 
+    log "Starting restore for $vm"
+
     # ============================================================
     # Shutdown VM cleanly
     # ============================================================
     if virsh list --state-running --name | grep -Fxq "$vm"; then
-        log "Shutting down VM gracefully..."
+        log "Stopping $vm"
 
         run_cmd virsh shutdown "$vm"
         sleep 10
 
         if virsh list --state-running --name | grep -Fxq "$vm"; then
-            warn "VM still running — forcing stop."
+            warn "$vm still running — forcing stop"
             run_cmd virsh destroy "$vm"
         fi
 
@@ -260,7 +267,7 @@ for vm in "${vm_names[@]}"; do
         fi
 
     else
-        log "VM is not running."
+        log "$vm is not running"
     fi
 
     # ============================================================
@@ -303,12 +310,10 @@ for vm in "${vm_names[@]}"; do
     # ============================================================
     # Redefine VM
     # ============================================================
-    log "Redefined VM via libvirt…"
+    log "Redefined $vm via libvirt"
     run_cmd virsh define "$dest_xml"
 
-    log "VM $vm restore completed."
+    log "Finished restore for $vm"
     restored_vms+=("$vm")
 
 done
-
-[[ "$DRY_RUN" == "true" ]] && echo "[DRY RUN] No changes were made."
