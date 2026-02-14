@@ -141,7 +141,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   /* === Layout Wrapper === */
-  #vm-backup-and-restore-wrapper {
+  .vm-backup-and-restore-wrapper {
     display: flex;
     flex-wrap: nowrap;
     /* stay side-by-side */
@@ -158,7 +158,7 @@ if (file_exists("/etc/unraid-version")) {
   /* === Each Panel (auto-sizing) === */
   #vm-backup-and-restore-settings,
   #moved-log-container,
-  #last-run-container {
+  #vm-third-section {
     background: #111;
     border-radius: 12px;
     box-shadow: 0 0 12px rgba(255, 0, 0, .3);
@@ -232,7 +232,7 @@ if (file_exists("/etc/unraid-version")) {
     margin: 0;
   }
 
-  .unraid-71 #last-run-container pre {
+  .unraid-71 #vm-third-section pre {
     max-height: 68vh;
     overflow-y: auto;
     margin: 0;
@@ -251,14 +251,14 @@ if (file_exists("/etc/unraid-version")) {
     margin: 0;
   }
 
-  .unraid-72 #last-run-container pre {
+  .unraid-72 #vm-third-section pre {
     max-height: 67vh;
     overflow-y: auto;
     margin: 0;
   }
 
   @media (max-width: 1100px) {
-    #vm-backup-and-restore-wrapper {
+    .vm-backup-and-restore-wrapper {
       flex-wrap: wrap;
     }
 
@@ -290,11 +290,11 @@ if (file_exists("/etc/unraid-version")) {
     padding: 8px;
   }
 
-  .unraid-71 #vm-backup-and-restore-wrapper {
+  .unraid-71 .vm-backup-and-restore-wrapper {
     margin-top: -31px !important;
   }
 
-  .unraid-72 #vm-backup-and-restore-wrapper {
+  .unraid-72 .vm-backup-and-restore-wrapper {
     margin-top: -20px !important;
   }
 
@@ -631,8 +631,8 @@ if (file_exists("/etc/unraid-version")) {
     white-space: nowrap;
   }
 
-  #last-run-container h3 {
-    color: var(--primary-blue);
+  #vm-third-section h3 {
+    color: white;
     font-size: 18px;
     margin-bottom: 12px;
   }
@@ -649,6 +649,8 @@ if (file_exists("/etc/unraid-version")) {
     padding: 10px;
     white-space: pre-wrap;
     word-break: break-word;
+    flex: 1;
+    overflow-y: auto;
   }
 
   #log-filter {
@@ -929,7 +931,7 @@ if (file_exists("/etc/unraid-version")) {
     margin-bottom: 10px;
   }
 
-  #vm-backup-and-restore-wrapper {
+  .vm-backup-and-restore-wrapper {
     width: 25vw;
     /* 25% of viewport width */
     max-width: 480px;
@@ -940,9 +942,24 @@ if (file_exists("/etc/unraid-version")) {
 
   #vm-backup-and-restore-layout {
     display: grid;
-    grid-template-columns: 25% 25%;
+    grid-template-columns: 25% 25% 48%;
     gap: 20px;
     align-items: start;
+  }
+
+  #vm-third-section {
+    background: #111;
+    border-radius: 12px;
+    box-shadow: 0 0 12px rgba(255, 0, 0, .3);
+    color: #f0f8ff;
+    padding: 20px;
+    box-sizing: border-box;
+    max-height: 74vh;
+    /* match your other panels */
+    overflow: hidden;
+    /* prevent container expansion */
+    display: flex;
+    flex-direction: column;
   }
 
   .status-row2 {
@@ -1029,7 +1046,7 @@ if (is_file($plg)) {
 ?>
 
 <div id="vm-backup-and-restore-layout">
-  <div id="vm-backup-and-restore-wrapper">
+  <div class="vm-backup-and-restore-wrapper">
     <form id="vm-backup-and-restore-settings">
 
       <h2>Backup:</h2>
@@ -1164,7 +1181,7 @@ if (is_file($plg)) {
     </form>
   </div>
 
-  <div id="vm-backup-and-restore-wrapper">
+  <div class="vm-backup-and-restore-wrapper">
     <form id="vm-backup-and-restore-settings">
 
       <h2>Restore:</h2>
@@ -1281,6 +1298,21 @@ if (is_file($plg)) {
     </form>
   </div>
 
+  <div id="vm-third-section">
+    <form id="vm-third-section-form">
+
+      <div class="log-header-row">
+        <h3>Backup & Restore Logs:</h3>
+        <span title="Clear the last run details log" class="vm-backup-and-restoretip">
+          <button id="clear-last-run-log">Clear Log</button>
+        </span>
+      </div>
+      <pre id="last-run-log">No log loaded</pre>
+  </div>
+
+  </form>
+</div>
+
 </div>
 
 <div id="folderPickerModal" class="vm-modal">
@@ -1301,6 +1333,42 @@ if (is_file($plg)) {
 </div>
 
 <script>
+  function loadLastRunLog() {
+    fetch('/plugins/vm-backup-and-restore/helpers/fetch_last_run_log.php')
+      .then(res => res.text())
+      .then(data => { document.getElementById('last-run-log').textContent = data || 'No backup & restore log data available.'; })
+      .catch(() => { document.getElementById('last-run-log').textContent = 'Error loading backup & restore log.'; });
+  }
+  loadLastRunLog();
+  setInterval(loadLastRunLog, 5000);
+
+  // === Clear Log Buttons (toast feedback) ===
+  const clearLastRunBtn = document.getElementById("clear-last-run-log");
+  const clearMoverBtn = document.getElementById("clear-mover-log");
+  const toastLast = document.getElementById("toast-last");
+  const toastMover = document.getElementById("toast-mover");
+
+  if (clearLastRunBtn) {
+    clearLastRunBtn.addEventListener("click", function () {
+      if (confirm("Are you sure you want to clear the backup & restore Log?")) {
+        fetch("/plugins/vm-backup-and-restore/helpers/clear_log.php", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRF-TOKEN": csrfToken
+          },
+          body: "log=last&csrf_token=" + encodeURIComponent(csrfToken)
+        })
+          .then(r => r.json())
+          .then(data => {
+            showToast(toastLast, data.message, data.ok ? "ok" : "err");
+            if (data.ok) document.getElementById("last-run-log").textContent = "";
+          })
+          .catch(() => showToast(toastLast, "Failed to clear log", "err"));
+      }
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     const locationInput = document.getElementById("location_of_backups");
 

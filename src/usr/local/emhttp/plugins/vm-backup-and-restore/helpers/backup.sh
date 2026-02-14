@@ -58,7 +58,7 @@ if (( ${#rotated_logs[@]} > 10 )); then
 fi
 exec > >(tee -a "$LAST_RUN_FILE") 2>&1
 
-echo "--------------------------------------------"
+echo "--------------------------------------------------------------------------------------------------"
 echo "Backup session started - $(date '+%Y-%m-%d %H:%M:%S')"
 
 CONFIG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
