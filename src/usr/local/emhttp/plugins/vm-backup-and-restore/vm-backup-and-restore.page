@@ -644,7 +644,7 @@ if (file_exists("/etc/unraid-version")) {
     color: white;
     font-family: monospace;
     font-size: 13px;
-    max-height: 95vh;
+    max-height: 65vh;
     overflow-y: auto;
     padding: 10px;
     white-space: pre-wrap;
