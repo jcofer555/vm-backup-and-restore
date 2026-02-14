@@ -33,7 +33,7 @@ touch "$LOCK_FILE"
 
 # Logging
 LOG_DIR="/tmp/vm-backup-and-restore"
-LAST_RUN_FILE="$LOG_DIR/last_run.log"
+LAST_RUN_FILE="$LOG_DIR/vm_backup_and_restore_last_run.log"
 ROTATE_DIR="$LOG_DIR/archived_logs"
 mkdir -p "$ROTATE_DIR"
 # Rotate last_run.log if >= 10MB
@@ -88,7 +88,7 @@ notify_unraid() {
     local message="$2"
 
     # Only send if enabled
-    if [[ "$ENABLE_NOTIFICATIONS" == "1" ]]; then
+    if [[ "$NOTIFICATIONS" == "1" ]]; then
         /usr/local/emhttp/webGui/scripts/notify \
             -e "unRAID Status" \
             -s "$title" \
@@ -100,7 +100,7 @@ notify_unraid() {
 # Send startup notification
 timestamp="$(date +"%d-%m-%Y %H:%M")"
 notify_unraid "unRAID VM Backup script" \
-"script starting"
+"Backup starting"
 
 sleep 5
 
@@ -113,18 +113,21 @@ backup_location="${BACKUP_DESTINATION:-/mnt/user/vm_backups}"
 export backup_location
 
 # Build newline-separated VM list
-IFS=',' read -ra VM_ARRAY <<< "${VM_NAME:-}"
+IFS=',' read -ra VM_ARRAY <<< "${VMS_TO_BACKUP:-}"
 
-vms_to_backup=""
+vms_to_be_backed_up=""
 for vm in "${VM_ARRAY[@]}"; do
     vm="$(echo "$vm" | xargs)"
-    [[ -n "$vm" ]] && vms_to_backup+="$vm"$'\n'
+    [[ -n "$vm" ]] && vms_to_be_backed_up+="$vm"$'\n'
 done
 
-export vms_to_backup
+# Remove trailing newline
+vms_to_be_backed_up="${vms_to_be_backed_up%$'\n'}"
+
+export vms_to_be_backed_up
 
 echo "Backing up VMs:"
-printf '%s\n' "$vms_to_backup"
+printf '%s\n' "$vms_to_be_backed_up"
 
 # Track VMs we stop
 declare -a vms_stopped_by_script=()
@@ -146,12 +149,12 @@ cleanup() {
 
     if is_dry_run; then
         echo "[DRY-RUN] Skipping VM restarts"
-        echo "Duration: $SCRIPT_DURATION_HUMAN"
+        echo "Backup duration: $SCRIPT_DURATION_HUMAN"
         echo "Backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
 
         timestamp="$(date +"%d-%m-%Y %H:%M")"
         notify_unraid "unRAID VM Backup script" \
-        "script finished - Duration: $SCRIPT_DURATION_HUMAN"
+        "Backup finished - Duration: $SCRIPT_DURATION_HUMAN"
         return
     fi
 
@@ -167,12 +170,12 @@ cleanup() {
         echo "No VMs were stopped by this script."
     fi
 
-    echo "Duration: $SCRIPT_DURATION_HUMAN"
+    echo "Backup duration: $SCRIPT_DURATION_HUMAN"
     echo "Backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
 
     timestamp="$(date +"%d-%m-%Y %H:%M")"
     notify_unraid "unRAID VM Backup script" \
-    "script finished - Duration: $SCRIPT_DURATION_HUMAN"
+    "Backup finished - Duration: $SCRIPT_DURATION_HUMAN"
 }
 
 trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT
@@ -187,7 +190,6 @@ run_cmd mkdir -p "$backup_location"
 while IFS= read -r vm; do
     [[ -z "$vm" ]] && continue
 
-    echo "------------------------------------------------------------"
     echo "Processing VM: $vm"
 
     vm_xml_path="/etc/libvirt/qemu/$vm.xml"
@@ -259,7 +261,7 @@ mapfile -t vdisks < <(
             fi
             base="$(basename "$vdisk")"
             dest="$vm_backup_folder/${RUN_TS}_$base"
-            echo "  rsync (sparse): $vdisk -> $dest"
+            echo "rsync (sparse): $vdisk -> $dest"
             run_cmd rsync -aSv --progress "$vdisk" "$dest"
         done
     fi
@@ -292,8 +294,7 @@ mapfile -t vdisks < <(
     run_cmd chown -R "$backup_owner:users" "$vm_backup_folder" || echo "WARNING: chown failed for $vm_backup_folder"
 
     echo "Finished backup for VM: $vm"
-    echo "------------------------------------------------------------"
 
-done <<< "$vms_to_backup"
+done <<< "$vms_to_be_backed_up"
 
 exit 0

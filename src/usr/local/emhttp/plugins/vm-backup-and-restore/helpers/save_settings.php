@@ -6,11 +6,11 @@ $cmd = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/save_settings.sh
 
 // Grab arguments from query string
 $args = [
-    $_GET['VM_NAME'] ?? '',
+    $_GET['VMS_TO_BACKUP'] ?? '',
     $_GET['BACKUP_DESTINATION'] ?? '',
-    $_GET['NUMBER_OF_BACKUPS'] ?? '',
+    $_GET['BACKUPS_TO_KEEP'] ?? '',
     $_GET['DRY_RUN'] ?? '',
-    $_GET['ENABLE_NOTIFICATIONS'] ?? '',
+    $_GET['NOTIFICATIONS'] ?? '',
     $_GET['BACKUP_OWNER'] ?? '',
 ];
 

@@ -10,11 +10,11 @@ $cfgPath = '/boot/config/plugins/vm-backup-and-restore/settings.cfg';
 
 // Define all default keys and their order
 $defaults = [
-    'VM_NAME' => '',
+    'VMS_TO_BACKUP' => '',
     'BACKUP_DESTINATION' => '',
-    'NUMBER_OF_BACKUPS' => '0',
+    'BACKUPS_TO_KEEP' => '0',
     'DRY_RUN' => '1',
-    'ENABLE_NOTIFICATIONS' => '0',
+    'NOTIFICATIONS' => '0',
     'BACKUP_OWNER' => 'nobody'
 ];
 
@@ -44,12 +44,12 @@ $restoreCfgPath = '/boot/config/plugins/vm-backup-and-restore/settings_restore.c
 
 // Define all default keys and their order for restore
 $restoreDefaults = [
-    'RESTORE_LOCATION' => '',
-    'VM_NAME_RESTORE' => '',
-    'RESTORE_VERSIONS' => '',
+    'LOCATION_OF_BACKUPS' => '',
+    'VMS_TO_RESTORE' => '',
+    'VERSIONS' => '',
     'RESTORE_DESTINATION' => '/mnt/user/domains',
     'DRY_RUN_RESTORE' => 'false',
-    'ENABLE_NOTIFICATIONS_RESTORE' => '0'
+    'NOTIFICATIONS_RESTORE' => '0'
 ];
 
 // Load existing restore config if present
@@ -79,7 +79,7 @@ foreach ($restoreDefaults as $key => $defaultValue) {
 $restoreSettings = $existingRestore;
 
 // Load saved VM list (string or array)
-$saved_vm_list = $vm_list_settings['VM_NAME_RESTORE'] ?? '';
+$saved_vm_list = $vm_list_settings['VMS_TO_RESTORE'] ?? '';
 
 // Normalize into array
 if (!is_array($saved_vm_list)) {
@@ -1043,7 +1043,7 @@ if (is_file($plg)) {
         </label>
 
         <div id="vm-dropdown" class="vm-multiselect vm-backup-and-restoretip" title="Choose which VM(s) to backup"
-          data-selected="<?php echo htmlspecialchars($settings['VM_NAME'] ?? '') ?>">
+          data-selected="<?php echo htmlspecialchars($settings['VMS_TO_BACKUP'] ?? '') ?>">
           <div class="vm-dropdown-label">Select VM(s)</div>
           <div class="vm-dropdown-list"></div>
         </div>
@@ -1068,16 +1068,16 @@ if (is_file($plg)) {
 
       <!-- NUMBER OF BACKUPS -->
       <div class="form-pair">
-        <label for="number_of_backups">
+        <label for="backups_to_keep">
           <span title="Choose the amount of backups to keep for the VM" class="vm-backup-and-restoretip">
             Backups To Keep:
           </span>
         </label>
 
         <span title="Choose the amount of backups to keep for the VM" class="vm-backup-and-restoretip">
-          <select id="number_of_backups" class="short-input" name="number_of_backups">
+          <select id="backups_to_keep" class="short-input" name="backups_to_keep">
             <?php
-        $current = $settings['NUMBER_OF_BACKUPS'] ?? 0;
+        $current = $settings['BACKUPS_TO_KEEP'] ?? 0;
 
         for ($i = 0; $i <= 99; $i++) {
           $selected = ((int)$current === $i) ? 'selected' : '';
@@ -1113,7 +1113,7 @@ if (is_file($plg)) {
 
       <!-- NOTIFICATIONS -->
       <div class="form-pair">
-        <label for="enable_notifications">
+        <label for="notifications">
           <span class="vm-backup-and-restoretip"
             title="Send Unraid system notifications when VM backup starts and finishes">
             Notifications:
@@ -1122,11 +1122,11 @@ if (is_file($plg)) {
 
         <span class="vm-backup-and-restoretip"
           title="Send Unraid system notifications when VM backup starts and finishes">
-          <select id="enable_notifications" class="short-input" name="enable_notifications">
-            <option value="1" <?=((int)($settings['ENABLE_NOTIFICATIONS'] ?? 0)===1) ? 'selected' : '' ?>>
+          <select id="notifications" class="short-input" name="notifications">
+            <option value="1" <?=((int)($settings['NOTIFICATIONS'] ?? 0)===1) ? 'selected' : '' ?>>
               Yes
             </option>
-            <option value="0" <?=((int)($settings['ENABLE_NOTIFICATIONS'] ?? 0)===0) ? 'selected' : '' ?>>
+            <option value="0" <?=((int)($settings['NOTIFICATIONS'] ?? 0)===0) ? 'selected' : '' ?>>
               No
             </option>
           </select>
@@ -1178,9 +1178,9 @@ if (is_file($plg)) {
         </label>
 
         <span class="vm-backup-and-restoretip" title="Choose location where backups are located">
-          <input type="text" id="restore_location" name="RESTORE_LOCATION"
+          <input type="text" id="location_of_backups" name="LOCATION_OF_BACKUPS"
             data-picker-title="Select Location Of Backups" placeholder="Click here" readonly style="cursor:pointer;"
-            value="<?php echo htmlspecialchars($restoreSettings['RESTORE_LOCATION'] ?? ''); ?>">
+            value="<?php echo htmlspecialchars($restoreSettings['LOCATION_OF_BACKUPS'] ?? ''); ?>">
         </span>
       </div>
 
@@ -1194,15 +1194,15 @@ if (is_file($plg)) {
 
         <div id="vm-dropdown-restore" class="vm-multiselect vm-backup-and-restoretip"
           title="Choose which VM(s) to restore"
-          data-selected="<?php echo htmlspecialchars($restoreSettings['VM_NAME_RESTORE'] ?? '') ?>">
+          data-selected="<?php echo htmlspecialchars($restoreSettings['VMS_TO_RESTORE'] ?? '') ?>">
 
           <div class="vm-dropdown-label-restore">Select VM(s)</div>
           <div class="vm-dropdown-list-restore"></div>
         </div>
 
         <!-- Hidden field that JS reads on page load -->
-        <input type="hidden" id="vm-hidden-restore" name="VM_NAME_RESTORE"
-          value="<?php echo htmlspecialchars($restoreSettings['VM_NAME_RESTORE'] ?? '') ?>">
+        <input type="hidden" id="vm-hidden-restore" name="VMS_TO_RESTORE"
+          value="<?php echo htmlspecialchars($restoreSettings['VMS_TO_RESTORE'] ?? '') ?>">
       </div>
 
       <!-- VERSION FIELDS -->
@@ -1244,7 +1244,7 @@ if (is_file($plg)) {
 
       <!-- NOTIFICATIONS -->
       <div class="form-pair">
-        <label for="enable_notifications_restore">
+        <label for="notifications_restore">
           <span class="vm-backup-and-restoretip"
             title="Send Unraid system notifications when VM restore starts and finishes">
             Notifications:
@@ -1253,12 +1253,12 @@ if (is_file($plg)) {
 
         <span class="vm-backup-and-restoretip"
           title="Send Unraid system notifications when VM restore starts and finishes">
-          <select id="enable_notifications_restore" class="short-input" name="enable_notifications_restore">
-            <option value="1" <?=((int)($restoreSettings['ENABLE_NOTIFICATIONS_RESTORE'] ?? 0)===1) ? 'selected' : '' ?>
+          <select id="notifications_restore" class="short-input" name="notifications_restore">
+            <option value="1" <?=((int)($restoreSettings['NOTIFICATIONS_RESTORE'] ?? 0)===1) ? 'selected' : '' ?>
               >
               Yes
             </option>
-            <option value="0" <?=((int)($restoreSettings['ENABLE_NOTIFICATIONS_RESTORE'] ?? 0)===0) ? 'selected' : '' ?>
+            <option value="0" <?=((int)($restoreSettings['NOTIFICATIONS_RESTORE'] ?? 0)===0) ? 'selected' : '' ?>
               >
               No
             </option>
@@ -1302,7 +1302,7 @@ if (is_file($plg)) {
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    const locationInput = document.getElementById("restore_location");
+    const locationInput = document.getElementById("location_of_backups");
 
     function updateVisibility() {
       const hasPath = locationInput.value.trim().length > 0;
@@ -1429,7 +1429,7 @@ if (is_file($plg)) {
         hidden = $('<input>', {
           type: 'hidden',
           id: 'vm-hidden',
-          name: 'VM_NAME'
+          name: 'VMS_TO_BACKUP'
         }).appendTo(dropdown.parent());
       }
       hidden.val(value);
@@ -1463,7 +1463,7 @@ if (is_file($plg)) {
     const container = $('#version-fields-container');
     container.empty(); // atomic reset
 
-    const restorePath = $('#restore_location').val();
+    const restorePath = $('#location_of_backups').val();
     if (!restorePath) {
       return;
     }
@@ -1580,7 +1580,7 @@ if (is_file($plg)) {
 
     // Load restore folders
     function loadRestoreFolders() {
-      const restorePath = $('#restore_location').val();
+      const restorePath = $('#location_of_backups').val();
       list.empty(); // <-- CLEAR THE DROPDOWN IMMEDIATELY
       label.text('No backups at this location'); // <-- default placeholder
 
@@ -1640,7 +1640,7 @@ if (is_file($plg)) {
         hidden = $('<input>', {
           type: 'hidden',
           id: 'vm-hidden-restore',
-          name: 'VM_NAME_RESTORE'
+          name: 'VMS_TO_RESTORE'
         }).appendTo(dropdown.parent());
       }
       hidden.val(value);
@@ -1653,12 +1653,12 @@ if (is_file($plg)) {
     });
 
     // Load folders on restore path change
-    $('#restore_location').on('input blur change', function () {
+    $('#location_of_backups').on('input blur change', function () {
       loadRestoreFolders();
       rebuildVersionFields();
     });
 
-    // Initial load if restore_location already has a value
+    // Initial load if location_of_backups already has a value
     loadRestoreFolders();
   });
 </script>
@@ -1754,11 +1754,11 @@ if (is_file($plg)) {
     backupRequestInProgress = true;
 
     const params = $.param({
-      VM_NAME: vms,
+      VMS_TO_BACKUP: vms,
       BACKUP_DESTINATION: dest,
-      NUMBER_OF_BACKUPS: $('#number_of_backups').val(),
+      BACKUPS_TO_KEEP: $('#backups_to_keep').val(),
       DRY_RUN: $('#dry_run').val(),
-      ENABLE_NOTIFICATIONS: $('#enable_notifications').val(),
+      NOTIFICATIONS: $('#notifications').val(),
       BACKUP_OWNER: $('#backup_owner').val(),
       csrf_token: csrfToken
     });
@@ -1885,7 +1885,7 @@ if (is_file($plg)) {
 
     // Basic validation
     const vms_restore = $('#vm-hidden-restore').val();
-    const dest = $('#restore_location').val().trim();
+    const dest = $('#location_of_backups').val().trim();
     const restore_dest = $('#restore_destination').val().trim();
 
     if (!vms_restore) {
@@ -1914,12 +1914,12 @@ if (is_file($plg)) {
       .join(',');
 
     const params = $.param({
-      RESTORE_LOCATION: dest,
-      VM_NAME_RESTORE: vms_restore,
-      RESTORE_VERSIONS: restoreVersionsStr,
+      LOCATION_OF_BACKUPS: dest,
+      VMS_TO_RESTORE: vms_restore,
+      VERSIONS: restoreVersionsStr,
       RESTORE_DESTINATION: restore_dest,
       DRY_RUN_RESTORE: $('#dry_run_restore').val(),
-      ENABLE_NOTIFICATIONS_RESTORE: $('#enable_notifications_restore').val(),
+      NOTIFICATIONS_RESTORE: $('#notifications_restore').val(),
       csrf_token: csrfToken
     });
 
