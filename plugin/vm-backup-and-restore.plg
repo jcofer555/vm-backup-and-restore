@@ -4,7 +4,7 @@
 <PLUGIN 
   name="vm-backup-and-restore"
   author="jcofer555"
-  version="2026.02.13.02"
+  version="2026.02.13.03"
   launch="Settings/vm-backup-and-restore"
   pluginURL="https://raw.githubusercontent.com/jcofer555/vm-backup-and-restore/main/plugin/vm-backup-and-restore.plg"
   support="https://forums.unraid.net/topic/192216-vm-backup-and-restore-for-unraid/"
@@ -15,6 +15,11 @@
 
 <CHANGES>
 <![CDATA[
+
+### 2026.02.13.03
+
+- Added logs to enhanced log plugin
+- Config cleanup
 
 ### 2026.02.13.02
 
@@ -31,9 +36,9 @@ For older releases, see https://github.com/jcofer555/vm-backup-and-restore/relea
 ]]>
 </CHANGES>
 
-<FILE Name="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.02.13.02-noarch-1.txz">
-<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.02.13.02/unraid-vm-backup-and-restore-2026.02.13.02-noarch-1.txz</URL>
-<SHA256>38d1f452c4142c92891eea715f780a02d04ae0bf14b57c481e3d9c868766d873</SHA256>
+<FILE Name="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.02.13.03-noarch-1.txz">
+<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.02.13.03/unraid-vm-backup-and-restore-2026.02.13.03-noarch-1.txz</URL>
+<SHA256>26042555cd7b97583456c4e71f0708b637235bcfb15d0e49f693e157e7c906c3</SHA256>
 </FILE>
 
 <!-- ==========================================================
@@ -46,7 +51,7 @@ For older releases, see https://github.com/jcofer555/vm-backup-and-restore/relea
 #  INSTALL / UPGRADE LOGIC
 # ==========================================================
 
-PACKAGE_TXZ="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.02.13.02-noarch-1.txz"
+PACKAGE_TXZ="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.02.13.03-noarch-1.txz"
 USER_CFG="/boot/config/plugins/VM-Backup-And-Restore/settings.cfg"
 RESTORE_USER_CFG="/boot/config/plugins/VM-Backup-And-Restore/settings_restore.cfg"
 DEFAULT_CFG="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/default_settings.cfg"
@@ -59,11 +64,11 @@ upgradepkg --install-new "$PACKAGE_TXZ"
 
 # Ordered config keys
 ordered_keys=(
-    "VM_NAME"
+    "VMS_TO_BACKUP"
     "BACKUP_DESTINATION"
-    "NUMBER_OF_BACKUPS"
+    "BACKUPS_TO_KEEP"
     "DRY_RUN"
-    "ENABLE_NOTIFICATIONS"
+    "NOTIFICATIONS"
     "BACKUP_OWNER"
 )
 
@@ -93,12 +98,12 @@ mv "$TMP_CFG" "$USER_CFG"
 
 # Ordered config keys
 restore_ordered_keys=(
-    "RESTORE_LOCATION"
-    "VM_NAME_RESTORE"
-    "RESTORE_VERSIONS"
+    "LOCATION_OF_BACKUPS"
+    "VMS_TO_RESTORE"
+    "VERSIONS"
     "RESTORE_DESTINATION"
     "DRY_RUN_RESTORE"
-    "ENABLE_NOTIFICATIONS_RESTORE"
+    "NOTIFICATIONS_RESTORE"
 )
 
 # ==========================================================
@@ -126,12 +131,12 @@ fi
 mv "$RESTORE_TMP_CFG" "$RESTORE_USER_CFG"
 
 # Remove older txz packages (keep only the current one)
-find /boot/config/plugins/vm-backup-and-restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.02.13.02-noarch-1.txz" -delete
+find /boot/config/plugins/vm-backup-and-restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.02.13.03-noarch-1.txz" -delete
 
 echo ""
 echo "----------------------------------------------------"
 echo " vm-backup-and-restore has been installed."
-echo " Version: 2026.02.13.02"
+echo " Version: 2026.02.13.03"
 echo "----------------------------------------------------"
 echo ""
 
