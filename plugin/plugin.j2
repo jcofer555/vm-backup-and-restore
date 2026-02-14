@@ -49,11 +49,11 @@ upgradepkg --install-new "$PACKAGE_TXZ"
 
 # Ordered config keys
 ordered_keys=(
-    "VM_NAME"
+    "VMS_TO_BACKUP"
     "BACKUP_DESTINATION"
-    "NUMBER_OF_BACKUPS"
+    "BACKUPS_TO_KEEP"
     "DRY_RUN"
-    "ENABLE_NOTIFICATIONS"
+    "NOTIFICATIONS"
     "BACKUP_OWNER"
 )
 
@@ -83,12 +83,12 @@ mv "$TMP_CFG" "$USER_CFG"
 
 # Ordered config keys
 restore_ordered_keys=(
-    "RESTORE_LOCATION"
-    "VM_NAME_RESTORE"
-    "RESTORE_VERSIONS"
+    "LOCATION_OF_BACKUPS"
+    "VMS_TO_RESTORE"
+    "VERSIONS"
     "RESTORE_DESTINATION"
     "DRY_RUN_RESTORE"
-    "ENABLE_NOTIFICATIONS_RESTORE"
+    "NOTIFICATIONS_RESTORE"
 )
 
 # ==========================================================
