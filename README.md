@@ -11,3 +11,5 @@
 - Ability to set an owner for your backups
 - Logging available in the webui and at /tmp/vm-backup-and-restore
 - NOTE: this does stop the vms if they aren't already stopped prior to backing up each VM
+
+<img width="1919" height="937" alt="image" src="https://github.com/user-attachments/assets/f5a172dc-163c-4109-bf83-97a4daff1c4e" />
