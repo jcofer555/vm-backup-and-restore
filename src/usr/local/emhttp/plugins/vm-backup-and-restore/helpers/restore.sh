@@ -24,7 +24,7 @@ RESTORE_STATUS_FILE="/tmp/vm-backup-and-restore/restore_status.txt"
 set_restore_status() {
     echo "$1" > "$RESTORE_STATUS_FILE"
 }
-set_restore_status "Starting restore session"
+set_restore_status "Started restore session"
 # ---------------------------------
 
 # Prevent double-run
@@ -84,7 +84,7 @@ cleanup() {
             :
         fi
     else
-        echo "Skipping VM restarts"
+        echo "Skipping VM restarts because dry run is enabled"
     fi
 
     SCRIPT_END_EPOCH=$(date +%s)
@@ -125,7 +125,7 @@ notify_unraid() {
 
 timestamp="$(date +"%d-%m-%Y %H:%M")"
 notify_unraid "unRAID VM Restore script" \
-"Restore starting"
+"Restore started"
 
 sleep 5
 
@@ -249,11 +249,11 @@ for vm in "${vm_names[@]}"; do
     # Restore XML
     set_restore_status "Restoring XML for $vm"
     dest_xml="$xml_base/$vm.xml"
-    log "Restored XML → $dest_xml"
 
     run_cmd rm -f "$dest_xml"
     run_cmd rsync -a --sparse --no-perms --no-owner --no-group "$xml_file" "$dest_xml"
     run_cmd chmod 644 "$dest_xml"
+    log "Restored XML $xml_file → $dest_xml"
 
     # Restore NVRAM
     set_restore_status "Restoring NVRAM for $vm"
@@ -261,11 +261,10 @@ for vm in "${vm_names[@]}"; do
     nvram_filename="${nvram_filename#$prefix}"
     dest_nvram="$nvram_base/$nvram_filename"
 
-    log "Restored NVRAM → $dest_nvram"
-
     run_cmd rm -f "$dest_nvram"
     run_cmd rsync -a --sparse --no-perms --no-owner --no-group "$nvram_file" "$dest_nvram"
     run_cmd chmod 644 "$dest_nvram"
+    log "Restored NVRAM $nvram_file → $dest_nvram"
 
     # Restore vdisks
     set_restore_status "Restoring vdisks for $vm"
@@ -275,15 +274,15 @@ for vm in "${vm_names[@]}"; do
     for d in "${disks[@]}"; do
         file=$(basename "$d")
         file="${file#$prefix}"
-        log "Copying disk: $file → $dest_domain/"
         run_cmd rsync -a --sparse --no-perms --no-owner --no-group "$d" "$dest_domain/$file"
         run_cmd chmod 644 "$dest_domain/$file"
+        log "Copied VDISK $d → $dest_domain/$file"
     done
 
     # Redefine VM
     set_restore_status "Redefining $vm"
-    log "Redefined $vm"
     run_cmd virsh define "$dest_xml"
+    log "Redefined $vm from $dest_xml"
 
     log "Finished restore for $vm"
     set_restore_status "Finished restore for $vm"

@@ -40,7 +40,7 @@ STATUS_FILE="$LOG_DIR/backup_status.txt"
 set_status() {
     echo "$1" > "$STATUS_FILE"
 }
-set_status "Starting backup session"
+set_status "Started backup session"
 # --------------------------
 
 if [[ -f "$LAST_RUN_FILE" ]]; then
@@ -108,7 +108,7 @@ notify_unraid() {
 }
 
 timestamp="$(date +"%d-%m-%Y %H:%M")"
-notify_unraid "unRAID VM Backup script" "Backup starting"
+notify_unraid "unRAID VM Backup script" "Backup started"
 
 sleep 5
 
@@ -201,13 +201,13 @@ run_cmd mkdir -p "$backup_location"
 for vm in "${CLEAN_VMS[@]}"; do
     [[ -z "$vm" ]] && continue
 
-    echo "Starting backup for $vm"
-    set_status "Backing up VM: $vm"
+    echo "Started backup for $vm"
+    set_status "Backing up $vm"
 
     vm_xml_path="/etc/libvirt/qemu/$vm.xml"
 
     if [[ ! -f "$vm_xml_path" ]]; then
-        echo "ERROR: XML not found for VM $vm"
+        echo "ERROR: XML not found for $vm"
         continue
     fi
 
@@ -215,7 +215,7 @@ for vm in "${CLEAN_VMS[@]}"; do
 
     if [[ "$vm_state_before" == "running" ]]; then
         echo "Stopping $vm"
-        set_status "Stopping VM: $vm"
+        set_status "Stopping $vm"
         vms_stopped_by_script+=("$vm")
 
         run_cmd virsh shutdown "$vm" >/dev/null 2>&1 || echo "WARNING: Failed to send shutdown to $vm"
@@ -265,24 +265,24 @@ for vm in "${CLEAN_VMS[@]}"; do
     fi
 
     xml_dest="$vm_backup_folder/${RUN_TS}_${vm}.xml"
-    echo "Backing up XML $vm_xml_path -> $xml_dest"
     set_status "Backing up XML for $vm"
     run_cmd rsync -a "$vm_xml_path" "$xml_dest"
+    echo "Backed up XML $vm_xml_path -> $xml_dest"
 
     nvram_path="$(xmllint --xpath 'string(/domain/os/nvram)' "$vm_xml_path" 2>/dev/null || echo "")"
 
     if [[ -n "$nvram_path" && -f "$nvram_path" ]]; then
         nvram_base="$(basename "$nvram_path")"
         nvram_dest="$vm_backup_folder/${RUN_TS}_$nvram_base"
-        echo "Backing up NVRAM $nvram_path -> $nvram_dest"
         set_status "Backing up NVRAM for $vm"
         run_cmd rsync -a "$nvram_path" "$nvram_dest"
+        echo "Backed up NVRAM $nvram_path -> $nvram_dest"
     else
         echo "No valid NVRAM found for $vm"
     fi
 
-    echo "Changing owner of $vm_backup_folder for $vm to $backup_owner:users"
     run_cmd chown -R "$backup_owner:users" "$vm_backup_folder" || echo "WARNING: Changing owner failed for $vm_backup_folder"
+    echo "Changed owner of $vm_backup_folder for $vm to $backup_owner:users"
 
     echo "Finished backup for $vm"
     set_status "Finished backup for $vm"
@@ -307,7 +307,7 @@ if [[ "$BACKUPS_TO_KEEP" =~ ^[0-9]+$ ]]; then
 
         if (( total_sets > BACKUPS_TO_KEEP )); then
             echo "Removing old backups keeping $BACKUPS_TO_KEEP"
-            set_status "Retention cleanup for $vm"
+            set_status "Removing old backups for $vm"
 
             for (( i=BACKUPS_TO_KEEP; i<total_sets; i++ )); do
                 old_ts="${backup_sets[$i]}"
@@ -324,7 +324,7 @@ if [[ "$BACKUPS_TO_KEEP" =~ ^[0-9]+$ ]]; then
     fi
 
 else
-    echo "WARNING: BACKUPS_TO_KEEP is invalid, skipping retention"
+    echo "WARNING: BACKUPS_TO_KEEP is invalid skipping retention"
 fi
 
 done
