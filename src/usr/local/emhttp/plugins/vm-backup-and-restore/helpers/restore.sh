@@ -227,7 +227,7 @@ for vm in "${vm_names[@]}"; do
     log "Starting restore for $vm"
 
     # Shutdown
-    set_restore_status "Stopping VM: $vm"
+    set_restore_status "Stopping $vm"
     if virsh list --state-running --name | grep -Fxq "$vm"; then
         log "Stopping $vm"
 
@@ -252,7 +252,7 @@ for vm in "${vm_names[@]}"; do
     log "Restored XML → $dest_xml"
 
     run_cmd rm -f "$dest_xml"
-    run_cmd cp "$xml_file" "$dest_xml"
+    run_cmd rsync -a --sparse --no-perms --no-owner --no-group "$xml_file" "$dest_xml"
     run_cmd chmod 644 "$dest_xml"
 
     # Restore NVRAM
@@ -264,7 +264,7 @@ for vm in "${vm_names[@]}"; do
     log "Restored NVRAM → $dest_nvram"
 
     run_cmd rm -f "$dest_nvram"
-    run_cmd cp "$nvram_file" "$dest_nvram"
+    run_cmd rsync -a --sparse --no-perms --no-owner --no-group "$nvram_file" "$dest_nvram"
     run_cmd chmod 644 "$dest_nvram"
 
     # Restore vdisks
@@ -276,13 +276,13 @@ for vm in "${vm_names[@]}"; do
         file=$(basename "$d")
         file="${file#$prefix}"
         log "Copying disk: $file → $dest_domain/"
-        run_cmd cp "$d" "$dest_domain/$file"
+        run_cmd rsync -a --sparse --no-perms --no-owner --no-group "$d" "$dest_domain/$file"
         run_cmd chmod 644 "$dest_domain/$file"
     done
 
     # Redefine VM
-    set_restore_status "Redefining VM: $vm"
-    log "Redefined $vm via libvirt"
+    set_restore_status "Redefining $vm"
+    log "Redefined $vm"
     run_cmd virsh define "$dest_xml"
 
     log "Finished restore for $vm"
