@@ -35,6 +35,14 @@ LAST_RUN_FILE="$LOG_DIR/vm_backup_and_restore_last_run.log"
 ROTATE_DIR="$LOG_DIR/archived_logs"
 mkdir -p "$ROTATE_DIR"
 
+# --- STATUS FILE ADDED ---
+STATUS_FILE="$LOG_DIR/backup_status.txt"
+set_status() {
+    echo "$1" > "$STATUS_FILE"
+}
+set_status "Starting backup session"
+# --------------------------
+
 if [[ -f "$LAST_RUN_FILE" ]]; then
     size_bytes=$(stat -c%s "$LAST_RUN_FILE")
     max_bytes=$((10 * 1024 * 1024))
@@ -146,6 +154,10 @@ cleanup() {
     SCRIPT_DURATION=$(( SCRIPT_END_EPOCH - SCRIPT_START_EPOCH ))
     SCRIPT_DURATION_HUMAN="$(format_duration "$SCRIPT_DURATION")"
 
+    # --- STATUS UPDATE ---
+    set_status "Backup complete – Duration: $SCRIPT_DURATION_HUMAN"
+    # ---------------------
+
     if is_dry_run; then
         echo "Skipping VM restarts"
         echo "Backup duration: $SCRIPT_DURATION_HUMAN"
@@ -153,11 +165,13 @@ cleanup() {
 
         notify_unraid "unRAID VM Backup script" \
         "Backup finished - Duration: $SCRIPT_DURATION_HUMAN"
+
+        set_status "Not Running"
         return
     fi
 
     if ((${#vms_stopped_by_script[@]} > 0)); then
-        echo "Starting VMs that were stopped by this script"
+        :
         for vm in "${vms_stopped_by_script[@]}"; do
             echo "Starting VM $vm"
             virsh start "$vm" >/dev/null 2>&1 || echo "WARNING: Failed to start VM $vm"
@@ -171,6 +185,8 @@ cleanup() {
 
     notify_unraid "unRAID VM Backup script" \
     "Backup finished - Duration: $SCRIPT_DURATION_HUMAN"
+
+    set_status "Not Running"
 }
 
 trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT
@@ -186,6 +202,7 @@ for vm in "${CLEAN_VMS[@]}"; do
     [[ -z "$vm" ]] && continue
 
     echo "Starting backup for $vm"
+    set_status "Backing up VM: $vm"
 
     vm_xml_path="/etc/libvirt/qemu/$vm.xml"
 
@@ -198,6 +215,7 @@ for vm in "${CLEAN_VMS[@]}"; do
 
     if [[ "$vm_state_before" == "running" ]]; then
         echo "Stopping $vm"
+        set_status "Stopping VM: $vm"
         vms_stopped_by_script+=("$vm")
 
         run_cmd virsh shutdown "$vm" >/dev/null 2>&1 || echo "WARNING: Failed to send shutdown to $vm"
@@ -231,6 +249,7 @@ for vm in "${CLEAN_VMS[@]}"; do
         echo "No vdisk entries found in XML for $vm"
     else
         echo "Backing up vdisks"
+        set_status "Backing up vdisks for $vm"
         for vdisk in "${vdisks[@]}"; do
             if [[ ! -f "$vdisk" ]]; then
                 echo "  WARNING: vdisk path does not exist $vdisk"
@@ -238,13 +257,17 @@ for vm in "${CLEAN_VMS[@]}"; do
             fi
             base="$(basename "$vdisk")"
             dest="$vm_backup_folder/${RUN_TS}_$base"
-            run_cmd rsync -aS "$vdisk" "$dest"
+            if ! is_dry_run; then
+                echo "$vdisk -> $dest"
+            fi
+            run_cmd rsync -aHAX --sparse "$vdisk" "$dest"
         done
     fi
 
     xml_dest="$vm_backup_folder/${RUN_TS}_${vm}.xml"
     echo "Backing up XML $vm_xml_path -> $xml_dest"
-    run_cmd rsync -aS "$vm_xml_path" "$xml_dest"
+    set_status "Backing up XML for $vm"
+    run_cmd rsync -a "$vm_xml_path" "$xml_dest"
 
     nvram_path="$(xmllint --xpath 'string(/domain/os/nvram)' "$vm_xml_path" 2>/dev/null || echo "")"
 
@@ -252,7 +275,8 @@ for vm in "${CLEAN_VMS[@]}"; do
         nvram_base="$(basename "$nvram_path")"
         nvram_dest="$vm_backup_folder/${RUN_TS}_$nvram_base"
         echo "Backing up NVRAM $nvram_path -> $nvram_dest"
-        run_cmd rsync -aS "$nvram_path" "$nvram_dest"
+        set_status "Backing up NVRAM for $vm"
+        run_cmd rsync -a "$nvram_path" "$nvram_dest"
     else
         echo "No valid NVRAM found for $vm"
     fi
@@ -261,6 +285,7 @@ for vm in "${CLEAN_VMS[@]}"; do
     run_cmd chown -R "$backup_owner:users" "$vm_backup_folder" || echo "WARNING: Changing owner failed for $vm_backup_folder"
 
     echo "Finished backup for $vm"
+    set_status "Finished backup for $vm"
 
 # ------------------------------------------------------------------------------
 # Retention cleanup per VM
@@ -268,12 +293,10 @@ for vm in "${CLEAN_VMS[@]}"; do
 
 if [[ "$BACKUPS_TO_KEEP" =~ ^[0-9]+$ ]]; then
 
-    # 0 = unlimited
     if (( BACKUPS_TO_KEEP == 0 )); then
     :
     else
     :
-        # List all backup timestamps (unique RUN_TS prefixes)
         mapfile -t backup_sets < <(
             ls -1 "$vm_backup_folder" 2>/dev/null \
             | sed -E 's/^([0-9]{8}_[0-9]{4}).*/\1/' \
@@ -284,6 +307,7 @@ if [[ "$BACKUPS_TO_KEEP" =~ ^[0-9]+$ ]]; then
 
         if (( total_sets > BACKUPS_TO_KEEP )); then
             echo "Removing old backups keeping $BACKUPS_TO_KEEP"
+            set_status "Retention cleanup for $vm"
 
             for (( i=BACKUPS_TO_KEEP; i<total_sets; i++ )); do
                 old_ts="${backup_sets[$i]}"

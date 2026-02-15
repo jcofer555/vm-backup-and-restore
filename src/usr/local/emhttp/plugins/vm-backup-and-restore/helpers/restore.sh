@@ -19,6 +19,14 @@ format_duration() {
 mkdir -p /tmp/vm-backup-and-restore
 LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
 
+# --- RESTORE STATUS FILE ADDED ---
+RESTORE_STATUS_FILE="/tmp/vm-backup-and-restore/restore_status.txt"
+set_restore_status() {
+    echo "$1" > "$RESTORE_STATUS_FILE"
+}
+set_restore_status "Starting restore session"
+# ---------------------------------
+
 # Prevent double-run
 if [[ -f "$LOCK_FILE" ]]; then
   exit 0
@@ -63,10 +71,8 @@ echo "Restore session started - $(date '+%Y-%m-%d %H:%M:%S')"
 # ------------------------------------------------------------------------------
 
 cleanup() {
-    # Remove lock file even in dry-run
     rm -f "$LOCK_FILE"
 
-    ### Restart VMs that were running before restore ###
     if [[ "$DRY_RUN" != "true" ]]; then
         if (( ${#STOPPED_VMS[@]} > 0 )); then
             :
@@ -81,7 +87,6 @@ cleanup() {
         echo "Skipping VM restarts"
     fi
 
-    # Compute duration
     SCRIPT_END_EPOCH=$(date +%s)
     SCRIPT_DURATION=$(( SCRIPT_END_EPOCH - SCRIPT_START_EPOCH ))
     SCRIPT_DURATION_HUMAN="$(format_duration "$SCRIPT_DURATION")"
@@ -89,9 +94,15 @@ cleanup() {
     echo "Restore duration: $SCRIPT_DURATION_HUMAN"
     echo "Restore session finished - $(date '+%Y-%m-%d %H:%M:%S')"
 
+    # --- FINAL STATUS UPDATE ---
+    set_restore_status "Restore complete – Duration: $SCRIPT_DURATION_HUMAN"
+    # ---------------------------
+
     timestamp="$(date +"%d-%m-%Y %H:%M")"
     notify_unraid "unRAID VM Restore script" \
     "Restore finished - Duration: $SCRIPT_DURATION_HUMAN"
+
+    set_restore_status "Not Running"
 }
 
 trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT
@@ -103,7 +114,6 @@ notify_unraid() {
     local title="$1"
     local message="$2"
 
-    # Only send if enabled
     if [[ "$NOTIFICATIONS_RESTORE" == "1" ]]; then
         /usr/local/emhttp/webGui/scripts/notify \
             -e "unRAID Status" \
@@ -113,54 +123,34 @@ notify_unraid() {
     fi
 }
 
-# Send startup notification
 timestamp="$(date +"%d-%m-%Y %H:%M")"
 notify_unraid "unRAID VM Restore script" \
 "Restore starting"
 
 sleep 5
 
-# ============================================================
-# Variables to change
-# ============================================================
-
 IFS=',' read -r -a vm_names <<< "$VMS_TO_RESTORE"
 backup_path="$LOCATION_OF_BACKUPS"
 vm_domains="$RESTORE_DESTINATION"
 DRY_RUN="$DRY_RUN_RESTORE"
 
-# ============================================================
-# Track VMs running before restore
-# ============================================================
 mapfile -t RUNNING_BEFORE < <(virsh list --state-running --name | grep -Fxv "")
 STOPPED_VMS=()
 
-# ============================================================
-# System paths
-# ============================================================
 xml_base="/etc/libvirt/qemu"
 nvram_base="$xml_base/nvram"
 
 mkdir -p "$nvram_base"
 
-# ============================================================
-# Log output helpers
-# ============================================================
 log()  { echo -e "$1"; }
 warn() { echo -e "$1"; }
 err() { echo -e "[ERROR] $1"; }
 
-# ============================================================
-# Validation failure helper
-# ============================================================
 validation_fail() {
     err "$1"
     warn "Skipping $vm"
 }
 
-# ============================================================
-# Dry run wrapper
-# ============================================================
 run_cmd() {
     if [[ "$DRY_RUN" == "true" ]]; then
         printf '[DRY RUN] '
@@ -169,27 +159,20 @@ run_cmd() {
         return
     fi
 
-    # Quiet virsh define
     if [[ "$1" == "virsh" && "$2" == "define" ]]; then
         "$@" >/dev/null
         return
     fi
 
-    # Quiet virsh shutdown/destroy/start
     if [[ "$1" == "virsh" && ( "$2" == "shutdown" || "$2" == "destroy" || "$2" == "start" ) ]]; then
-        # Insert --quiet right after "virsh"
         shift
         virsh --quiet "$@" >/dev/null
         return
     fi
 
-    # Default execution
     "$@"
 }
 
-# ============================================================
-# Parse VERSIONS into associative array
-# ============================================================
 declare -A version_map
 
 IFS=',' read -ra pairs <<< "$VERSIONS"
@@ -200,14 +183,12 @@ for p in "${pairs[@]}"; do
     version_map["$vm_name"]="$ts"
 done
 
-# ============================================================
-# Process each VM
-# ============================================================
 for vm in "${vm_names[@]}"; do
     :
 
-    backup_dir="$backup_path/$vm"
+    set_restore_status "Starting restore for $vm"
 
+    backup_dir="$backup_path/$vm"
     version="${version_map[$vm]}"
 
     if [[ -z "$version" ]]; then
@@ -238,9 +219,6 @@ for vm in "${vm_names[@]}"; do
         continue
     fi
 
-    # ============================================================
-    # Determine if VM was running before restore
-    # ============================================================
     WAS_RUNNING=false
     if printf '%s\n' "${RUNNING_BEFORE[@]}" | grep -Fxq "$vm"; then
         WAS_RUNNING=true
@@ -248,9 +226,8 @@ for vm in "${vm_names[@]}"; do
 
     log "Starting restore for $vm"
 
-    # ============================================================
-    # Shutdown VM cleanly
-    # ============================================================
+    # Shutdown
+    set_restore_status "Stopping VM: $vm"
     if virsh list --state-running --name | grep -Fxq "$vm"; then
         log "Stopping $vm"
 
@@ -265,14 +242,12 @@ for vm in "${vm_names[@]}"; do
         if [[ "$WAS_RUNNING" == true ]]; then
             STOPPED_VMS+=("$vm")
         fi
-
     else
         log "$vm is not running"
     fi
 
-    # ============================================================
     # Restore XML
-    # ============================================================
+    set_restore_status "Restoring XML for $vm"
     dest_xml="$xml_base/$vm.xml"
     log "Restored XML → $dest_xml"
 
@@ -280,9 +255,8 @@ for vm in "${vm_names[@]}"; do
     run_cmd cp "$xml_file" "$dest_xml"
     run_cmd chmod 644 "$dest_xml"
 
-    # ============================================================
     # Restore NVRAM
-    # ============================================================
+    set_restore_status "Restoring NVRAM for $vm"
     nvram_filename=$(basename "$nvram_file")
     nvram_filename="${nvram_filename#$prefix}"
     dest_nvram="$nvram_base/$nvram_filename"
@@ -293,9 +267,8 @@ for vm in "${vm_names[@]}"; do
     run_cmd cp "$nvram_file" "$dest_nvram"
     run_cmd chmod 644 "$dest_nvram"
 
-    # ============================================================
     # Restore vdisks
-    # ============================================================
+    set_restore_status "Restoring vdisks for $vm"
     dest_domain="$vm_domains/$vm"
     run_cmd mkdir -p "$dest_domain"
 
@@ -307,13 +280,12 @@ for vm in "${vm_names[@]}"; do
         run_cmd chmod 644 "$dest_domain/$file"
     done
 
-    # ============================================================
     # Redefine VM
-    # ============================================================
+    set_restore_status "Redefining VM: $vm"
     log "Redefined $vm via libvirt"
     run_cmd virsh define "$dest_xml"
 
     log "Finished restore for $vm"
-    restored_vms+=("$vm")
+    set_restore_status "Finished restore for $vm"
 
 done

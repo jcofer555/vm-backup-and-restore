@@ -345,12 +345,14 @@ if (file_exists("/etc/unraid-version")) {
     margin-top: 20px;
   }
 
+  .restore-status-row,
   .status-row {
     align-items: center;
     display: flex;
     margin-bottom: 6px;
   }
 
+  .restore-status-label,
   .status-label {
     color: var(--primary-blue);
     font-weight: bold;
@@ -1051,6 +1053,9 @@ if (is_file($plg)) {
 
       <h2>Backup:</h2>
 
+      <div class="status-row"><span class="status-label">Status:</span><span id="status-text">Not Running</span></div>
+      <br>
+
       <!-- VM -->
       <div class="form-pair">
         <label>
@@ -1185,6 +1190,10 @@ if (is_file($plg)) {
     <form id="vm-backup-and-restore-settings">
 
       <h2>Restore:</h2>
+
+      <div class="restore-status-row"><span class="restore-status-label">Status:</span><span
+          id="restore-status-text">Not Running</span></div>
+      <br>
 
       <!-- LOCATION -->
       <div class="form-pair">
@@ -1333,10 +1342,38 @@ if (is_file($plg)) {
 </div>
 
 <script>
+  function updateBackupStatus() {
+    fetch('/plugins/vm-backup-and-restore/helpers/backup_status_check.php')
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('status-text').textContent = data.status;
+      })
+      .catch(() => {
+        document.getElementById('status-text').textContent = 'Not Running';
+      });
+  }
+
+  updateBackupStatus();
+  setInterval(updateBackupStatus, 1000);
+
+  function updateRestoreStatus() {
+    fetch('/plugins/vm-backup-and-restore/helpers/restore_status_check.php')
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('restore-status-text').textContent = data.status;
+      })
+      .catch(() => {
+        document.getElementById('restore-status-text').textContent = 'Not Running';
+      });
+  }
+
+  updateRestoreStatus();
+  setInterval(updateRestoreStatus, 1000);
+
   function loadLastRunLog() {
     fetch('/plugins/vm-backup-and-restore/helpers/fetch_last_run_log.php')
       .then(res => res.text())
-      .then(data => { document.getElementById('last-run-log').textContent = data || 'No backup & restore log data available.'; })
+      .then(data => { document.getElementById('last-run-log').textContent = data || 'Backup & restore log not found'; })
       .catch(() => { document.getElementById('last-run-log').textContent = 'Error loading backup & restore log.'; });
   }
   loadLastRunLog();
