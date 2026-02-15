@@ -1033,6 +1033,16 @@ if (file_exists("/etc/unraid-version")) {
   #folderPickerModal .vm-modal-header span {
     color: #ffffff;
   }
+
+  #backup_destination,
+  #location_of_backups,
+  #restore_destination {
+    border: 1px solid #b30000 !important;
+    background-color: #111 !important;
+    color: #fff !important;
+    padding-left: 6px;
+    border-radius: 3px;
+  }
 </style>
 
 <?php
