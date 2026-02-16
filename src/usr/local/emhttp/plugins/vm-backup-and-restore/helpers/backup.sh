@@ -136,7 +136,7 @@ done
 
 if ((${#CLEAN_VMS[@]} > 0)); then
     comma_list=$(IFS=', '; printf '%s' "${CLEAN_VMS[*]}")
-    echo "Backing up VM(s) $comma_list"
+    echo "Backing up VM(s) - $comma_list"
 else
     echo "No VMs configured for backup"
 fi
