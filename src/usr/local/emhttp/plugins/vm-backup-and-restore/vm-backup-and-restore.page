@@ -859,7 +859,8 @@ if (is_file($plg)) {
   <div class="vm-backup-and-restore-wrapper">
     <form id="vm-backup-and-restore-settings">
 
-      <div class="status-row"><span class="status-label">Status:</span><span id="status-text">Not Running</span></div>
+      <div class="status-row"><span title="Shows which part of the backup process is currently running"
+          class="vm-backup-and-restoretip status-label">Status:</span><span id="status-text">Not Running</span></div>
       <br>
 
       <!-- VM -->
@@ -984,8 +985,7 @@ if (is_file($plg)) {
 
       <!-- Backup Button-->
       <div class="form-group">
-        <span title="Run backup of selected VM(s)"
-          class="vm-backup-and-restoretip">
+        <span title="Run backup of selected VM(s)" class="vm-backup-and-restoretip">
           <button type="button" id="backupbtn">Backup</button>
         </span>
       </div>
@@ -995,8 +995,9 @@ if (is_file($plg)) {
   <div class="vm-backup-and-restore-wrapper">
     <form id="vm-backup-and-restore-settings">
 
-      <div class="restore-status-row"><span class="restore-status-label">Status:</span><span
-          id="restore-status-text">Not Running</span></div>
+      <div class="restore-status-row"><span title="Shows which part of the restore process is currently running"
+          class="vm-backup-and-restoretip restore-status-label">Status:</span><span id="restore-status-text">Not
+          Running</span></div>
       <br>
 
       <!-- LOCATION -->
@@ -1102,8 +1103,7 @@ if (is_file($plg)) {
 
       <!-- Restore Button-->
       <div class="form-group">
-        <span title="Run restore of selected VM(s)"
-          class="vm-backup-and-restoretip">
+        <span title="Run restore of selected VM(s)" class="vm-backup-and-restoretip">
           <button type="button" id="restorebtn">Restore</button>
         </span>
       </div>
