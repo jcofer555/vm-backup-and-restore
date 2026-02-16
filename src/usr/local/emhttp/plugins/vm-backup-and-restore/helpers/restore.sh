@@ -36,7 +36,7 @@ touch "$LOCK_FILE"
 
 # Logging
 LOG_DIR="/tmp/vm-backup-and-restore"
-LAST_RUN_FILE="$LOG_DIR/vm_backup_and_restore_last_run.log"
+LAST_RUN_FILE="$LOG_DIR/vm-backup-and-restore.log"
 ROTATE_DIR="$LOG_DIR/archived_logs"
 mkdir -p "$ROTATE_DIR"
 

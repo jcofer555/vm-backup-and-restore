@@ -1,5 +1,5 @@
 <?php
-$logPath = '/tmp/vm-backup-and-restore/vm_backup_and_restore_last_run.log';
+$logPath = '/tmp/vm-backup-and-restore/vm-backup-and-restore.log';
 header('Content-Type: text/plain');
 
 if (!file_exists($logPath)) {
