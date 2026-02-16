@@ -1411,10 +1411,12 @@ if (is_file($plg)) {
                 Version for ${vm}:
               </span>
             </label>
+            <span class="vm-backup-and-restoretip" title="Choose version for ${vm}">
             <select name="VERSION_${vm}" 
                     class="version-select" 
                     data-vm="${vm}">
             </select>
+            </span>
           </div>
         `);
 
