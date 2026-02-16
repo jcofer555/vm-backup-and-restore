@@ -49,12 +49,12 @@ if [[ -f "$LAST_RUN_FILE" ]]; then
 
     if (( size_bytes >= max_bytes )); then
         ts="$(date +%Y%m%d_%H%M%S)"
-        rotated="$ROTATE_DIR/last_run_$ts.log"
+        rotated="$ROTATE_DIR/vm-backup-and-restore_$ts.log"
         mv "$LAST_RUN_FILE" "$rotated"
     fi
 fi
 
-mapfile -t rotated_logs < <(ls -1t "$ROTATE_DIR"/last_run_*.log 2>/dev/null)
+mapfile -t rotated_logs < <(ls -1t "$ROTATE_DIR"/vm-backup-and-restore_*.log 2>/dev/null)
 
 if (( ${#rotated_logs[@]} > 10 )); then
     for (( i=10; i<${#rotated_logs[@]}; i++ )); do
