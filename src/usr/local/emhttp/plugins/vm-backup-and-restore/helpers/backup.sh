@@ -186,7 +186,7 @@ cleanup() {
     notify_unraid "unRAID VM Backup script" \
     "Backup finished - Duration: $SCRIPT_DURATION_HUMAN"
 
-    set_status "Not Running"
+    rm -f "$STATUS_FILE"
 }
 
 trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT

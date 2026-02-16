@@ -102,7 +102,7 @@ cleanup() {
     notify_unraid "unRAID VM Restore script" \
     "Restore finished - Duration: $SCRIPT_DURATION_HUMAN"
 
-    set_restore_status "Not Running"
+    rm -f "$RESTORE_STATUS_FILE"
 }
 
 trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT
