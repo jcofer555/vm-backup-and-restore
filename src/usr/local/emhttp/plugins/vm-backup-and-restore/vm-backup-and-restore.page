@@ -895,15 +895,15 @@ if (is_file($plg)) {
         </span>
       </div>
 
-      <!-- NUMBER OF BACKUPS -->
+      <!-- BACKUPS TO KEEP -->
       <div class="form-pair">
         <label for="backups_to_keep">
-          <span title="Choose the amount of backups to keep for the VM" class="vm-backup-and-restoretip">
+          <span title="Choose the amount of backups to keep for each of the VMs selected" class="vm-backup-and-restoretip">
             Backups To Keep:
           </span>
         </label>
 
-        <span title="Choose the amount of backups to keep for the VM" class="vm-backup-and-restoretip">
+        <span title="Choose the amount of backups to keep for each of the VMs selected" class="vm-backup-and-restoretip">
           <select id="backups_to_keep" class="short-input" name="backups_to_keep">
             <?php
         $current = $settings['BACKUPS_TO_KEEP'] ?? 0;
