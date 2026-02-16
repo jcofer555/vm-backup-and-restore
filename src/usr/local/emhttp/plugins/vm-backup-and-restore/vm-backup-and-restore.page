@@ -13,9 +13,9 @@ $defaults = [
     'VMS_TO_BACKUP' => '',
     'BACKUP_DESTINATION' => '',
     'BACKUPS_TO_KEEP' => '0',
+    'BACKUP_OWNER' => 'nobody',
     'DRY_RUN' => '1',
-    'NOTIFICATIONS' => '0',
-    'BACKUP_OWNER' => 'nobody'
+    'NOTIFICATIONS' => '0'
 ];
 
 // Load existing config if present
@@ -505,8 +505,8 @@ if (file_exists("/etc/unraid-version")) {
   input[type="checkbox"]:focus-visible,
   select:focus-visible,
   a:focus-visible {
-    outline: 2px solid var(--primary-blue);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: none
   }
 
   /* Scrollbar dark theme for readability */
@@ -549,7 +549,7 @@ if (file_exists("/etc/unraid-version")) {
   .vm-multiselect {
     position: relative;
     width: 200px;
-    border: 1px solid #ff4444;
+    border: 1px solid #b30000;
     padding: 6px;
     background: #111;
     cursor: pointer;
@@ -561,7 +561,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   .vm-multiselect.active {
-    border-color: #ff4444;
+    border-color: #b30000;
   }
 
   .vm-dropdown-label-restore,
@@ -584,7 +584,7 @@ if (file_exists("/etc/unraid-version")) {
     max-width: 100%;
     max-height: 200px;
     overflow-y: auto;
-    border: 1px solid #ff4444;
+    border: 1px solid #b30000;
     background: #111;
     color: #fff;
     z-index: 10;
@@ -677,7 +677,7 @@ if (file_exists("/etc/unraid-version")) {
     width: 600px;
     margin: 8% auto;
     background: #000;
-    border: 2px solid red;
+    border: 2px solid #b30000;
     border-radius: 8px;
     color: red;
     padding: 15px;
@@ -693,7 +693,7 @@ if (file_exists("/etc/unraid-version")) {
   .vm-folder-list {
     max-height: 300px;
     overflow-y: auto;
-    border: 1px solid red;
+    border: 1px solid #b30000;
     padding: 5px;
   }
 
@@ -749,7 +749,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   input.invalid {
-    border-color: red;
+    border-color: #b30000;
     color: red;
   }
 
@@ -761,6 +761,57 @@ if (file_exists("/etc/unraid-version")) {
     width: 100%;
     align-items: stretch;
     /* equal height panels */
+  }
+
+  #vm-backup-and-restore-layout {
+    --plugin-bg: #1e1e1e;
+    --plugin-panel: #111;
+    --plugin-border: #b30000;
+    --plugin-text: #e6e6e6;
+    --plugin-muted: #b0b0b0;
+    --plugin-accent: #b30000;
+  }
+
+  #vm-backup-and-restore-layout select,
+  #vm-backup-and-restore-layout input[type="text"],
+  #vm-backup-and-restore-layout input[type="number"] {
+    background-color: var(--plugin-panel);
+    color: var(--plugin-text);
+    border: 1px solid var(--plugin-border);
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+
+  #vm-backup-and-restore-layout label {
+    color: var(--primary-blue);
+  }
+
+  #vm-backup-and-restore-layout input[type="checkbox"] {
+    accent-color: var(--plugin-accent);
+  }
+
+  #vm-backup-and-restore-layout select option {
+    background-color: var(--plugin-panel);
+    color: var(--plugin-text);
+  }
+
+  #vm-backup-and-restore-layout select:hover,
+  #vm-backup-and-restore-layout input:hover {
+    border-color: var(--plugin-accent);
+  }
+
+  #vm-backup-and-restore-layout select option:hover,
+  #vm-backup-and-restore-layout select option:focus {
+    background-color: #e6231c;
+    color: #ffffff;
+  }
+
+  #vm-backup-and-restore-layout select:disabled,
+  #vm-backup-and-restore-layout input:disabled {
+    background-color: #111;
+    color: var(--plugin-muted);
+    border-color: #b30000;
+    cursor: not-allowed;
   }
 
   @media (max-width: 1200px) {
@@ -807,8 +858,6 @@ if (is_file($plg)) {
 <div id="vm-backup-and-restore-layout">
   <div class="vm-backup-and-restore-wrapper">
     <form id="vm-backup-and-restore-settings">
-
-      <h2>Backup:</h2>
 
       <div class="status-row"><span class="status-label">Status:</span><span id="status-text">Not Running</span></div>
       <br>
@@ -874,6 +923,23 @@ if (is_file($plg)) {
         </span>
       </div>
 
+      <!-- BACKUP OWNER -->
+      <div class="form-pair">
+        <label>
+          <span class="vm-backup-and-restoretip"
+            title="Choose the owner for the backup if you wanted it owned by one of your created users">
+            Backup Owner:
+          </span>
+        </label>
+
+        <span class="vm-backup-and-restoretip"
+          title="Choose the owner for the backup if you wanted it owned by one of your created users">
+          <select id="backup_owner" name="BACKUP_OWNER"
+            data-selected="<?php echo htmlspecialchars($settings['BACKUP_OWNER'] ?? 'nobody'); ?>">
+          </select>
+        </span>
+      </div>
+
       <!-- DRY RUN -->
       <div class="form-pair">
         <label for="dry_run">
@@ -912,23 +978,6 @@ if (is_file($plg)) {
         </span>
       </div>
 
-      <!-- BACKUP OWNER -->
-      <div class="form-pair">
-        <label>
-          <span class="vm-backup-and-restoretip"
-            title="Choose the owner for the backup if you wanted it owned by one of your created users">
-            Backup Owner:
-          </span>
-        </label>
-
-        <span class="vm-backup-and-restoretip"
-          title="Choose the owner for the backup if you wanted it owned by one of your created users">
-          <select id="backup_owner" name="BACKUP_OWNER"
-            data-selected="<?php echo htmlspecialchars($settings['BACKUP_OWNER'] ?? 'nobody'); ?>">
-          </select>
-        </span>
-      </div>
-
       <div id="backup-status" style="color:yellow; font-weight:bold; margin-bottom:6px; display:none;">
         Backup or restore in progress!
       </div>
@@ -945,8 +994,6 @@ if (is_file($plg)) {
 
   <div class="vm-backup-and-restore-wrapper">
     <form id="vm-backup-and-restore-settings">
-
-      <h2>Restore:</h2>
 
       <div class="restore-status-row"><span class="restore-status-label">Status:</span><span
           id="restore-status-text">Not Running</span></div>
@@ -1068,7 +1115,6 @@ if (is_file($plg)) {
     <form id="vm-third-section-form">
 
       <div class="log-header-row">
-        <h3>Backup & Restore Logs:</h3>
         <span title="Clear the backup & restore log" class="vm-backup-and-restoretip">
           <button type="button" id="clear-last-run-log">Clear Log</button>
         </span>
@@ -1619,9 +1665,9 @@ if (is_file($plg)) {
       VMS_TO_BACKUP: vms,
       BACKUP_DESTINATION: dest,
       BACKUPS_TO_KEEP: $('#backups_to_keep').val(),
+      BACKUP_OWNER: $('#backup_owner').val(),
       DRY_RUN: $('#dry_run').val(),
       NOTIFICATIONS: $('#notifications').val(),
-      BACKUP_OWNER: $('#backup_owner').val(),
       csrf_token: csrfToken
     });
 

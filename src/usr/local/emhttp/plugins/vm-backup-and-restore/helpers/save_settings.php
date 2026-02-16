@@ -9,9 +9,9 @@ $args = [
     $_GET['VMS_TO_BACKUP'] ?? '',
     $_GET['BACKUP_DESTINATION'] ?? '',
     $_GET['BACKUPS_TO_KEEP'] ?? '',
+    $_GET['BACKUP_OWNER'] ?? '',
     $_GET['DRY_RUN'] ?? '',
     $_GET['NOTIFICATIONS'] ?? '',
-    $_GET['BACKUP_OWNER'] ?? '',
 ];
 
 // Escape each argument for safety
