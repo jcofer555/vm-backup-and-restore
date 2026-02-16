@@ -166,7 +166,7 @@ cleanup() {
         notify_unraid "unRAID VM Backup script" \
         "Backup finished - Duration: $SCRIPT_DURATION_HUMAN"
 
-        set_status "Not Running"
+        rm -f "$STATUS_FILE"
         return
     fi
 
@@ -177,7 +177,7 @@ cleanup() {
             virsh start "$vm" >/dev/null 2>&1 || echo "WARNING: Failed to start VM $vm"
         done
     else
-        echo "No VMs were stopped by this script"
+        echo "No VMs were stopped this session"
     fi
 
     echo "Backup duration: $SCRIPT_DURATION_HUMAN"
