@@ -1407,11 +1407,11 @@ if (is_file($plg)) {
           const wrapper = $(`
           <div class="form-pair version-field">
             <label>
-              <span class="vm-backup-and-restoretip" title="Choose version for ${vm}">
+              <span class="vm-backup-and-restoretip" title="Choose which version of ${vm} to restore">
                 Version for ${vm}:
               </span>
             </label>
-            <span class="vm-backup-and-restoretip" title="Choose version for ${vm}">
+            <span class="vm-backup-and-restoretip" title="Choose which version of ${vm} to restore">
             <select name="VERSION_${vm}" 
                     class="version-select" 
                     data-vm="${vm}">
