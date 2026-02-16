@@ -984,7 +984,7 @@ if (is_file($plg)) {
 
       <!-- Backup Button-->
       <div class="form-group">
-        <span title="Run backup of selected VM(s). Last 20 logs kept at /tmp/vm-backup-and-restore/backup_logs"
+        <span title="Run backup of selected VM(s)"
           class="vm-backup-and-restoretip">
           <button type="button" id="backupbtn">Backup</button>
         </span>
@@ -1102,7 +1102,7 @@ if (is_file($plg)) {
 
       <!-- Restore Button-->
       <div class="form-group">
-        <span title="Run restore of selected VM(s). Last 20 logs kept at /tmp/vm-backup-and-restore/restore_logs"
+        <span title="Run restore of selected VM(s)"
           class="vm-backup-and-restoretip">
           <button type="button" id="restorebtn">Restore</button>
         </span>
