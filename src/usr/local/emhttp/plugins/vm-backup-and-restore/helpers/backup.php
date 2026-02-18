@@ -11,11 +11,12 @@ if (!is_file($script) || !is_executable($script)) {
     exit;
 }
 
-// Run in background
-$cmd = "nohup $script >/dev/null 2>&1 & echo $!";
-$pid = trim(shell_exec($cmd));
+$cmd = escapeshellcmd($script);
+$output = [];
+$return_var = 0;
+exec($cmd, $output, $return_var);
 
 echo json_encode([
-    'status' => 'ok',
-    'pid' => $pid
+    'status' => $return_var === 0 ? 'ok' : 'error',
+    'message' => implode("\n", $output)
 ]);

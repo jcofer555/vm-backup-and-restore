@@ -130,8 +130,6 @@ if (file_exists("/etc/unraid-version")) {
       console.warn("CSRF token discovery failed:", err);
     }
   }
-
-  console.log("Resolved CSRF token:", csrfToken || "<empty>");
 </script>
 
 <style>
@@ -784,7 +782,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   #vm-backup-and-restore-layout label {
-    color: #ffffff;
+    color: var(--primary-blue);
   }
 
   #vm-backup-and-restore-layout input[type="checkbox"] {
@@ -842,6 +840,35 @@ if (file_exists("/etc/unraid-version")) {
   #vm-backup-and-restore-settings {
     padding-top: 16px !important;
   }
+
+  #cron-warning-fields,
+  #cron-warning-minute,
+  #cron-warning-interval {
+    max-width: 360px;
+    width: 100%;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    color: yellow;
+  }
+
+  .backup-actions {
+    display: flex;
+    gap: 10px;
+    /* space between buttons */
+    align-items: center;
+  }
+
+  #popupMessage {
+    display: none;
+    /* collapses space */
+    background: yellow;
+    /* yellow */
+    color: #000;
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin-top: 8px;
+    font-weight: bold;
+  }
 </style>
 
 <?php
@@ -877,6 +904,10 @@ if (is_file($plg)) {
           <div class="vm-dropdown-label">Select VM(s)</div>
           <div class="vm-dropdown-list"></div>
         </div>
+
+        <!-- Hidden field that JS reads on page load -->
+        <input type="hidden" id="vm-hidden-backup" name="VMS_TO_BACKUP"
+          value="<?php echo htmlspecialchars($settings['VMS_TO_BACKUP'] ?? '') ?>">
       </div>
 
       <!-- DESTINATION -->
@@ -899,13 +930,15 @@ if (is_file($plg)) {
       <!-- BACKUPS TO KEEP -->
       <div class="form-pair">
         <label for="backups_to_keep">
-          <span title="Choose the amount of backups to keep for each of the VMs selected" class="vm-backup-and-restoretip">
+          <span title="Choose the amount of backups to keep for each of the VMs selected"
+            class="vm-backup-and-restoretip">
             Backups To Keep:
           </span>
         </label>
 
-        <span title="Choose the amount of backups to keep for each of the VMs selected" class="vm-backup-and-restoretip">
-          <select id="backups_to_keep" class="short-input" name="backups_to_keep">
+        <span title="Choose the amount of backups to keep for each of the VMs selected"
+          class="vm-backup-and-restoretip">
+          <select id="backups_to_keep" class="short-input" name="BACKUPS_TO_KEEP">
             <?php
         $current = $settings['BACKUPS_TO_KEEP'] ?? 0;
 
@@ -951,7 +984,7 @@ if (is_file($plg)) {
         </label>
 
         <span class="vm-backup-and-restoretip" title="Enable to simulate a backup">
-          <select id="dry_run" class="short-input" name="dry_run">
+          <select id="dry_run" class="short-input" name="DRY_RUN">
             <option value="0" <?=((string)($settings['DRY_RUN'] ?? '1' )==='0' ) ? 'selected' : '' ?>>Yes</option>
             <option value="1" <?=((string)($settings['DRY_RUN'] ?? '1' )==='1' ) ? 'selected' : '' ?>>No</option>
           </select>
@@ -969,7 +1002,7 @@ if (is_file($plg)) {
 
         <span class="vm-backup-and-restoretip"
           title="Send Unraid system notifications when VM backup starts and finishes">
-          <select id="notifications" class="short-input" name="notifications">
+          <select id="notifications" class="short-input" name="NOTIFICATIONS">
             <option value="1" <?=((int)($settings['NOTIFICATIONS'] ?? 0)===1) ? 'selected' : '' ?>>
               Yes
             </option>
@@ -980,16 +1013,264 @@ if (is_file($plg)) {
         </span>
       </div>
 
+
+      <!-- Scheduling Selection -->
+      <div class="form-pair" id="cron-expression-row">
+        <label for="cron_mode">
+          <span class="vm-backup-and-restoretip" title="Select scheduling selection">
+            Scheduling:
+          </span>
+        </label>
+        <div class="input-wrapper">
+          <span class="vm-backup-and-restoretip" title="Select scheduling selection">
+            <select id="cron_mode" name="CRON_MODE" class="short-input">
+              <option value="minutes" <?php echo (($settings['CRON_MODE'] ?? '' )==='minutes' ) ? 'selected' : '' ; ?>
+                >Minutes</option>
+              <option value="hourly" <?php echo (($settings['CRON_MODE'] ?? '' )==='hourly' ) ? 'selected' : '' ; ?>
+                >Hourly</option>
+              <option value="daily" <?php echo (($settings['CRON_MODE'] ?? '' )==='daily' ) ? 'selected' : '' ; ?>>Daily
+              </option>
+              <option value="weekly" <?php echo (($settings['CRON_MODE'] ?? '' )==='weekly' ) ? 'selected' : '' ; ?>
+                >Weekly</option>
+              <option value="monthly" <?php echo (($settings['CRON_MODE'] ?? '' )==='monthly' ) ? 'selected' : '' ; ?>
+                >Monthly</option>
+              <option value="custom" <?php echo (($settings['CRON_MODE'] ?? '' )==='custom' ) ? 'selected' : '' ; ?>
+                >Custom</option>
+            </select>
+          </span>
+        </div>
+      </div>
+
+      <!-- Minutes Options -->
+      <div id="minutes-options" style="display:none; margin-top:10px;">
+        <div class="form-pair">
+          <label for="minutes_frequency">
+            <span class="vm-backup-and-restoretip" title="Select minute frequency">
+              Select Frequency:
+            </span>
+          </label>
+          <div class="input-wrapper">
+            <span class="vm-backup-and-restoretip" title="Select minute frequency">
+
+              <?php
+          // --- Normalize MINUTES_FREQUENCY before rendering ---
+          $raw = $settings['MINUTES_FREQUENCY'] ?? '';
+          $freq = intval($raw);
+
+          // If missing, invalid, or < 1 → default to 30
+          if ($freq < 1) {
+            $freq = 30;
+          }
+        ?>
+
+              <select id="minutes_frequency" name="MINUTES_FREQUENCY" class="short-input">
+                <?php
+            for ($i = 1; $i <= 59; $i++) {
+              $selected = ($freq === $i) ? 'selected' : '';
+              echo "<option value=\"$i\" $selected>Every $i Minutes</option>";
+            }
+          ?>
+              </select>
+
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hourly Options -->
+      <div id="hourly-options" style="display:none; margin-top:10px;">
+        <div class="form-pair">
+          <label for="hourly_frequency">
+            <span class="vm-backup-and-restoretip" title="Select hourly frequency">
+              Select Frequency:
+            </span>
+          </label>
+          <div class="input-wrapper">
+            <span class="vm-backup-and-restoretip" title="Select hourly frequency">
+              <select id="hourly_frequency" name="HOURLY_FREQUENCY" class="short-input">
+                <?php
+          for ($i = 1; $i <= 23; $i++) {
+              $selected = (($settings['HOURLY_FREQUENCY'] ?? '') === (string)$i) ? 'selected' : '';
+              echo "<option value=\"$i\" $selected>Every $i Hour" . ($i > 1 ? 's' : '') . "</option>";
+          }
+          ?>
+              </select>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Options -->
+      <div id="daily-options" style="display:none; margin-top:10px;">
+        <div class="form-pair">
+          <label for="daily_time">
+            <span class="vm-backup-and-restoretip" title="Select the time of day for daily execution">
+              Time Of Day:
+            </span>
+          </label>
+          <div class="input-wrapper">
+            <span class="vm-backup-and-restoretip" title="Select the time of day for daily execution">
+              <select id="daily_time" name="DAILY_TIME" class="short-input">
+                <?php for ($h = 0; $h < 24; $h++): 
+            $time = str_pad($h, 2, "0", STR_PAD_LEFT) . ":00"; ?>
+                <option value="<?php echo $time; ?>" <?php echo (($settings['DAILY_TIME'] ?? '' )===$time) ? 'selected'
+                  : '' ; ?>>
+                  <?php echo $time; ?>
+                </option>
+                <?php endfor; ?>
+              </select>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Weekly Options -->
+      <div id="weekly-options" style="display:none; margin-top:10px;">
+        <div class="form-pair">
+          <label for="weekly_day">
+            <span class="vm-backup-and-restoretip" title="Select day of the week">
+              Day Of Week:
+            </span>
+          </label>
+          <div class="input-wrapper">
+            <span class="vm-backup-and-restoretip" title="Select day of the week">
+              <select id="weekly_day" name="WEEKLY_DAY" class="short-input">
+                <?php 
+            $days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+            foreach ($days as $day): ?>
+                <option value="<?php echo $day; ?>" <?php echo (($settings['WEEKLY_DAY'] ?? '' )===$day) ? 'selected'
+                  : '' ; ?>>
+                  <?php echo $day; ?>
+                </option>
+                <?php endforeach; ?>
+              </select>
+            </span>
+          </div>
+        </div>
+
+        <div class="form-pair">
+          <label for="weekly_time">
+            <span class="vm-backup-and-restoretip" title="Select time of day for weekly execution">
+              Time Of Day:
+            </span>
+          </label>
+          <div class="input-wrapper">
+            <span class="vm-backup-and-restoretip" title="Select time of day for weekly execution">
+              <select id="weekly_time" name="WEEKLY_TIME" class="short-input">
+                <?php for ($h = 0; $h < 24; $h++): 
+            $time = str_pad($h, 2, "0", STR_PAD_LEFT) . ":00"; ?>
+                <option value="<?php echo $time; ?>" <?php echo (($settings['WEEKLY_TIME'] ?? '' )===$time) ? 'selected'
+                  : '' ; ?>>
+                  <?php echo $time; ?>
+                </option>
+                <?php endfor; ?>
+              </select>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly Options -->
+      <div id="monthly-options" style="display:none; margin-top:10px;">
+        <div class="form-pair">
+          <label for="monthly_day">
+            <span class="vm-backup-and-restoretip" title="Select day of the month">
+              Day Of Month:
+            </span>
+          </label>
+          <div class="input-wrapper">
+            <span class="vm-backup-and-restoretip" title="Select day of the month">
+              <select id="monthly_day" name="MONTHLY_DAY" class="short-input">
+                <?php for ($d = 1; $d <= 31; $d++): 
+            $day = str_pad($d, 2, "0", STR_PAD_LEFT); ?>
+                <option value="<?php echo $day; ?>" <?php echo (($settings['MONTHLY_DAY'] ?? '' )===$day) ? 'selected'
+                  : '' ; ?>>
+                  <?php echo $day; ?>
+                </option>
+                <?php endfor; ?>
+              </select>
+            </span>
+          </div>
+        </div>
+
+        <div class="form-pair">
+          <label for="monthly_time">
+            <span class="vm-backup-and-restoretip" title="Select time of day for monthly execution">
+              Time Of Day:
+            </span>
+          </label>
+          <div class="input-wrapper">
+            <span class="vm-backup-and-restoretip" title="Select time of day for monthly execution">
+              <select id="monthly_time" name="MONTHLY_TIME" class="short-input">
+                <?php for ($h = 0; $h < 24; $h++): 
+            $time = str_pad($h, 2, "0", STR_PAD_LEFT) . ":00"; ?>
+                <option value="<?php echo $time; ?>" <?php echo (($settings['MONTHLY_TIME'] ?? '' )===$time)
+                  ? 'selected' : '' ; ?>>
+                  <?php echo $time; ?>
+                </option>
+                <?php endfor; ?>
+              </select>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom Option -->
+      <div id="custom-options" style="display:none; margin-top:10px;">
+        <div class="form-pair">
+          <label for="custom_cron">
+            <span class="vm-backup-and-restoretip"
+              title="Enter a valid cron expression 5 fields with spaces between each for example */2 * * * * visit https://crontab.guru for help">
+              Cron Expression:
+            </span>
+          </label>
+          <div class="input-wrapper">
+            <span class="vm-backup-and-restoretip"
+              title="Enter a valid cron expression 5 fields with spaces between each for example */2 * * * * visit https://crontab.guru for help">
+              <input type="text" id="custom_cron" name="CUSTOM_CRON" class="short-input" placeholder="*/2 * * * *"
+                value="<?php echo htmlspecialchars($settings['CUSTOM_CRON'] ?? ''); ?>">
+            </span>
+          </div>
+        </div>
+
+        <div class="form-pair">
+
+          <!-- Wrong number of fields OR invalid characters -->
+          <div id="cron-warning-fields" class="field-warning" role="alert" style="display:none;">
+            ⚠️ Enter a valid cron expression with 5 fields separated by spaces.
+            Only numbers, *, and / are allowed.
+            Visit <a href="https://crontab.guru/" target="_blank">crontab.guru</a> for help.
+          </div>
+
+          <!-- Slash rule: must be exactly */N -->
+          <div id="cron-warning-slash" class="field-warning" role="alert" style="display:none;">
+            ⚠️ Fields using "/" must be in the form */N (example: */5).
+          </div>
+
+        </div>
+      </div>
+
       <div id="backup-status" style="color:yellow; font-weight:bold; margin-bottom:6px; display:none;">
         Backup or restore in progress!
       </div>
 
       <!-- Backup Button-->
-      <div class="form-group">
+      <div class="backup-actions">
         <span title="Run backup of selected VM(s)" class="vm-backup-and-restoretip">
-          <button type="button" id="backupbtn">Backup</button>
+          <button type="button" id="backupbtn">Backup Now</button>
+        </span>
+
+        <span title="Create/update a backup schedule using the settings shown in the fields above"
+          class="vm-backup-and-restoretip">
+          <button type="button" id="schedule-backup" class="button schedule-button">Schedule It</button>
+        </span>
+        <span title="Cancel editing of schedule" class="vm-backup-and-restoretip">
+          <button type="button" id="cancelEditBtn" style="display:none;">Cancel</button>
         </span>
       </div>
+
+      <div id="popupMessage"></div>
+
     </form>
   </div>
 
@@ -1085,7 +1366,7 @@ if (is_file($plg)) {
 
         <span class="vm-backup-and-restoretip"
           title="Send Unraid system notifications when VM restore starts and finishes">
-          <select id="notifications_restore" class="short-input" name="notifications_restore">
+          <select id="notifications_restore" class="short-input" name="NOTIFICATIONS_RESTORE">
             <option value="1" <?=((int)($restoreSettings['NOTIFICATIONS_RESTORE'] ?? 0)===1) ? 'selected' : '' ?>
               >
               Yes
@@ -1126,6 +1407,9 @@ if (is_file($plg)) {
   </form>
 </div>
 
+<h3>📅 Scheduled Jobs</h3>
+<div id="schedule-list"></div>
+
 </div>
 
 <div id="folderPickerModal" class="vm-modal">
@@ -1146,6 +1430,25 @@ if (is_file($plg)) {
 </div>
 
 <script>
+  $(function () {
+    $(document).on('mouseenter', '.vm-backup-and-restoretip', function () {
+      const $el = $(this);
+
+      if (!$el.hasClass('tooltipstered')) {
+        $el.tooltipster({
+          maxWidth: 300
+        });
+
+        // Delay auto-open by 500ms
+        setTimeout(() => {
+          if ($el.is(':hover')) {
+            $el.tooltipster('open');
+          }
+        }, 500);
+      }
+    });
+  });
+
   function updateBackupStatus() {
     fetch('/plugins/vm-backup-and-restore/helpers/backup_status_check.php')
       .then(res => res.json())
@@ -1173,6 +1476,112 @@ if (is_file($plg)) {
 
   updateRestoreStatus();
   setInterval(updateRestoreStatus, 1000);
+
+  // --- Scheduling Dropdown Toggle ---
+  (function waitForSchedulingToggle() {
+    function initSchedulingToggle() {
+      const cronModeSelect = document.getElementById('cron_mode');
+
+      // Option rows
+      const minutesOptions = document.getElementById('minutes-options');
+      const hourlyOptions = document.getElementById('hourly-options');
+      const dailyOptions = document.getElementById('daily-options');
+      const weeklyOptions = document.getElementById('weekly-options');
+      const monthlyOptions = document.getElementById('monthly-options');
+      const customOptions = document.getElementById('custom-options');
+
+      // Inputs
+      const minutesFreq = document.getElementById('minutes_frequency');
+      const hourlyFreq = document.getElementById('hourly_frequency');
+      const dailyTime = document.getElementById('daily_time');
+      const weeklyDay = document.getElementById('weekly_day');
+      const weeklyTime = document.getElementById('weekly_time');
+      const monthlyDay = document.getElementById('monthly_day');
+      const monthlyTime = document.getElementById('monthly_time');
+      const customCron = document.getElementById('custom_cron');
+
+      if (!cronModeSelect) return false;
+
+      // Toggle which sub-options are visible
+      function toggleCronOptions(value) {
+        minutesOptions.style.display = (value === 'minutes') ? 'block' : 'none';
+        hourlyOptions.style.display = (value === 'hourly') ? 'block' : 'none';
+        dailyOptions.style.display = (value === 'daily') ? 'block' : 'none';
+        weeklyOptions.style.display = (value === 'weekly') ? 'block' : 'none';
+        monthlyOptions.style.display = (value === 'monthly') ? 'block' : 'none';
+        customOptions.style.display = (value === 'custom') ? 'block' : 'none';
+        updateCronExpression();
+      }
+
+      // Build cron string from dropdowns
+      function updateCronExpression() {
+        let cronString = "";
+
+        if (cronModeSelect.value === "minutes" && minutesFreq) {
+          const freq = parseInt(minutesFreq.value, 10);
+          cronString = `*/${freq} * * * *`;
+        }
+        else if (cronModeSelect.value === "hourly" && hourlyFreq) {
+          const freq = parseInt(hourlyFreq.value, 10);
+          cronString = `0 */${freq} * * *`;
+        }
+        else if (cronModeSelect.value === "daily" && dailyTime) {
+          const [hour, minute] = dailyTime.value.split(":");
+          cronString = `${parseInt(minute, 10)} ${parseInt(hour, 10)} * * *`;
+        }
+        else if (cronModeSelect.value === "weekly" && weeklyDay && weeklyTime) {
+          const [hour, minute] = weeklyTime.value.split(":");
+          const dayMap = {
+            Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3,
+            Thursday: 4, Friday: 5, Saturday: 6
+          };
+          cronString = `${parseInt(minute, 10)} ${parseInt(hour, 10)} * * ${dayMap[weeklyDay.value]}`;
+        }
+        else if (cronModeSelect.value === "monthly" && monthlyDay && monthlyTime) {
+          const [hour, minute] = monthlyTime.value.split(":");
+          const day = parseInt(monthlyDay.value, 10);
+          cronString = `${parseInt(minute, 10)} ${parseInt(hour, 10)} ${day} * *`;
+        }
+        else if (cronModeSelect.value === "custom" && customCron) {
+          cronString = customCron.value.trim();
+        }
+
+        // Store cron string in hidden input
+        let hidden = document.getElementById("cron_expression_hidden");
+        if (!hidden) {
+          hidden = document.createElement("input");
+          hidden.type = "hidden";
+          hidden.id = "cron_expression_hidden";
+          hidden.name = "CRON_EXPRESSION";
+          cronModeSelect.closest(".form-pair").appendChild(hidden);
+        }
+        hidden.value = cronString;
+      }
+
+      // Initialize visibility
+      toggleCronOptions(cronModeSelect.value);
+
+      // Event listeners
+      cronModeSelect.addEventListener('change', (e) => toggleCronOptions(e.target.value));
+      minutesFreq?.addEventListener('change', updateCronExpression);
+      hourlyFreq?.addEventListener('change', updateCronExpression);
+      dailyTime?.addEventListener('change', updateCronExpression);
+      weeklyDay?.addEventListener('change', updateCronExpression);
+      weeklyTime?.addEventListener('change', updateCronExpression);
+      monthlyDay?.addEventListener('change', updateCronExpression);
+      monthlyTime?.addEventListener('change', updateCronExpression);
+      customCron?.addEventListener('input', updateCronExpression);
+
+      return true;
+    }
+
+    if (!initSchedulingToggle()) {
+      const observer = new MutationObserver(() => {
+        if (initSchedulingToggle()) observer.disconnect();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+  })();
 
   function loadLastRunLog() {
     fetch('/plugins/vm-backup-and-restore/helpers/fetch_last_run_log.php')
@@ -1247,109 +1656,113 @@ if (is_file($plg)) {
   });
 
   $(document).ready(function () {
-    const dropdown = $('#vm-dropdown');
-    const label = dropdown.find('.vm-dropdown-label');
-    const list = dropdown.find('.vm-dropdown-list');
+    /* -----------------------------------------
+       ELEMENTS (BACKUP ONLY)
+       ----------------------------------------- */
+    const dropdownBackup = $('#vm-dropdown');
+    const labelBackup = dropdownBackup.find('.vm-dropdown-label');
+    const listBackup = dropdownBackup.find('.vm-dropdown-list');
 
-    // Saved selections (comma-separated string)
-    const selectedRaw = dropdown.data('selected') || '';
-    const selected = selectedRaw.split(',').map(s => s.trim()).filter(s => s !== '');
-
-    /* -----------------------------
+    /* -----------------------------------------
        OPEN / CLOSE BEHAVIOR
-       ----------------------------- */
-
-    label.on('click', function (e) {
-      // Prevent opening if no VMs
-      if (dropdown.hasClass('disabled')) return;
+       ----------------------------------------- */
+    labelBackup.on('click', function (e) {
+      if (dropdownBackup.hasClass('disabled')) return;
 
       e.stopPropagation();
-      list.toggle();
-
-      dropdown.toggleClass('active', list.is(':visible'));
+      listBackup.toggle();
+      dropdownBackup.toggleClass('active', listBackup.is(':visible'));
     });
 
-    // Close when clicking outside
     $(document).on('click', function (e) {
       if (!$(e.target).closest('#vm-dropdown').length) {
-        list.hide();
-        dropdown.removeClass('active');
+        listBackup.hide();
+        dropdownBackup.removeClass('active');
       }
     });
 
-    /* -----------------------------
-       LOAD VM LIST
-       ----------------------------- */
-    $.getJSON('/plugins/vm-backup-and-restore/helpers/list_vms.php', function (data) {
-      list.empty();
+    /* -----------------------------------------
+       UPDATE LABEL + HIDDEN FIELD
+       ----------------------------------------- */
+    function updateBackupLabel() {
+      const checked = listBackup.find('input:checked').map(function () {
+        return $(this).val();
+      }).get();
 
-      if (!data.vms || data.vms.length === 0) {
-        // No VMs found
-        list.append('<div class="vm-dropdown-item no-vms">No VMs found</div>');
-        label.text('No VMs available');
-        dropdown.addClass('disabled'); // visually indicate disabled
-      } else {
+      labelBackup.text(checked.length ? checked.join(', ') : 'Select VM(s)');
+
+      let hidden = $('#vm-hidden-backup');
+      if (!hidden.length) {
+        hidden = $('<input>', {
+          type: 'hidden',
+          id: 'vm-hidden-backup',
+          name: 'VMS_TO_BACKUP'
+        }).appendTo(dropdownBackup.parent());
+      }
+
+      hidden.val(checked.join(','));
+    }
+
+    /* -----------------------------------------
+       LOAD BACKUP VM LIST (CALL THIS ANYTIME)
+       ----------------------------------------- */
+    window.loadBackupVMs = function () {
+
+      // Re-read selected AFTER editSchedule updates data-selected
+      const selectedBackup = (dropdownBackup.attr('data-selected') || '').split(',');
+
+      $.getJSON('/plugins/vm-backup-and-restore/helpers/list_vms.php', function (data) {
+        listBackup.empty();
+
+        if (!data.vms || data.vms.length === 0) {
+          listBackup.append('<div class="vm-dropdown-item no-vms">No VMs found</div>');
+          labelBackup.text('No VMs available');
+          dropdownBackup.addClass('disabled');
+          return;
+        }
+
         data.vms.forEach(vm => {
           const id = 'vmchk-' + vm.replace(/\s+/g, '_');
 
           const item = $(`
-            <div>
-              <label>
-                <input type="checkbox" value="${vm}" id="${id}">
-                ${vm}
-              </label>
-            </div>
-          `);
+                    <div>
+                        <label>
+                            <input type="checkbox" value="${vm}" id="${id}">
+                            ${vm}
+                        </label>
+                    </div>
+                `);
 
-          // Pre-select saved values
-          if (selected.includes(vm)) {
+          if (selectedBackup.includes(vm)) {
             item.find('input').prop('checked', true);
           }
 
-          list.append(item);
+          listBackup.append(item);
         });
 
-        updateLabel();
-      }
-    });
+        updateBackupLabel();
+      });
+    };
 
-    /* -----------------------------
-       UPDATE LABEL + HIDDEN FIELD
-       ----------------------------- */
-    function updateLabel() {
-      const checked = list.find('input:checked').map(function () {
-        return $(this).val();
-      }).get();
+    /* -----------------------------------------
+       INITIAL LOAD (EMPTY SELECTION)
+       ----------------------------------------- */
+    loadBackupVMs();
 
-      if (checked.length === 0) {
-        label.text('Select VM(s)');
-      } else {
-        label.text(checked.join(', '));
-      }
-
-      ensureHiddenField(checked.join(','));
-    }
-
-    list.on('change', 'input[type=checkbox]', updateLabel);
-
-    function ensureHiddenField(value) {
-      let hidden = $('#vm-hidden');
+    function ensureHiddenFieldBackup(value) {
+      let hidden = $('#vm-hidden-backup');
       if (!hidden.length) {
         hidden = $('<input>', {
           type: 'hidden',
-          id: 'vm-hidden',
+          id: 'vm-hidden-backup',
           name: 'VMS_TO_BACKUP'
-        }).appendTo(dropdown.parent());
+        }).appendTo(dropdownBackup.parent());
       }
       hidden.val(value);
     }
 
-    /* -----------------------------
-       TOOLTIPSTER INIT
-       ----------------------------- */
-    $('.vm-backup-and-restoretip').tooltipster({
-      maxWidth: 300
-    });
+    listBackup.on('change', 'input[type=checkbox]', updateBackupLabel);
+
   });
 
   // Force-close any Dynamix tooltip when dropdown opens
@@ -1438,11 +1851,6 @@ if (is_file($plg)) {
           });
 
           container.append(wrapper);
-
-          // Optional: re-init tooltip if needed
-          $('.vm-backup-and-restoretip').tooltipster({
-            maxWidth: 300
-          });
         }
       );
     });
@@ -1575,35 +1983,131 @@ if (is_file($plg)) {
 </script>
 
 <script>
+  // --- State ---
+  let cronValid = false;
+  let backupRunning = false;
+
+  // --- Elements ---
+  const cronInput = document.getElementById('custom_cron');
+  const cronMode = document.getElementById('cron_mode');
+  const backupbtn = document.getElementById('backupbtn');
+
+  const warnFields = document.getElementById('cron-warning-fields');
+  const warnSlash = document.getElementById('cron-warning-slash');
+
+  // --- Unified button state controller ---
+  function updateBackupButtonState() {
+    backupbtn.disabled = !(cronValid && !backupRunning);
+  }
+
+  // --- Live Cron Validator ---
+  function validateCronLive() {
+
+    // ---------------------------------------------------------
+    // 1. If NOT in custom mode → cron is automatically valid
+    // ---------------------------------------------------------
+    if (cronMode.value !== "custom") {
+      cronValid = true;
+
+      // Hide all warnings
+      [warnFields, warnSlash].forEach(w => w.style.display = 'none');
+
+      updateBackupButtonState();
+      return;
+    }
+
+    // ---------------------------------------------------------
+    // 2. Custom mode → strict cron validation
+    // ---------------------------------------------------------
+    const cronExpression = cronInput.value.trim();
+    const cronParts = cronExpression.split(/\s+/);
+
+    // Hide warnings at start
+    [warnFields, warnSlash].forEach(w => w.style.display = 'none');
+
+    cronValid = true;
+
+    // Blank → invalid
+    if (cronExpression === "") {
+      cronValid = false;
+      updateBackupButtonState();
+      return;
+    }
+
+    // Rule 1: Must have exactly 5 parts
+    if (cronParts.length !== 5) {
+      cronValid = false;
+      warnFields.style.display = 'block';
+    }
+
+    // Only validate fields if count is correct
+    if (cronParts.length === 5) {
+
+      for (let i = 0; i < cronParts.length; i++) {
+        const field = cronParts[i];
+
+        // Rule 3: Only digits, *, and / allowed
+        if (!/^[\d*\/]+$/.test(field)) {
+          cronValid = false;
+          warnFields.style.display = 'block';
+        }
+
+        // Rule 2: Slash must be exactly */N
+        if (field.includes('/')) {
+          const validStep = field.match(/^\*\/\d+$/);
+          if (!validStep) {
+            cronValid = false;
+            warnSlash.style.display = 'block';
+          }
+        }
+      }
+
+      // Minute field cannot be "*"
+      const minuteField = cronParts[0];
+      if (minuteField === "*") {
+        cronValid = false;
+        warnMinute.style.display = 'block';
+      }
+    }
+
+    updateBackupButtonState();
+  }
+
+  // --- Attach listeners ---
+  cronInput.addEventListener('input', validateCronLive);
+  cronMode.addEventListener('change', validateCronLive);
+
+  // --- Run once on page load ---
+  validateCronLive();
+
   let backupStartTime = 0;
   const MIN_DURATION = 5000;
 
   function updateBackupUI(running) {
-
-    const btn = $('#backupbtn');
     const status = $('#backup-status');
+    const btn = $('#backupbtn');
 
+    // --- Backup is running ---
     if (running) {
-
       if (!backupStartTime) {
         backupStartTime = Date.now();
       }
 
-      btn.prop('disabled', true);
       btn.text('Backup running...');
       status.show();
 
       return;
     }
 
+    // --- Backup is NOT running ---
     if (!backupStartTime) {
-      // Not running and never started
-      btn.prop('disabled', false);
-      btn.text('Backup');
+      // Never started or already reset
+      btn.text('Backup Now');
       status.hide();
       return;
     }
 
+    // Enforce minimum visible duration
     const elapsed = Date.now() - backupStartTime;
 
     if (elapsed < MIN_DURATION) {
@@ -1611,15 +2115,16 @@ if (is_file($plg)) {
       return;
     }
 
+    // Reset state
     backupStartTime = 0;
-
-    btn.prop('disabled', false);
-    btn.text('Backup');
+    btn.text('Backup Now');
     status.hide();
   }
 
   function pollBackupStatus() {
     $.getJSON('/plugins/vm-backup-and-restore/helpers/backup_status.php', function (res) {
+      backupRunning = res.running === true;
+      updateBackupButtonState();
       updateBackupUI(res.running);
     });
   }
@@ -1649,7 +2154,7 @@ if (is_file($plg)) {
       return;
     }
 
-    const vms = $('#vm-hidden').val();
+    const vms = $('#vm-hidden-backup').val();
     const dest = $('#backup_destination').val().trim();
 
     if (!vms) {
@@ -1709,6 +2214,276 @@ if (is_file($plg)) {
         alert('Error starting backup');
       });
   }
+
+  // --- Global variable to track editing ---
+  window.editingScheduleId = null;
+
+  // --- Load schedule list ---
+  function loadSchedules() {
+    $('#schedule-list').load('/plugins/vm-backup-and-restore/helpers/schedule_list.php');
+  }
+
+  // --- Build cron string from UI selections ---
+  function validateCustomCron(expr) {
+    expr = expr.trim();
+    const parts = expr.split(/\s+/);
+    if (parts.length !== 5) return { valid: false };
+    if (parts[0] === '*') return { valid: false };
+    const m = parts[0].match(/^\*\/(\d+)$/);
+    if (m && parseInt(m[1], 10) < 2) return { valid: false };
+    return { valid: true, expression: expr };
+  }
+
+  function buildCronFromUI() {
+    const mode = $('#cron_mode').val();
+    switch (mode) {
+      case 'minutes': {
+        const v = $('#minutes_frequency').val();
+        return { valid: true, expression: `*/${v} * * * *` };
+      }
+      case 'hourly': {
+        const v = $('#hourly_frequency').val();
+        return { valid: true, expression: `0 */${v} * * *` };
+      }
+      case 'daily': {
+        const h = $('#daily_time').val().split(':')[0];
+        return { valid: true, expression: `0 ${h} * * *` };
+      }
+      case 'weekly': {
+        const dayMap = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+        const d = dayMap[$('#weekly_day').val()];
+        const h = $('#weekly_time').val().split(':')[0];
+        return { valid: true, expression: `0 ${h} * * ${d}` };
+      }
+      case 'monthly': {
+        const d = parseInt($('#monthly_day').val(), 10);
+        const h = $('#monthly_time').val().split(':')[0];
+        return { valid: true, expression: `0 ${h} ${d} * *` };
+      }
+      case 'custom':
+        return validateCustomCron($('#custom_cron').val());
+      default:
+        return { valid: false };
+    }
+  }
+
+  // --- Create or update schedule ---
+  function scheduleJob(type) {
+    const cron = buildCronFromUI();
+    if (!cron.valid) {
+      alert("Invalid cron expression");
+      return;
+    }
+
+    // Gather all input/select values as settings
+    const settings = {};
+    $('input[name], select[name]').each(function () {
+      settings[this.name] = $(this).val();
+    });
+
+    const url = window.editingScheduleId ? 'schedule_update.php' : 'schedule_create.php';
+
+    $.ajax({
+      type: 'POST',
+      url: `/plugins/vm-backup-and-restore/helpers/${url}`,
+      data: {
+        id: window.editingScheduleId,
+        type: type,
+        cron: cron.expression,
+        settings: settings
+      },
+      success: function (response) {
+
+        // Reset UI back to normal
+        resetScheduleUI();
+
+        // Clear editing ID
+        window.editingScheduleId = null;
+
+        // Reload schedule list
+        loadSchedules();
+
+        // Optional popup
+        showPopup("Schedule saved!");
+      },
+      error: function (xhr) {
+        if (xhr.status === 409) {
+          alert('Duplicate schedule detected during create!');
+        } else {
+          alert('Error creating/updating schedule: ' + xhr.responseText);
+        }
+      }
+    });
+  }
+
+  // --- Edit a schedule ---
+  function editSchedule(id) {
+    $.getJSON('/plugins/vm-backup-and-restore/helpers/schedule_load.php', { id }, function (s) {
+      const settings = s.SETTINGS || {};
+
+      // Apply schedule type first
+      if (s.TYPE) {
+        $('[name="type"]').val(s.TYPE).trigger('change');
+      }
+
+      // Apply all settings to form fields
+      for (const k in settings) {
+        const el = $('[name="' + k + '"]');
+        if (!el.length) continue;
+
+        if (el.is(':checkbox')) {
+          el.prop('checked', settings[k] == 1 || settings[k] === true);
+        } else if (el.is(':radio')) {
+          $('[name="' + k + '"][value="' + settings[k] + '"]').prop('checked', true);
+        } else {
+          el.val(settings[k]).trigger('change');
+        }
+
+        // VM dropdown special handling
+        if (k === 'VMS_TO_BACKUP') {
+          $('#vm-dropdown').attr('data-selected', settings[k]);
+        }
+      }
+
+      // Cron mode detection
+      $('#cron_mode')
+        .val(detectCronMode(s.CRON))
+        .trigger('change');
+
+      // Store ID globally
+      window.editingScheduleId = id;
+
+      // Rebuild VM dropdown with updated selected value
+      $('#vm-dropdown').attr('data-selected', settings['VMS_TO_BACKUP'] || '');
+      loadBackupVMs();
+
+      // ---------------------------------------------------
+      // NEW BEHAVIOR: Switch Schedule It → Edit
+      // ---------------------------------------------------
+      $('#schedule-backup').text('Edit');
+
+      // Show Cancel button
+      $('#cancelEditBtn').show();
+    });
+  }
+
+  $('#cancelEditBtn').on('click', function () {
+    location.reload();
+  });
+
+  function showPopup(message) {
+    const popup = $('#popupMessage');
+
+    popup.text(message).fadeIn(150);
+
+    setTimeout(() => {
+      popup.fadeOut(200, () => {
+        popup.text('');     // remove text
+        popup.hide();       // collapses space
+      });
+    }, 3000);
+  }
+
+  function resetScheduleUI() {
+    // Revert Edit → Schedule It
+    $('#schedule-backup').text('Schedule It');
+
+    // Hide Cancel button
+    $('#cancelEditBtn').hide();
+
+    // Remove any popup message immediately
+    $('#popupMessage').stop(true, true).hide().text('');
+  }
+
+  // --- Delete a schedule ---
+  function deleteSchedule(id) {
+    if (!confirm("Delete this schedule?")) return;
+    $.post('/plugins/vm-backup-and-restore/helpers/schedule_delete.php', { id: id }, loadSchedules);
+  }
+
+  // --- Run backup manually ---
+  function runScheduleBackup(id, btn) {
+    if (!confirm("Are you sure you want to run this backup now?")) {
+      return;
+    }
+
+    if (btn.disabled) return;
+
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = "Running...";
+
+    $.post('/plugins/vm-backup-and-restore/helpers/run_schedule.php', { id });
+
+    // Poll every 1 second until lock is gone
+    const poll = setInterval(function () {
+      $.getJSON(
+        '/plugins/vm-backup-and-restore/helpers/check_lock.php',
+        function (res) {
+          if (!res.locked) {
+            clearInterval(poll);
+            btn.disabled = false;
+            btn.textContent = originalText;
+          }
+        }
+      );
+    }, 1000);
+  }
+
+  // --- Toggle enable/disable ---
+  function toggleSchedule(id, isEnabled) {
+    const msg = isEnabled
+      ? "Disable this schedule?"
+      : "Enable this schedule?";
+
+    if (!confirm(msg)) return;
+
+    $.post('/plugins/vm-backup-and-restore/helpers/schedule_toggle.php', { id }, loadSchedules);
+  }
+
+  // --- Detect cron mode based on expression ---
+  function detectCronMode(cron) {
+    if (!cron) return 'minutes';
+    if (/^\*\/\d+ \* \* \* \*$/.test(cron)) return 'minutes';
+    if (/^0 \*\/\d+ \* \* \*$/.test(cron)) return 'hourly';
+    if (/^0 \d+ \* \* \*$/.test(cron)) return 'daily';
+    if (/^0 \d+ \* \* [0-6]$/.test(cron)) return 'weekly';
+    if (/^0 \d+ \d+ \* \*$/.test(cron)) return 'monthly';
+    return 'custom';
+  }
+
+  // --- Initialize VM BACKUP multiselect ---
+  function initVmBackupDropdown() {
+    const selected = ($('#vm-hidden-backup').val() || '').split(',');
+
+    $('.vm-dropdown-list input[type=checkbox]').each(function () {
+      if (selected.includes($(this).val())) {
+        $(this).prop('checked', true);
+      }
+    });
+
+    updateVmBackupLabel();
+  }
+
+  function updateVmBackupLabel() {
+    const selected = $('.vm-dropdown-list input:checked')
+      .map(function () { return $(this).val(); })
+      .get();
+
+    $('#vm-hidden-backup').val(selected.join(','));
+
+    $('.vm-dropdown-label').text(
+      selected.length ? selected.join(', ') : 'Select VM(s)'
+    );
+  }
+
+  // --- Button click handlers ---
+  $(document).ready(function () {
+    loadSchedules();
+
+    $(document).on('click', '#schedule-backup', function () { scheduleJob('backup'); });
+    $(document).on('click', '#schedule-restore', function () { scheduleJob('restore'); });
+  });
 </script>
 
 <script>

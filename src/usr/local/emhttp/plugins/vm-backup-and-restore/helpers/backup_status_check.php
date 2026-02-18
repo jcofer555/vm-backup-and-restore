@@ -7,12 +7,14 @@ $status = 'Not Running';
 
 if (file_exists($status_file)) {
     $raw = trim(file_get_contents($status_file));
-
     if ($raw !== '') {
         $status = $raw;
     }
 }
 
+$running = ($status !== 'Not Running');
+
 echo json_encode([
-    'status' => $status
+    'status' => $status,
+    'running' => $running
 ]);

@@ -1,5 +1,21 @@
 #!/bin/bash
-set -u
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# ------------------------------------------------------------------------------
+# Load schedule-specific variables (exported by run_schedule.php)
+# ------------------------------------------------------------------------------
+
+if [[ -n "${SCHEDULE_ID:-}" ]]; then
+    echo "Running scheduled backup: $SCHEDULE_ID"
+
+    # Override defaults with schedule-provided values
+    DRY_RUN="${DRY_RUN:-1}"
+    VMS_TO_BACKUP="${VMS_TO_BACKUP:-}"
+    BACKUPS_TO_KEEP="${BACKUPS_TO_KEEP:-0}"
+    BACKUP_DESTINATION="${BACKUP_DESTINATION:-/mnt/user/vm_backups}"
+    BACKUP_OWNER="${BACKUP_OWNER:-root}"
+    NOTIFICATIONS="${NOTIFICATIONS:-0}"
+fi
 
 SCRIPT_START_EPOCH=$(date +%s)
 
@@ -66,9 +82,6 @@ exec > >(tee -a "$LAST_RUN_FILE") 2>&1
 
 echo "--------------------------------------------------------------------------------------------------"
 echo "Backup session started - $(date '+%Y-%m-%d %H:%M:%S')"
-
-CONFIG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
-source "$CONFIG" || exit 1
 
 # ------------------------------------------------------------------------------
 # DRY RUN SUPPORT
