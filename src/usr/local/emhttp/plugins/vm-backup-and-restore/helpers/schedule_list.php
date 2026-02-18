@@ -154,28 +154,28 @@ if (file_exists($cfg)) {
             <td style="padding:8px; text-align:center;">
 
                 <button type="button"
-                        class="vm-backup-and-restoretip"
+                        class="schedule-action-btn vm-backup-and-restoretip"
                         title="Edit schedule"
                         onclick="editSchedule('<?php echo $id; ?>')">
                     Edit
                 </button>
 
                 <button type="button"
-                        class="vm-backup-and-restoretip"
+                        class="schedule-action-btn vm-backup-and-restoretip"
                         title="<?php echo $enabledBool ? 'Disable schedule' : 'Enable schedule'; ?>"
                         onclick="toggleSchedule('<?php echo $id; ?>', <?php echo $enabledBool ? 'true' : 'false'; ?>)">
                     <?php echo $btnText; ?>
                 </button>
 
                 <button type="button"
-                        class="vm-backup-and-restoretip"
+                        class="schedule-action-btn vm-backup-and-restoretip"
                         title="Delete schedule"
                         onclick="deleteSchedule('<?php echo $id; ?>')">
                     Delete
                 </button>
 
                 <button type="button"
-                        class="vm-backup-and-restoretip"
+                        class="schedule-action-btn vm-backup-and-restoretip"
                         title="Run schedule"
                         onclick="runScheduleBackup('<?php echo $id; ?>', this)">
                     Run
