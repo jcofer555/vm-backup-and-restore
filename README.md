@@ -13,4 +13,4 @@
 - Logging available in the webui and at /tmp/vm-backup-and-restore/vm-backup-and-restore.log
 - NOTE: When running a backup or restore selected VMs are stopped and then restarted only if they were running beforehand
 
-<img width="1000" height="481" alt="image" src="https://github.com/user-attachments/assets/473396f0-4393-4353-9d6b-e5db9bead4aa" />
+<img width="1000" height="480" alt="image" src="https://github.com/user-attachments/assets/7efceaad-a5b6-47ff-9c2e-2dc359ffaf05" />
