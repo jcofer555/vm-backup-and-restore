@@ -2464,7 +2464,7 @@ function runScheduleBackup(id, btn) {
     const originalText = btn.textContent;
     const originalTitle = btn.getAttribute('title');
 
-    btn.textContent = "Running...";
+    btn.textContent = "Running";
 
     $.post('/plugins/vm-backup-and-restore/helpers/run_schedule.php', { id })
       .done(function(res) {
