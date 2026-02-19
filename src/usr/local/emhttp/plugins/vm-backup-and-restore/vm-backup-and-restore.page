@@ -2899,4 +2899,15 @@ if (is_file($plg)) {
 
     resolveAndApplyPath(selectedFolder, activeInputFieldId);
   });
+
+  $(document).ready(function () {
+    const $field = $('#restore_destination');
+    if ($field.length === 0) return;
+
+    const initialPath = $field.val();
+
+    if (initialPath.startsWith('/mnt/user/')) {
+      resolveAndApplyPath(initialPath, 'restore_destination');
+    }
+  });
 </script>
