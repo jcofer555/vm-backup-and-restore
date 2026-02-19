@@ -1449,17 +1449,17 @@ if (is_file($plg)) {
     });
   });
 
-let scheduleUILocked = false;
+  let scheduleUILocked = false;
 
-function lockScheduleUI() {
+  function lockScheduleUI() {
     scheduleUILocked = true;
     $(".schedule-action-btn").prop("disabled", true);
-}
+  }
 
-function unlockScheduleUI() {
+  function unlockScheduleUI() {
     scheduleUILocked = false;
     $(".schedule-action-btn").prop("disabled", false);
-}
+  }
 
   function updateBackupStatus() {
     fetch('/plugins/vm-backup-and-restore/helpers/backup_status_check.php')
@@ -2231,16 +2231,16 @@ function unlockScheduleUI() {
   window.editingScheduleId = null;
 
   // --- Load schedule list ---
-function loadSchedules() {
+  function loadSchedules() {
     return $.get(
-        '/plugins/vm-backup-and-restore/helpers/schedule_list.php',
-        function (html) {
-            $('#schedule-list').html(html);
-        }
+      '/plugins/vm-backup-and-restore/helpers/schedule_list.php',
+      function (html) {
+        $('#schedule-list').html(html);
+      }
     ).always(() => {
-        unlockScheduleUI();   // release lock ONLY after DOM is fully rebuilt
+      unlockScheduleUI();   // release lock ONLY after DOM is fully rebuilt
     });
-}
+  }
 
   // --- Build cron string from UI selections ---
   function validateCustomCron(expr) {
@@ -2287,119 +2287,119 @@ function loadSchedules() {
   }
 
   // --- Create or update schedule ---
-function scheduleJob(type) {
+  function scheduleJob(type) {
     if (scheduleUILocked) return;   // prevent double‑clicks during reload
     lockScheduleUI();               // freeze all schedule action buttons
 
     const cron = buildCronFromUI();
     if (!cron.valid) {
-        unlockScheduleUI();         // release lock if validation fails
-        alert("Invalid cron expression");
-        return;
+      unlockScheduleUI();         // release lock if validation fails
+      alert("Invalid cron expression");
+      return;
     }
 
     // Gather all input/select values as settings
     const settings = {};
     $('input[name], select[name]').each(function () {
-        settings[this.name] = $(this).val();
+      settings[this.name] = $(this).val();
     });
 
     const url = window.editingScheduleId
-        ? 'schedule_update.php'
-        : 'schedule_create.php';
+      ? 'schedule_update.php'
+      : 'schedule_create.php';
 
     $.ajax({
-        type: 'POST',
-        url: `/plugins/vm-backup-and-restore/helpers/${url}`,
-        data: {
-            id: window.editingScheduleId,
-            type: type,
-            cron: cron.expression,
-            settings: settings
-        },
-        success: function (response) {
+      type: 'POST',
+      url: `/plugins/vm-backup-and-restore/helpers/${url}`,
+      data: {
+        id: window.editingScheduleId,
+        type: type,
+        cron: cron.expression,
+        settings: settings
+      },
+      success: function (response) {
 
-            // Reset UI back to normal
-            resetScheduleUI();
+        // Reset UI back to normal
+        resetScheduleUI();
 
-            // Clear editing ID
-            window.editingScheduleId = null;
+        // Clear editing ID
+        window.editingScheduleId = null;
 
-            // Reload schedule list (unlock happens inside loadSchedules)
-            loadSchedules();
+        // Reload schedule list (unlock happens inside loadSchedules)
+        loadSchedules();
 
-            // Optional popup
-            showPopup("Schedule saved!");
-        },
-        error: function (xhr) {
-            unlockScheduleUI();     // ensure UI unlocks on error
+        // Optional popup
+        showPopup("Schedule saved!");
+      },
+      error: function (xhr) {
+        unlockScheduleUI();     // ensure UI unlocks on error
 
-            if (xhr.status === 409) {
-                alert('Duplicate schedule detected during create!');
-            } else {
-                alert('Error creating/updating schedule: ' + xhr.responseText);
-            }
+        if (xhr.status === 409) {
+          alert('Duplicate schedule detected during create!');
+        } else {
+          alert('Error creating/updating schedule: ' + xhr.responseText);
         }
+      }
     });
-}
+  }
 
   // --- Edit a schedule ---
-function editSchedule(id) {
+  function editSchedule(id) {
     if (scheduleUILocked) return;   // prevent double‑clicks during reload
     lockScheduleUI();               // freeze all schedule action buttons
 
     $.getJSON('/plugins/vm-backup-and-restore/helpers/schedule_load.php', { id }, function (s) {
-        const settings = s.SETTINGS || {};
+      const settings = s.SETTINGS || {};
 
-        // Apply schedule type first
-        if (s.TYPE) {
-            $('[name="type"]').val(s.TYPE).trigger('change');
+      // Apply schedule type first
+      if (s.TYPE) {
+        $('[name="type"]').val(s.TYPE).trigger('change');
+      }
+
+      // Apply all settings to form fields
+      for (const k in settings) {
+        const el = $('[name="' + k + '"]');
+        if (!el.length) continue;
+
+        if (el.is(':checkbox')) {
+          el.prop('checked', settings[k] == 1 || settings[k] === true);
+        } else if (el.is(':radio')) {
+          $('[name="' + k + '"][value="' + settings[k] + '"]').prop('checked', true);
+        } else {
+          el.val(settings[k]).trigger('change');
         }
 
-        // Apply all settings to form fields
-        for (const k in settings) {
-            const el = $('[name="' + k + '"]');
-            if (!el.length) continue;
-
-            if (el.is(':checkbox')) {
-                el.prop('checked', settings[k] == 1 || settings[k] === true);
-            } else if (el.is(':radio')) {
-                $('[name="' + k + '"][value="' + settings[k] + '"]').prop('checked', true);
-            } else {
-                el.val(settings[k]).trigger('change');
-            }
-
-            // VM dropdown special handling
-            if (k === 'VMS_TO_BACKUP') {
-                $('#vm-dropdown').attr('data-selected', settings[k]);
-            }
+        // VM dropdown special handling
+        if (k === 'VMS_TO_BACKUP') {
+          $('#vm-dropdown').attr('data-selected', settings[k]);
         }
+      }
 
-        // Cron mode detection
-        $('#cron_mode')
-            .val(detectCronMode(s.CRON))
-            .trigger('change');
+      // Cron mode detection
+      $('#cron_mode')
+        .val(detectCronMode(s.CRON))
+        .trigger('change');
 
-        // Store ID globally
-        window.editingScheduleId = id;
+      // Store ID globally
+      window.editingScheduleId = id;
 
-        // Rebuild VM dropdown with updated selected value
-        $('#vm-dropdown').attr('data-selected', settings['VMS_TO_BACKUP'] || '');
-        loadBackupVMs();
+      // Rebuild VM dropdown with updated selected value
+      $('#vm-dropdown').attr('data-selected', settings['VMS_TO_BACKUP'] || '');
+      loadBackupVMs();
 
-        // Switch Schedule It → Edit
-        $('#schedule-backup').text('Edit');
+      // Switch Schedule It → Edit
+      $('#schedule-backup').text('Edit');
 
-        // Show Cancel button
-        $('#cancelEditBtn').show();
+      // Show Cancel button
+      $('#cancelEditBtn').show();
 
-        unlockScheduleUI(); // editing UI is now stable, unlock
+      unlockScheduleUI(); // editing UI is now stable, unlock
     });
-}
+  }
 
-$('#cancelEditBtn').on('click', function () {
+  $('#cancelEditBtn').on('click', function () {
     location.reload();
-});
+  });
 
   function showPopup(message) {
     const popup = $('#popupMessage');
@@ -2426,7 +2426,7 @@ $('#cancelEditBtn').on('click', function () {
   }
 
   // --- Delete a schedule ---
-function deleteSchedule(id) {
+  function deleteSchedule(id) {
     if (scheduleUILocked) return;   // prevent double‑clicks during reload
 
     if (!confirm("Delete this schedule?")) return;
@@ -2434,19 +2434,19 @@ function deleteSchedule(id) {
     lockScheduleUI();               // freeze all schedule action buttons
 
     $.post(
-        '/plugins/vm-backup-and-restore/helpers/schedule_delete.php',
-        { id: id }
+      '/plugins/vm-backup-and-restore/helpers/schedule_delete.php',
+      { id: id }
     ).always(() => {
-        loadSchedules();            // reload table, unlock happens inside loadSchedules()
+      loadSchedules();            // reload table, unlock happens inside loadSchedules()
     });
-}
+  }
 
   // --- Run backup manually ---
-function runScheduleBackup(id, btn) {
+  function runScheduleBackup(id, btn) {
     if (scheduleUILocked) return;   // prevent double‑clicks during reload
 
     if (!confirm("Are you sure you want to run this backup now?")) {
-        return;
+      return;
     }
 
     lockScheduleUI();               // freeze all schedule action buttons
@@ -2462,41 +2462,41 @@ function runScheduleBackup(id, btn) {
 
     // Poll every 1 second until lock is gone
     const poll = setInterval(function () {
-        $.getJSON(
-            '/plugins/vm-backup-and-restore/helpers/check_lock.php',
-            function (res) {
-                if (!res.locked) {
-                    clearInterval(poll);
+      $.getJSON(
+        '/plugins/vm-backup-and-restore/helpers/check_lock.php',
+        function (res) {
+          if (!res.locked) {
+            clearInterval(poll);
 
-                    btn.disabled = false;
-                    btn.textContent = originalText;
+            btn.disabled = false;
+            btn.textContent = originalText;
 
-                    unlockScheduleUI();   // manual run is complete, unlock UI
-                }
-            }
-        );
+            unlockScheduleUI();   // manual run is complete, unlock UI
+          }
+        }
+      );
     }, 1000);
-}
+  }
 
   // --- Toggle enable/disable ---
-function toggleSchedule(id, isEnabled) {
+  function toggleSchedule(id, isEnabled) {
     if (scheduleUILocked) return;   // prevent double‑clicks during reload
 
     const msg = isEnabled
-        ? "Disable this schedule?"
-        : "Enable this schedule?";
+      ? "Disable this schedule?"
+      : "Enable this schedule?";
 
     if (!confirm(msg)) return;
 
     lockScheduleUI();               // freeze all schedule action buttons
 
     $.post(
-        '/plugins/vm-backup-and-restore/helpers/schedule_toggle.php',
-        { id: id }
+      '/plugins/vm-backup-and-restore/helpers/schedule_toggle.php',
+      { id: id }
     ).always(() => {
-        loadSchedules();            // reload table; unlock happens inside loadSchedules()
+      loadSchedules();            // reload table; unlock happens inside loadSchedules()
     });
-}
+  }
 
   // --- Detect cron mode based on expression ---
   function detectCronMode(cron) {
@@ -2713,36 +2713,40 @@ function toggleSchedule(id, isEnabled) {
   let selectedFolder = null;
 
   function resolveAndApplyPath(selectedPath, targetInputId) {
-  fetch('/plugins/vm-backup-and-restore/helpers/resolve_path.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ path: selectedPath })
-  })
-  .then(r => r.text())
-  .then(resolvedPath => {
-    const $field = $('#' + targetInputId);
+    fetch('/plugins/vm-backup-and-restore/helpers/resolve_path.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ path: selectedPath })
+    })
+      .then(r => r.text())
+      .then(resolvedPath => {
+        const $field = $('#' + targetInputId);
 
-    $field.val(resolvedPath || selectedPath);
+        $field.val(resolvedPath || selectedPath);
 
-    // Trigger listeners that depend on this value
-    $field.trigger('input');
-    $field.trigger('change');
+        // Trigger listeners that depend on this value
+        $field.trigger('input');
+        $field.trigger('change');
 
-    $('#folderPickerModal').hide();
-  })
-  .catch(() => {
-    // Fallback: use original path
-    const $field = $('#' + targetInputId);
-    $field.val(selectedPath);
-    $field.trigger('change');
-    $('#folderPickerModal').hide();
-  });
-}
+        $('#folderPickerModal').hide();
+      })
+      .catch(() => {
+        // Fallback: use original path
+        const $field = $('#' + targetInputId);
+        $field.val(selectedPath);
+        $field.trigger('change');
+        $('#folderPickerModal').hide();
+      });
+  }
 
   function loadFolders(path) {
 
     $.getJSON('/plugins/vm-backup-and-restore/helpers/list_folders.php',
-      { path: path },
+      {
+        path: path,
+        field: activeInputFieldId   // <‑‑ send which field is active
+      },
+
       function (data) {
 
         currentPath = data.current;
@@ -2876,11 +2880,11 @@ function toggleSchedule(id, isEnabled) {
     $('#folderPickerModal').hide();
   });
 
-$('#confirmFolderSelection').off('click').on('click', function (e) {
-  e.preventDefault();
+  $('#confirmFolderSelection').off('click').on('click', function (e) {
+    e.preventDefault();
 
-  if (!selectedFolder || !activeInputFieldId) return;
+    if (!selectedFolder || !activeInputFieldId) return;
 
-  resolveAndApplyPath(selectedFolder, activeInputFieldId);
-});
+    resolveAndApplyPath(selectedFolder, activeInputFieldId);
+  });
 </script>

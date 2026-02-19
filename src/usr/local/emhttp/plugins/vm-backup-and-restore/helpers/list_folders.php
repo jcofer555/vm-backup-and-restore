@@ -1,7 +1,9 @@
 <?php
 $base = "/mnt";
 
-$path = $_GET['path'] ?? $base;
+$path  = $_GET['path']  ?? $base;
+$field = $_GET['field'] ?? '';   // which input field triggered the picker
+
 $path = realpath($path);
 
 // Must stay inside /mnt
@@ -19,16 +21,26 @@ if (is_dir($path)) {
 
         if (is_dir($full)) {
 
-            // Count depth
-            $depth = substr_count(trim($full, '/'), '/');
+            // Compute depth relative to /mnt
+            $relative = trim(str_replace($base, '', $full), '/');
+            $parts = $relative === '' ? [] : explode('/', $relative);
+            $depth = count($parts);
 
-            // selectable only if deeper than /mnt/*
-            $selectable = ($depth >= 2); 
-            // /mnt/disk1/test = 2 slashes = selectable
+            /* -----------------------------
+               Selection Rules
+            ----------------------------- */
+
+            // Default: depth < 3 → not selectable
+            $selectable = ($depth >= 3);
+
+            // Exception: restore_destination allows depth 2
+            if ($field === 'restore_destination' && $depth === 2) {
+                $selectable = true;
+            }
 
             $folders[] = [
-                'name' => $item,
-                'path' => $full,
+                'name'       => $item,
+                'path'       => $full,
                 'selectable' => $selectable
             ];
         }
@@ -37,6 +49,6 @@ if (is_dir($path)) {
 
 echo json_encode([
     'current' => $path,
-    'parent' => ($path !== $base) ? dirname($path) : null,
+    'parent'  => ($path !== $base) ? dirname($path) : null,
     'folders' => $folders
 ]);
