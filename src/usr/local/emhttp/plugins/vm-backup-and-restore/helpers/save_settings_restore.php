@@ -4,14 +4,38 @@ header('Content-Type: application/json');
 // Path to your shell script
 $cmd = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/save_settings_restore.sh';
 
-// Grab arguments from query string
+// --- Grab raw values ---
+$location_of_backups  = $_GET['LOCATION_OF_BACKUPS'] ?? '';
+$vms_to_restore       = $_GET['VMS_TO_RESTORE'] ?? '';
+$versions             = $_GET['VERSIONS'] ?? '';
+$restore_destination  = $_GET['RESTORE_DESTINATION'] ?? '';
+$dry_run_restore      = $_GET['DRY_RUN_RESTORE'] ?? '';
+$notifications_restore= $_GET['NOTIFICATIONS_RESTORE'] ?? '';
+
+// --- Normalize LOCATION_OF_BACKUPS ---
+if ($location_of_backups !== '') {
+    $resolved = realpath($location_of_backups);
+    if ($resolved !== false) {
+        $location_of_backups = $resolved;
+    }
+}
+
+// --- (Optional) Normalize RESTORE_DESTINATION too ---
+if ($restore_destination !== '') {
+    $resolved = realpath($restore_destination);
+    if ($resolved !== false) {
+        $restore_destination = $resolved;
+    }
+}
+
+// --- Build args array ---
 $args = [
-    $_GET['LOCATION_OF_BACKUPS'] ?? '',
-    $_GET['VMS_TO_RESTORE'] ?? '',
-    $_GET['VERSIONS'] ?? '',
-    $_GET['RESTORE_DESTINATION'] ?? '',
-    $_GET['DRY_RUN_RESTORE'] ?? '',
-    $_GET['NOTIFICATIONS_RESTORE'] ?? '',
+    $location_of_backups,
+    $vms_to_restore,
+    $versions,
+    $restore_destination,
+    $dry_run_restore,
+    $notifications_restore,
 ];
 
 // Escape each argument for safety
@@ -20,13 +44,12 @@ $escapedArgs = array_map('escapeshellarg', $args);
 // Build command string
 $fullCmd = $cmd . ' ' . implode(' ', $escapedArgs);
 
-// Set up I/O pipes for stdout and stderr
+// Execute
 $process = proc_open($fullCmd, [
-    1 => ['pipe', 'w'], // stdout
-    2 => ['pipe', 'w']  // stderr
+    1 => ['pipe', 'w'],
+    2 => ['pipe', 'w']
 ], $pipes);
 
-// Handle output
 if (is_resource($process)) {
     $output = stream_get_contents($pipes[1]);
     $error  = stream_get_contents($pipes[2]);
@@ -34,12 +57,9 @@ if (is_resource($process)) {
     fclose($pipes[2]);
     proc_close($process);
 
-    // If output is valid JSON, echo it — otherwise return error
-    if (trim($output)) {
-        echo $output;
-    } else {
-        echo json_encode(['status' => 'error', 'message' => trim($error) ?: 'No response from shell script']);
-    }
+    echo trim($output)
+        ? $output
+        : json_encode(['status' => 'error', 'message' => trim($error) ?: 'No response from shell script']);
 } else {
     echo json_encode(['status' => 'error', 'message' => 'Failed to start process']);
 }

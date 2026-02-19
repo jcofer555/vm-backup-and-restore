@@ -2712,6 +2712,33 @@ function toggleSchedule(id, isEnabled) {
   let currentPath = "/mnt";
   let selectedFolder = null;
 
+  function resolveAndApplyPath(selectedPath, targetInputId) {
+  fetch('/plugins/vm-backup-and-restore/helpers/resolve_path.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ path: selectedPath })
+  })
+  .then(r => r.text())
+  .then(resolvedPath => {
+    const $field = $('#' + targetInputId);
+
+    $field.val(resolvedPath || selectedPath);
+
+    // Trigger listeners that depend on this value
+    $field.trigger('input');
+    $field.trigger('change');
+
+    $('#folderPickerModal').hide();
+  })
+  .catch(() => {
+    // Fallback: use original path
+    const $field = $('#' + targetInputId);
+    $field.val(selectedPath);
+    $field.trigger('change');
+    $('#folderPickerModal').hide();
+  });
+}
+
   function loadFolders(path) {
 
     $.getJSON('/plugins/vm-backup-and-restore/helpers/list_folders.php',
@@ -2849,17 +2876,11 @@ function toggleSchedule(id, isEnabled) {
     $('#folderPickerModal').hide();
   });
 
-  $('#confirmFolderSelection').off('click').on('click', function (e) {
-    e.preventDefault();
+$('#confirmFolderSelection').off('click').on('click', function (e) {
+  e.preventDefault();
 
-    if (!selectedFolder || !activeInputFieldId) return;
+  if (!selectedFolder || !activeInputFieldId) return;
 
-    const $field = $('#' + activeInputFieldId);
-    $field.val(selectedFolder);
-
-    // Trigger change event so any dependent UI updates
-    $field.trigger('change');
-
-    $('#folderPickerModal').hide();
-  });
+  resolveAndApplyPath(selectedFolder, activeInputFieldId);
+});
 </script>
