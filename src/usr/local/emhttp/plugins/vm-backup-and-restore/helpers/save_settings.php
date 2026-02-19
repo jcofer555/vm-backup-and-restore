@@ -11,7 +11,7 @@ $backup_owner       = $_GET['BACKUP_OWNER'] ?? '';
 $dry_run            = $_GET['DRY_RUN'] ?? '';
 $notifications      = $_GET['NOTIFICATIONS'] ?? '';
 
-// --- Normalize paths (THIS is the important part) ---
+// --- Normalize paths ---
 if ($backup_destination !== '') {
     $resolved = realpath($backup_destination);
     if ($resolved !== false) {

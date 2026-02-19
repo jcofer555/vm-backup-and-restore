@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
 
-// Accept both header and POST token (like other automover helpers)
+// Accept both header and POST token
 $csrfHeader = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
 $postToken  = $_POST['csrf_token'] ?? '';
 $cookieToken = $_COOKIE['csrf_token'] ?? '';
@@ -12,7 +12,7 @@ if (empty($csrfHeader) && empty($postToken)) {
     exit;
 }
 
-// Validate against cookie (Unraid 7.x standard)
+// Validate against cookie
 if ($csrfHeader !== $cookieToken && $postToken !== $cookieToken) {
     http_response_code(403);
     echo json_encode(['ok' => false, 'message' => 'Invalid CSRF token']);

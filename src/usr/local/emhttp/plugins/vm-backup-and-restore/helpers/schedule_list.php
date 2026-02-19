@@ -3,7 +3,6 @@ $cfg = '/boot/config/plugins/vm-backup-and-restore/schedules.cfg';
 
 $schedules = [];
 if (file_exists($cfg)) {
-    // RAW mode so JSON is not mangled
     $schedules = parse_ini_file($cfg, true, INI_SCANNER_RAW);
 }
 ?>
@@ -13,9 +12,9 @@ if (file_exists($cfg)) {
 
 <thead>
 <tr style="background:#f9f9f9; color:#b30000; text-align:center; border-bottom:2px solid #b30000;">
+    <th style="padding:8px; width:6%;">Cron</th>    
     <th style="padding:8px; width:8%;">VM(s)</th>
     <th style="padding:8px; width:17%;">Destination</th>
-    <th style="padding:8px; width:6%;">Cron</th>
     <th style="padding:8px; width:6%;">Backups To Keep</th>
     <th style="padding:8px; width:8%;">Owner</th>
     <th style="padding:8px; width:6%;">Dry Run</th>
@@ -70,7 +69,7 @@ if (file_exists($cfg)) {
             }
 
             if (!empty($settings['BACKUP_DESTINATION'])) {
-                $dest = $settings['BACKUP_DESTINATION']; // FULL PATH
+                $dest = $settings['BACKUP_DESTINATION'];
             }
         }
 
@@ -108,12 +107,17 @@ if (file_exists($cfg)) {
 
         <tr style="border-bottom:1px solid #ccc; background:<?php echo $rowColor; ?>; color:<?php echo $textColor; ?>;">
 
+            <!-- Cron -->
+            <td style="padding:8px; text-align:center;">
+                <?php echo htmlspecialchars($cron); ?>
+            </td>
+
             <!-- VM(s) -->
             <td style="padding:8px; text-align:center;">
                 <?php echo htmlspecialchars($vms); ?>
             </td>
 
-            <!-- Destination (ellipsis) -->
+            <!-- Backup Destination -->
             <td style="
                 padding:8px;
                 text-align:center;
@@ -123,11 +127,6 @@ if (file_exists($cfg)) {
                 class="vm-backup-and-restoretip"
                 title="<?php echo htmlspecialchars($dest); ?>">
                 <?php echo htmlspecialchars($dest); ?>
-            </td>
-
-            <!-- Cron -->
-            <td style="padding:8px; text-align:center;">
-                <?php echo htmlspecialchars($cron); ?>
             </td>
 
             <!-- Backups To Keep -->

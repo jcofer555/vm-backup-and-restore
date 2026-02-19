@@ -60,7 +60,6 @@ foreach ($schedules as $existingId => $s) {
 $id = 'schedule_' . time();
 
 // ---- Encode settings safely for INI ----
-// Use JSON_UNESCAPED_SLASHES for readability, addcslashes for INI quotes
 $settingsJson = json_encode($settings, JSON_UNESCAPED_SLASHES);
 $settingsJson = addcslashes($settingsJson, '"');
 

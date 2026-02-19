@@ -104,23 +104,23 @@ if (file_exists("/etc/unraid-version")) {
   // Try dynamic lookup from global scope, cookie, or meta
   if (!csrfToken || csrfToken === "undefined" || csrfToken === "") {
     try {
-      // 1️Try the global variable used by Unraid's WebGUI JS
+      // Try the global variable used by Unraid's WebGUI JS
       if (typeof window.csrf_token !== "undefined" && window.csrf_token) {
         csrfToken = window.csrf_token;
       }
 
-      // 2️Try any embedded meta tag
+      // Try any embedded meta tag
       if ((!csrfToken || csrfToken === "") && document.querySelector("meta[name='csrf_token']")) {
         csrfToken = document.querySelector("meta[name='csrf_token']").getAttribute("content");
       }
 
-      // 3️Try cookie (most Unraid builds set it)
+      // Try cookie
       if ((!csrfToken || csrfToken === "") && document.cookie.includes("csrf_token=")) {
         const m = document.cookie.match(/csrf_token=([^;]+)/);
         if (m) csrfToken = decodeURIComponent(m[1]);
       }
 
-      // 4️Fallback: try to extract from any script tag in the parent frame
+      // Fallback: try to extract from any script tag in the parent frame
       if ((!csrfToken || csrfToken === "") && window.parent) {
         try {
           if (window.parent.csrf_token) csrfToken = window.parent.csrf_token;
@@ -194,7 +194,7 @@ if (file_exists("/etc/unraid-version")) {
     /* keep small spacing below title */
   }
 
-  /* === Optional: fine-tune widths === */
+  /* fine-tune widths */
   #vm-backup-and-restore-settings {
     flex-basis: 25%;
   }
@@ -348,7 +348,6 @@ if (file_exists("/etc/unraid-version")) {
   .form-pair {
     display: flex;
     align-items: center;
-    /* Center vertically */
     justify-content: flex-start;
     gap: 10px;
     margin-bottom: 15px;
@@ -359,7 +358,6 @@ if (file_exists("/etc/unraid-version")) {
     display: flex;
     flex-direction: column;
     flex: 1;
-    /* Let input fill remaining width */
   }
 
   .form-pair label {
@@ -368,7 +366,6 @@ if (file_exists("/etc/unraid-version")) {
     color: var(--primary-blue);
     font-weight: bold;
     text-align: left;
-    /* Align text right for consistency */
     margin-right: 10px;
   }
 
@@ -380,14 +377,14 @@ if (file_exists("/etc/unraid-version")) {
     /* Full width under input-wrapper */
     min-width: fit-content;
     max-width: 100%;
-    /* Cap the input width if needed */
+    /* Cap the input width */
   }
 
   .form-pair input[type="text"],
   .form-pair input[type="password"] {
     min-width: fit-content;
     max-width: 100%;
-    /* Cap the input width if needed */
+    /* Cap the input width */
   }
 
   .short-input {
@@ -457,10 +454,8 @@ if (file_exists("/etc/unraid-version")) {
     appearance: auto;
   }
 
-  /* Restore number input spinner alignment for Unraid 7.2 */
   input[type="number"] {
     padding-right: 0;
-    /* remove internal spacing */
   }
 
   /* Force Chrome/Webkit to place arrows at field edge */
@@ -641,16 +636,13 @@ if (file_exists("/etc/unraid-version")) {
     display: inline-flex;
     /* shrink to content */
     align-items: center;
-    /* vertically center checkbox and text */
     width: auto;
     /* prevent stretching */
     cursor: pointer;
-    /* nice hover pointer */
   }
 
   .checkbox-row input[type="checkbox"] {
     margin-right: 6px;
-    /* space between checkbox and text */
   }
 
   #vm-backup-and-restore-layout {
@@ -860,9 +852,7 @@ if (file_exists("/etc/unraid-version")) {
 
   #popupMessage {
     display: none;
-    /* collapses space */
     background: yellow;
-    /* yellow */
     color: #000;
     padding: 6px 10px;
     border-radius: 4px;
@@ -1407,7 +1397,7 @@ if (is_file($plg)) {
   </form>
 </div>
 
-<h3>📅 Scheduled Jobs</h3>
+<h3>📅 Scheduled Backup Jobs</h3>
 <div id="schedule-list"></div>
 
 </div>
@@ -1604,7 +1594,7 @@ if (is_file($plg)) {
   loadLastRunLog();
   setInterval(loadLastRunLog, 5000);
 
-  // === Clear Log Buttons (toast feedback) ===
+  // === Clear Log Buttons ===
   const clearLastRunBtn = document.getElementById("clear-last-run-log");
   const clearMoverBtn = document.getElementById("clear-mover-log");
   const toastLast = document.getElementById("toast-last");
@@ -1638,7 +1628,7 @@ if (is_file($plg)) {
       const hasPath = locationInput.value.trim().length > 0;
     }
 
-    // Trigger on load (in case settings already contain a path)
+    // Trigger on load
     updateVisibility();
 
     // Trigger on user input
@@ -1716,7 +1706,7 @@ if (is_file($plg)) {
     }
 
     /* -----------------------------------------
-       LOAD BACKUP VM LIST (CALL THIS ANYTIME)
+       LOAD BACKUP VM LIST
        ----------------------------------------- */
     window.loadBackupVMs = function () {
 
@@ -1795,7 +1785,7 @@ if (is_file($plg)) {
   function rebuildVersionFields() {
 
     const container = $('#version-fields-container');
-    container.empty(); // atomic reset
+    container.empty();
 
     const restorePath = $('#location_of_backups').val();
     if (!restorePath) {
@@ -2345,14 +2335,13 @@ if (is_file($plg)) {
         // Clear editing ID
         window.editingScheduleId = null;
 
-        // Reload schedule list (unlock happens inside loadSchedules)
+        // Reload schedule list
         loadSchedules();
 
-        // Optional popup
         showPopup("Schedule saved!");
       },
       error: function (xhr) {
-        unlockScheduleUI();     // ensure UI unlocks on error
+        unlockScheduleUI();
 
         if (xhr.status === 409) {
           alert('Duplicate schedule detected during create!');
@@ -2413,7 +2402,7 @@ if (is_file($plg)) {
       // Show Cancel button
       $('#cancelEditBtn').show();
 
-      unlockScheduleUI(); // editing UI is now stable, unlock
+      unlockScheduleUI();
     });
   }
 
@@ -2428,8 +2417,8 @@ if (is_file($plg)) {
 
     setTimeout(() => {
       popup.fadeOut(200, () => {
-        popup.text('');     // remove text
-        popup.hide();       // collapses space
+        popup.text('');
+        popup.hide();
       });
     }, 3000);
   }
@@ -2457,7 +2446,7 @@ if (is_file($plg)) {
       '/plugins/vm-backup-and-restore/helpers/schedule_delete.php',
       { id: id }
     ).always(() => {
-      loadSchedules();            // reload table, unlock happens inside loadSchedules()
+      loadSchedules();
     });
   }
 
@@ -2491,7 +2480,7 @@ if (is_file($plg)) {
             btn.disabled = false;
             btn.textContent = originalText;
 
-            unlockScheduleUI();   // manual run is complete, unlock UI
+            unlockScheduleUI();
           }
         }
       );
@@ -2514,7 +2503,7 @@ if (is_file($plg)) {
       '/plugins/vm-backup-and-restore/helpers/schedule_toggle.php',
       { id: id }
     ).always(() => {
-      loadSchedules();            // reload table; unlock happens inside loadSchedules()
+      loadSchedules();
     });
   }
 
@@ -2735,7 +2724,7 @@ if (is_file($plg)) {
   function resolveAndApplyPath(selectedPath, targetInputId) {
     const params = new URLSearchParams({
       path: selectedPath,
-      csrf_token: csrf_token   // REQUIRED for Unraid POSTs
+      csrf_token: csrf_token
     });
 
     fetch('/plugins/vm-backup-and-restore/helpers/resolve_path.php', {

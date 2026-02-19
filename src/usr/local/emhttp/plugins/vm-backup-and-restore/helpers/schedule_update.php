@@ -36,7 +36,7 @@ if (!isset($schedules[$id])) {
     exit("Schedule not found");
 }
 
-// ---- DUPLICATE CHECK (skip current schedule) ----
+// ---- DUPLICATE CHECK ----
 $newFingerprint = [
     'VMS_TO_BACKUP'      => $settings['VMS_TO_BACKUP'] ?? '',
     'BACKUP_DESTINATION' => $settings['BACKUP_DESTINATION'] ?? '',
@@ -45,7 +45,7 @@ ksort($newFingerprint);
 $newHash = hash('sha256', json_encode($newFingerprint));
 
 foreach ($schedules as $existingId => $s) {
-    if ($existingId === $id) continue; // Skip the schedule being updated
+    if ($existingId === $id) continue;
     if (empty($s['SETTINGS'])) continue;
 
     $existingSettings = json_decode(stripslashes($s['SETTINGS']), true);

@@ -20,7 +20,7 @@ if ($location_of_backups !== '') {
     }
 }
 
-// --- (Optional) Normalize RESTORE_DESTINATION too ---
+// --- (Optional) Normalize RESTORE_DESTINATION ---
 if ($restore_destination !== '') {
     $resolved = realpath($restore_destination);
     if ($resolved !== false) {

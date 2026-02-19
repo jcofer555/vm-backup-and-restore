@@ -34,7 +34,7 @@ format_duration() {
 }
 
 # ------------------------------------------------------------------------------
-# Lock + working directory
+# Lock
 # ------------------------------------------------------------------------------
 
 mkdir -p /tmp/vm-backup-and-restore
@@ -135,7 +135,7 @@ backup_location="${BACKUP_DESTINATION:-/mnt/user/vm_backups}"
 export backup_location
 
 # ------------------------------------------------------------------------------
-# Space-safe VM parsing (ROBUST - no global IFS modification)
+# Space-safe VM parsing
 # ------------------------------------------------------------------------------
 
 readarray -td ',' VM_ARRAY <<< "${VMS_TO_BACKUP:-},"

@@ -22,7 +22,7 @@ if (!isset($schedules[$id])) {
 
 $entry = $schedules[$id];
 
-// ---- FIXED: Decode SETTINGS JSON safely ----
+// ---- Decode SETTINGS JSON safely ----
 $settingsRaw = $entry['SETTINGS'] ?? '{}';
 
 // Remove any extra escaping added when writing to INI

@@ -8,7 +8,6 @@ function rebuild_cron() {
         return;
     }
 
-    // RAW to preserve quoted strings and JSON
     $schedules = parse_ini_file($cfg, true, INI_SCANNER_RAW);
 
     $out = "# VM Backup & Restore schedules\n";

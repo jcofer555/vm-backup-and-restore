@@ -7,14 +7,13 @@ if (!file_exists($logPath)) {
     exit;
 }
 
-// 📚 Read full log into array, clean empty lines
 $lines = file($logPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
 
-// ✂️ Get last 500 entries
+// Get last 500 entries
 $tail = array_slice($lines, -500);
 
-// 🔄 Show newest at the top
+// Show newest at the top
 $reversed = array_reverse($tail);
 
-// 🖨️ Display
+// Display
 echo implode("\n", $reversed);

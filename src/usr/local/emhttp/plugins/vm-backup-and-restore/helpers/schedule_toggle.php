@@ -8,7 +8,6 @@ if (!$id || !file_exists($cfg)) {
     exit;
 }
 
-// RAW is mandatory so JSON and strings are untouched
 $schedules = parse_ini_file($cfg, true, INI_SCANNER_RAW);
 
 if (!isset($schedules[$id])) {
