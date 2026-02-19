@@ -859,6 +859,18 @@ if (file_exists("/etc/unraid-version")) {
     margin-top: 8px;
     font-weight: bold;
   }
+
+  #vm-dropdown-restore.disabled {
+    pointer-events: none;
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  #vm-dropdown.disabled {
+    pointer-events: none;
+    opacity: 0.5;
+    cursor: default;
+  }
 </style>
 
 <?php
@@ -1440,6 +1452,7 @@ if (is_file($plg)) {
   });
 
   let scheduleUILocked = false;
+  let rebuildToken = 0;
 
   function lockScheduleUI() {
     scheduleUILocked = true;
@@ -1710,8 +1723,15 @@ if (is_file($plg)) {
        ----------------------------------------- */
     window.loadBackupVMs = function () {
 
-      // Re-read selected AFTER editSchedule updates data-selected
-      const selectedBackup = (dropdownBackup.attr('data-selected') || '').split(',');
+      // Reset state every time
+      dropdownBackup.removeClass('disabled');
+      listBackup.hide();
+
+      const selectedBackup =
+        (dropdownBackup.attr('data-selected') || '')
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean);
 
       $.getJSON('/plugins/vm-backup-and-restore/helpers/list_vms.php', function (data) {
         listBackup.empty();
@@ -1720,6 +1740,7 @@ if (is_file($plg)) {
           listBackup.append('<div class="vm-dropdown-item no-vms">No VMs found</div>');
           labelBackup.text('No VMs available');
           dropdownBackup.addClass('disabled');
+          ensureHiddenFieldBackup('');
           return;
         }
 
@@ -1727,13 +1748,13 @@ if (is_file($plg)) {
           const id = 'vmchk-' + vm.replace(/\s+/g, '_');
 
           const item = $(`
-                    <div>
-                        <label>
-                            <input type="checkbox" value="${vm}" id="${id}">
-                            ${vm}
-                        </label>
-                    </div>
-                `);
+        <div>
+          <label>
+            <input type="checkbox" value="${vm}" id="${id}">
+            ${vm}
+          </label>
+        </div>
+      `);
 
           if (selectedBackup.includes(vm)) {
             item.find('input').prop('checked', true);
@@ -1781,44 +1802,31 @@ if (is_file($plg)) {
   /* =========================================
      VERSION FIELDS (RESTORE)
   ========================================= */
-
   function rebuildVersionFields() {
-
     const container = $('#version-fields-container');
     container.empty();
 
     const restorePath = $('#location_of_backups').val();
-    if (!restorePath) {
-      return;
-    }
+    if (!restorePath) return;
 
     const raw = $('#vm-hidden-restore').val() || '';
-    const selected = raw
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean);
+    const selected = raw.split(',').map(s => s.trim()).filter(Boolean);
 
-    // If nothing selected, nothing to build
     if (selected.length === 0) return;
 
-    let renderedCount = 0; // Track how many version fields actually render
+    // Create a unique token for THIS rebuild
+    const token = ++rebuildToken;
 
     selected.forEach(vm => {
-
       $.getJSON(
         '/plugins/vm-backup-and-restore/helpers/get_vm_versions.php',
-        {
-          vm: vm,
-          restore_path: restorePath
-        },
+        { vm, restore_path: restorePath },
         function (versions) {
 
-          // If no versions found, skip this VM completely
-          if (!versions || versions.length === 0) {
-            return;
-          }
+          // If a newer rebuild started, ignore this callback
+          if (token !== rebuildToken) return;
 
-          renderedCount++;
+          if (!versions || versions.length === 0) return;
 
           const wrapper = $(`
           <div class="form-pair version-field">
@@ -1828,10 +1836,7 @@ if (is_file($plg)) {
               </span>
             </label>
             <span class="vm-backup-and-restoretip" title="Choose which version of ${vm} to restore">
-            <select name="VERSION_${vm}" 
-                    class="version-select" 
-                    data-vm="${vm}">
-            </select>
+              <select name="VERSION_${vm}" class="version-select" data-vm="${vm}"></select>
             </span>
           </div>
         `);
@@ -1840,15 +1845,8 @@ if (is_file($plg)) {
 
           versions.forEach((v, idx) => {
             let label = v.display;
-
-            if (idx === 0) {
-              label += ' (LATEST)';
-            }
-
-            if (versions.length > 1 && idx === versions.length - 1) {
-              label += ' (OLDEST)';
-            }
-
+            if (idx === 0) label += ' (LATEST)';
+            if (versions.length > 1 && idx === versions.length - 1) label += ' (OLDEST)';
             select.append(`<option value="${v.raw}">${label}</option>`);
           });
 
@@ -1905,10 +1903,9 @@ if (is_file($plg)) {
       list.empty();
       label.text('No backups at this location');
 
-      // Always clear hidden field when no valid VMs exist
-      ensureHiddenFieldRestore('');
-
       if (!restorePath) {
+        // No path → no VMs → clear hidden field
+        ensureHiddenFieldRestore('');
         return;
       }
 
@@ -1919,9 +1916,18 @@ if (is_file($plg)) {
           list.empty();
 
           if (!data.folders || data.folders.length === 0) {
-            // No folders found — hidden field already cleared
+            ensureHiddenFieldRestore('');
+
+            // Hide the list so it cannot open
+            list.hide();
+
+            // Disable dropdown interaction
+            dropdown.addClass('disabled');
+
             return;
           }
+
+          dropdown.removeClass('disabled');
 
           // We have folders — rebuild list
           data.folders.forEach(folder => {
@@ -1936,28 +1942,19 @@ if (is_file($plg)) {
           </div>
         `);
 
+            // Re-check saved selections from settings_restore.cfg
+            if (selected.includes(folder)) {
+              item.find('input').prop('checked', true);
+            }
+
             list.append(item);
           });
 
-          // Now update label + hidden field based on actual checkboxes
+          // Update label + hidden field based on actual checkboxes
           updateRestoreLabel();
+          rebuildVersionFields();
         }
       );
-    }
-
-    function updateRestoreLabel() {
-      const checked = list.find('input:checked').map(function () {
-        return $(this).val();
-      }).get();
-
-      if (checked.length === 0) {
-        label.text('Select VM(s)');
-        ensureHiddenFieldRestore('');
-        return;
-      }
-
-      label.text(checked.join(', '));
-      ensureHiddenFieldRestore(checked.join(','));
     }
 
     // Update label & hidden field
