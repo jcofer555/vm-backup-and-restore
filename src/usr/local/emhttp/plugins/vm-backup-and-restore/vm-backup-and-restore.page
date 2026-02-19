@@ -1912,42 +1912,62 @@ if (is_file($plg)) {
     // Load restore folders
     function loadRestoreFolders() {
       const restorePath = $('#location_of_backups').val();
-      list.empty(); // <-- CLEAR THE DROPDOWN IMMEDIATELY
-      label.text('No backups at this location'); // <-- default placeholder
+      list.empty();
+      label.text('No backups at this location');
+
+      // Always clear hidden field when no valid VMs exist
+      ensureHiddenFieldRestore('');
 
       if (!restorePath) {
-        return; // empty path, label already set
+        return;
       }
 
-      $.getJSON('/plugins/vm-backup-and-restore/helpers/list_restore_folders.php', { restore_path: restorePath }, function (data) {
-        list.empty(); // clear again just in case
-        if (!data.folders || data.folders.length === 0) {
-          // No folders found, label is already set
-          return;
-        }
+      $.getJSON('/plugins/vm-backup-and-restore/helpers/list_restore_folders.php',
+        { restore_path: restorePath },
+        function (data) {
 
-        data.folders.forEach(folder => {
-          const id = 'vmrestore-' + folder.replace(/\s+/g, '_');
+          list.empty();
 
-          const item = $(`
-                <div>
-                    <label>
-                        <input type="checkbox" value="${folder}" id="${id}">
-                        ${folder}
-                    </label>
-                </div>
-            `);
-
-          if (selected.includes(folder)) {
-            item.find('input').prop('checked', true);
+          if (!data.folders || data.folders.length === 0) {
+            // No folders found — hidden field already cleared
+            return;
           }
 
-          list.append(item);
-        });
+          // We have folders — rebuild list
+          data.folders.forEach(folder => {
+            const id = 'vmrestore-' + folder.replace(/\s+/g, '_');
 
-        // After adding folders, reset label
-        updateRestoreLabel();
-      });
+            const item = $(`
+          <div>
+            <label>
+              <input type="checkbox" value="${folder}" id="${id}">
+              ${folder}
+            </label>
+          </div>
+        `);
+
+            list.append(item);
+          });
+
+          // Now update label + hidden field based on actual checkboxes
+          updateRestoreLabel();
+        }
+      );
+    }
+
+    function updateRestoreLabel() {
+      const checked = list.find('input:checked').map(function () {
+        return $(this).val();
+      }).get();
+
+      if (checked.length === 0) {
+        label.text('Select VM(s)');
+        ensureHiddenFieldRestore('');
+        return;
+      }
+
+      label.text(checked.join(', '));
+      ensureHiddenFieldRestore(checked.join(','));
     }
 
     // Update label & hidden field
