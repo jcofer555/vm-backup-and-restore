@@ -2713,25 +2713,31 @@ if (is_file($plg)) {
   let selectedFolder = null;
 
   function resolveAndApplyPath(selectedPath, targetInputId) {
+    const params = new URLSearchParams({
+      path: selectedPath,
+      csrf_token: csrf_token   // REQUIRED for Unraid POSTs
+    });
+
     fetch('/plugins/vm-backup-and-restore/helpers/resolve_path.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ path: selectedPath })
+      body: params.toString()
     })
       .then(r => r.text())
       .then(resolvedPath => {
         const $field = $('#' + targetInputId);
 
+        // Deterministic: always write something
         $field.val(resolvedPath || selectedPath);
 
-        // Trigger listeners that depend on this value
+        // Trigger any listeners
         $field.trigger('input');
         $field.trigger('change');
 
         $('#folderPickerModal').hide();
       })
       .catch(() => {
-        // Fallback: use original path
+        // Fallback: original path
         const $field = $('#' + targetInputId);
         $field.val(selectedPath);
         $field.trigger('change');
