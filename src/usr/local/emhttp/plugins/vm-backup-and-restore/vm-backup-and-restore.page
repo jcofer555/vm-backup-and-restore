@@ -1904,8 +1904,14 @@ if (is_file($plg)) {
       label.text('No backups at this location');
 
       if (!restorePath) {
-        // No path → no VMs → clear hidden field
         ensureHiddenFieldRestore('');
+
+        // Treat blank path like "no backups"
+        dropdown.removeClass('active');
+        list.hide();
+        dropdown.addClass('disabled');
+        label.text('No backups at this location');
+
         return;
       }
 
@@ -2023,7 +2029,7 @@ if (is_file($plg)) {
   function validateCronLive() {
 
     // ---------------------------------------------------------
-    // 1. If NOT in custom mode → cron is automatically valid
+    // If NOT in custom mode → cron is automatically valid
     // ---------------------------------------------------------
     if (cronMode.value !== "custom") {
       cronValid = true;
@@ -2036,7 +2042,7 @@ if (is_file($plg)) {
     }
 
     // ---------------------------------------------------------
-    // 2. Custom mode → strict cron validation
+    // Custom mode → strict cron validation
     // ---------------------------------------------------------
     const cronExpression = cronInput.value.trim();
     const cronParts = cronExpression.split(/\s+/);
@@ -2053,7 +2059,7 @@ if (is_file($plg)) {
       return;
     }
 
-    // Rule 1: Must have exactly 5 parts
+    // Must have exactly 5 parts
     if (cronParts.length !== 5) {
       cronValid = false;
       warnFields.style.display = 'block';
@@ -2065,13 +2071,13 @@ if (is_file($plg)) {
       for (let i = 0; i < cronParts.length; i++) {
         const field = cronParts[i];
 
-        // Rule 3: Only digits, *, and / allowed
+        // Only digits, *, and / allowed
         if (!/^[\d*\/]+$/.test(field)) {
           cronValid = false;
           warnFields.style.display = 'block';
         }
 
-        // Rule 2: Slash must be exactly */N
+        // Slash must be exactly */N
         if (field.includes('/')) {
           const validStep = field.match(/^\*\/\d+$/);
           if (!validStep) {
@@ -2245,7 +2251,7 @@ if (is_file($plg)) {
         $('#schedule-list').html(html);
       }
     ).always(() => {
-      unlockScheduleUI();   // release lock ONLY after DOM is fully rebuilt
+      unlockScheduleUI();
     });
   }
 
@@ -2300,7 +2306,7 @@ if (is_file($plg)) {
 
     const cron = buildCronFromUI();
     if (!cron.valid) {
-      unlockScheduleUI();         // release lock if validation fails
+      unlockScheduleUI();
       alert("Invalid cron expression");
       return;
     }
@@ -2325,8 +2331,6 @@ if (is_file($plg)) {
         settings: settings
       },
       success: function (response) {
-
-        // Reset UI back to normal
         resetScheduleUI();
 
         // Clear editing ID
@@ -2448,41 +2452,53 @@ if (is_file($plg)) {
   }
 
   // --- Run backup manually ---
-  function runScheduleBackup(id, btn) {
-    if (scheduleUILocked) return;   // prevent double‑clicks during reload
+function runScheduleBackup(id, btn) {
+    if (scheduleUILocked) return;
 
-    if (!confirm("Are you sure you want to run this backup now?")) {
-      return;
-    }
+    if (!confirm("Are you sure you want to run this backup now?")) return;
 
-    lockScheduleUI();               // freeze all schedule action buttons
+    lockScheduleUI();
 
-    if (btn.disabled) return;
-
+    // Disable clicked button and change tooltip
     btn.disabled = true;
     const originalText = btn.textContent;
+    const originalTitle = btn.getAttribute('title');
+
     btn.textContent = "Running...";
 
-    // Trigger the manual run
-    $.post('/plugins/vm-backup-and-restore/helpers/run_schedule.php', { id });
-
-    // Poll every 1 second until lock is gone
-    const poll = setInterval(function () {
-      $.getJSON(
-        '/plugins/vm-backup-and-restore/helpers/check_lock.php',
-        function (res) {
-          if (!res.locked) {
-            clearInterval(poll);
-
-            btn.disabled = false;
-            btn.textContent = originalText;
-
-            unlockScheduleUI();
+    $.post('/plugins/vm-backup-and-restore/helpers/run_schedule.php', { id })
+      .done(function(res) {
+          if (!res.started) {
+              alert("Failed to start backup");
+              btn.disabled = false;
+              btn.textContent = originalText;
+              btn.setAttribute('title', originalTitle);
+              unlockScheduleUI();
+              return;
           }
-        }
-      );
-    }, 1000);
-  }
+
+          // Poll lock
+          const poll = setInterval(function() {
+              $.getJSON('/plugins/vm-backup-and-restore/helpers/check_lock.php', function(res) {
+                  if (!res.locked) {
+                      clearInterval(poll);
+
+                      btn.disabled = false;
+                      btn.textContent = originalText;
+
+                      unlockScheduleUI();
+                  }
+              });
+          }, 1000);
+      })
+      .fail(function(xhr, status, err) {
+          alert("Failed to start backup: " + (xhr.responseJSON?.error || err));
+          btn.disabled = false;
+          btn.textContent = originalText;
+          btn.setAttribute('title', originalTitle);
+          unlockScheduleUI();
+      });
+}
 
   // --- Toggle enable/disable ---
   function toggleSchedule(id, isEnabled) {
@@ -2614,7 +2630,7 @@ if (is_file($plg)) {
     closeTooltips();
   });
 
-  // 🔧 Collect per-VM version selections
+  // Collect per-VM version selections
   function collectRestoreVersions() {
     const versions = {};
 
@@ -2756,7 +2772,7 @@ if (is_file($plg)) {
     $.getJSON('/plugins/vm-backup-and-restore/helpers/list_folders.php',
       {
         path: path,
-        field: activeInputFieldId   // <‑‑ send which field is active
+        field: activeInputFieldId   // send which field is active
       },
 
       function (data) {
@@ -2910,4 +2926,39 @@ if (is_file($plg)) {
       resolveAndApplyPath(initialPath, 'restore_destination');
     }
   });
+</script>
+<script>
+
+(function() {
+    const CHECK_INTERVAL = 1000; // check every second
+
+    function updateRunButtons(locked) {
+        document.querySelectorAll('.run-schedule-btn').forEach(btn => {
+            btn.disabled = locked;
+            if (locked) {
+                btn.classList.add('disabled');
+            } else {
+                btn.classList.remove('disabled');
+            }
+        });
+    }
+
+    async function pollLock() {
+        try {
+            const res = await fetch('/plugins/vm-backup-and-restore/helpers/check_lock.php');
+            const data = await res.json();
+            updateRunButtons(Boolean(data.locked));
+        } catch (e) {
+            console.error('Failed to check lock:', e);
+        }
+    }
+
+    // Initial check
+    pollLock();
+
+    // Poll continuously
+    setInterval(pollLock, CHECK_INTERVAL);
+})();
+
+
 </script>
