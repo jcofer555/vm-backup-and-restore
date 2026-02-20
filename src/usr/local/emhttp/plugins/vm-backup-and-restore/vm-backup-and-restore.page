@@ -1256,7 +1256,7 @@ if (is_file($plg)) {
         Backup or restore in progress!
       </div>
 
-      <!-- Backup Button-->
+      <!-- Backup and Schedule It Button-->
       <div class="backup-actions">
         <span title="Run backup of selected VM(s)" class="vm-backup-and-restoretip">
           <button type="button" id="backupbtn">Backup Now</button>
@@ -1454,6 +1454,23 @@ if (is_file($plg)) {
   let scheduleUILocked = false;
   let rebuildToken = 0;
 
+  function validateBackupPrereqs() {
+    const vms = $('#vm-hidden-backup').val()?.trim();
+    const dest = $('#backup_destination').val()?.trim();
+
+    if (!vms) {
+      alert("Please select at least one VM for the schedule");
+      return false;
+    }
+
+    if (!dest) {
+      alert("Please select a backup destination for the schedule");
+      return false;
+    }
+
+    return true;
+  }
+
   function lockScheduleUI() {
     scheduleUILocked = true;
     $(".schedule-action-btn").prop("disabled", true);
@@ -1607,11 +1624,8 @@ if (is_file($plg)) {
   loadLastRunLog();
   setInterval(loadLastRunLog, 5000);
 
-  // === Clear Log Buttons ===
+  // === Clear Log Button ===
   const clearLastRunBtn = document.getElementById("clear-last-run-log");
-  const clearMoverBtn = document.getElementById("clear-mover-log");
-  const toastLast = document.getElementById("toast-last");
-  const toastMover = document.getElementById("toast-mover");
 
   if (clearLastRunBtn) {
     clearLastRunBtn.addEventListener("click", function () {
@@ -2188,7 +2202,7 @@ if (is_file($plg)) {
     }
 
     if (!dest) {
-      alert('Please set a backup destination');
+      alert('Please select a backup destination');
       return;
     }
 
@@ -2301,6 +2315,11 @@ if (is_file($plg)) {
 
   // --- Create or update schedule ---
   function scheduleJob(type) {
+
+    if (!validateBackupPrereqs()) {
+      return; // block saving schedule
+    }
+
     if (scheduleUILocked) return;   // prevent double‑clicks during reload
     lockScheduleUI();               // freeze all schedule action buttons
 
@@ -2336,7 +2355,6 @@ if (is_file($plg)) {
         // Clear editing ID
         window.editingScheduleId = null;
 
-        // Reload schedule list
         loadSchedules();
 
         showPopup("Schedule saved!");
@@ -2452,7 +2470,7 @@ if (is_file($plg)) {
   }
 
   // --- Run backup manually ---
-function runScheduleBackup(id, btn) {
+  function runScheduleBackup(id, btn) {
     if (scheduleUILocked) return;
 
     if (!confirm("Are you sure you want to run this backup now?")) return;
@@ -2467,38 +2485,38 @@ function runScheduleBackup(id, btn) {
     btn.textContent = "Running";
 
     $.post('/plugins/vm-backup-and-restore/helpers/run_schedule.php', { id })
-      .done(function(res) {
-          if (!res.started) {
-              alert("Failed to start backup");
-              btn.disabled = false;
-              btn.textContent = originalText;
-              btn.setAttribute('title', originalTitle);
-              unlockScheduleUI();
-              return;
-          }
-
-          // Poll lock
-          const poll = setInterval(function() {
-              $.getJSON('/plugins/vm-backup-and-restore/helpers/check_lock.php', function(res) {
-                  if (!res.locked) {
-                      clearInterval(poll);
-
-                      btn.disabled = false;
-                      btn.textContent = originalText;
-
-                      unlockScheduleUI();
-                  }
-              });
-          }, 1000);
-      })
-      .fail(function(xhr, status, err) {
-          alert("Failed to start backup: " + (xhr.responseJSON?.error || err));
+      .done(function (res) {
+        if (!res.started) {
+          alert("Failed to start backup");
           btn.disabled = false;
           btn.textContent = originalText;
           btn.setAttribute('title', originalTitle);
           unlockScheduleUI();
+          return;
+        }
+
+        // Poll lock
+        const poll = setInterval(function () {
+          $.getJSON('/plugins/vm-backup-and-restore/helpers/check_lock.php', function (res) {
+            if (!res.locked) {
+              clearInterval(poll);
+
+              btn.disabled = false;
+              btn.textContent = originalText;
+
+              unlockScheduleUI();
+            }
+          });
+        }, 1000);
+      })
+      .fail(function (xhr, status, err) {
+        alert("Failed to start backup: " + (xhr.responseJSON?.error || err));
+        btn.disabled = false;
+        btn.textContent = originalText;
+        btn.setAttribute('title', originalTitle);
+        unlockScheduleUI();
       });
-}
+  }
 
   // --- Toggle enable/disable ---
   function toggleSchedule(id, isEnabled) {
@@ -2696,7 +2714,7 @@ function runScheduleBackup(id, btn) {
         if (res && res.status === 'ok') {
           console.log('Settings saved');
 
-          // NOW trigger the actual restore
+          // Now trigger the actual restore
           startRestore();
         } else {
           alert('Failed to save settings');
@@ -2927,30 +2945,30 @@ function runScheduleBackup(id, btn) {
     }
   });
 </script>
-<script>
 
-(function() {
-    const CHECK_INTERVAL = 1000; // check every second
+<script>
+  (function () {
+    const CHECK_INTERVAL = 1000;
 
     function updateRunButtons(locked) {
-        document.querySelectorAll('.run-schedule-btn').forEach(btn => {
-            btn.disabled = locked;
-            if (locked) {
-                btn.classList.add('disabled');
-            } else {
-                btn.classList.remove('disabled');
-            }
-        });
+      document.querySelectorAll('.run-schedule-btn').forEach(btn => {
+        btn.disabled = locked;
+        if (locked) {
+          btn.classList.add('disabled');
+        } else {
+          btn.classList.remove('disabled');
+        }
+      });
     }
 
     async function pollLock() {
-        try {
-            const res = await fetch('/plugins/vm-backup-and-restore/helpers/check_lock.php');
-            const data = await res.json();
-            updateRunButtons(Boolean(data.locked));
-        } catch (e) {
-            console.error('Failed to check lock:', e);
-        }
+      try {
+        const res = await fetch('/plugins/vm-backup-and-restore/helpers/check_lock.php');
+        const data = await res.json();
+        updateRunButtons(Boolean(data.locked));
+      } catch (e) {
+        console.error('Failed to check lock:', e);
+      }
     }
 
     // Initial check
@@ -2958,7 +2976,5 @@ function runScheduleBackup(id, btn) {
 
     // Poll continuously
     setInterval(pollLock, CHECK_INTERVAL);
-})();
-
-
+  })();
 </script>

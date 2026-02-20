@@ -33,19 +33,6 @@ format_duration() {
     echo "$out"
 }
 
-# ------------------------------------------------------------------------------
-# Lock
-# ------------------------------------------------------------------------------
-
-mkdir -p /tmp/vm-backup-and-restore
-LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
-
-if [[ -f "$LOCK_FILE" ]]; then
-  exit 0
-fi
-
-touch "$LOCK_FILE"
-
 LOG_DIR="/tmp/vm-backup-and-restore"
 LAST_RUN_FILE="$LOG_DIR/vm-backup-and-restore.log"
 ROTATE_DIR="$LOG_DIR/archived_logs"
@@ -161,6 +148,7 @@ declare -a vms_stopped_by_script=()
 # ------------------------------------------------------------------------------
 
 cleanup() {
+    LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
     rm -f "$LOCK_FILE"
 
     SCRIPT_END_EPOCH=$(date +%s)

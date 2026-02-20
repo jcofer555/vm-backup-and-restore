@@ -1,4 +1,5 @@
 #!/bin/bash
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 SCRIPT_START_EPOCH=$(date +%s)
 
@@ -16,9 +17,6 @@ format_duration() {
     echo "$out"
 }
 
-mkdir -p /tmp/vm-backup-and-restore
-LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
-
 # --- RESTORE STATUS FILE ADDED ---
 RESTORE_STATUS_FILE="/tmp/vm-backup-and-restore/restore_status.txt"
 set_restore_status() {
@@ -26,13 +24,6 @@ set_restore_status() {
 }
 set_restore_status "Started restore session"
 # ---------------------------------
-
-# Prevent double-run
-if [[ -f "$LOCK_FILE" ]]; then
-  exit 0
-fi
-
-touch "$LOCK_FILE"
 
 # Logging
 LOG_DIR="/tmp/vm-backup-and-restore"
@@ -71,6 +62,7 @@ echo "Restore session started - $(date '+%Y-%m-%d %H:%M:%S')"
 # ------------------------------------------------------------------------------
 
 cleanup() {
+    LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
     rm -f "$LOCK_FILE"
 
     if [[ "$DRY_RUN" != "true" ]]; then
