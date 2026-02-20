@@ -4,7 +4,6 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # ------------------------------------------------------------------------------
 # Load schedule-specific variables (exported by run_schedule.php)
 # ------------------------------------------------------------------------------
-
 if [[ -n "${SCHEDULE_ID:-}" ]]; then
     echo "Running scheduled backup: $SCHEDULE_ID"
 
@@ -31,6 +30,40 @@ format_duration() {
     out+="${s}s"
 
     echo "$out"
+}
+
+classify_path() {
+    local p="$1"
+
+    if [[ "$p" == /mnt/user || "$p" == /mnt/user/* ]]; then
+        echo "USER"
+        return
+    fi
+
+    if [[ "$p" == /mnt/user0 || "$p" == /mnt/user0/* ]]; then
+        echo "USER0"
+        return
+    fi
+
+    echo "OTHER"
+}
+
+validate_mount_compatibility() {
+    local src="$1"
+    local dst="$2"
+
+    local src_class dst_class
+    src_class=$(classify_path "$src")
+    dst_class=$(classify_path "$dst")
+
+    if [[ "$src_class" != "$dst_class" ]]; then
+        echo "[ERROR] Vdisk $src is using mount type ($src_class) and backup destination ($dst_class)"
+        echo "[ERROR] They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0"
+        set_status "Mount-type mismatch for $src"
+        return 1
+    fi
+
+    return 0
 }
 
 LOG_DIR="/tmp/vm-backup-and-restore"
@@ -73,7 +106,6 @@ echo "Backup session started - $(date '+%Y-%m-%d %H:%M:%S')"
 # ------------------------------------------------------------------------------
 # DRY RUN SUPPORT
 # ------------------------------------------------------------------------------
-
 DRY_RUN="${DRY_RUN:-1}"
 
 is_dry_run() {
@@ -93,7 +125,6 @@ run_cmd() {
 # ------------------------------------------------------------------------------
 # Notifications
 # ------------------------------------------------------------------------------
-
 notify_unraid() {
     local title="$1"
     local message="$2"
@@ -115,7 +146,6 @@ sleep 5
 # ------------------------------------------------------------------------------
 # Config-derived variables
 # ------------------------------------------------------------------------------
-
 BACKUPS_TO_KEEP="${BACKUPS_TO_KEEP:-0}"
 backup_owner="${BACKUP_OWNER:-nobody}"
 backup_location="${BACKUP_DESTINATION:-/mnt/user/vm_backups}"
@@ -124,7 +154,6 @@ export backup_location
 # ------------------------------------------------------------------------------
 # Space-safe VM parsing
 # ------------------------------------------------------------------------------
-
 readarray -td ',' VM_ARRAY <<< "${VMS_TO_BACKUP:-},"
 
 CLEAN_VMS=()
@@ -146,7 +175,6 @@ declare -a vms_stopped_by_script=()
 # ------------------------------------------------------------------------------
 # Cleanup trap
 # ------------------------------------------------------------------------------
-
 cleanup() {
     LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
     rm -f "$LOCK_FILE"
@@ -195,7 +223,6 @@ trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT
 # ------------------------------------------------------------------------------
 # Backup loop
 # ------------------------------------------------------------------------------
-
 RUN_TS="$(date +%Y%m%d_%H%M)"
 run_cmd mkdir -p "$backup_location"
 
@@ -246,6 +273,39 @@ for vm in "${CLEAN_VMS[@]}"; do
             | sed '/^$/d'
     )
 
+    # Validate each vdisk path against backup destination
+    for vdisk in "${vdisks[@]}"; do
+        if ! validate_mount_compatibility "$vdisk" "$backup_location"; then
+            echo "[ERROR] Skipping $vm due to incompatible mount types"
+
+            # --- REMOVE ONLY FILES CREATED IN THIS RUN ---
+            if [[ -d "$vm_backup_folder" ]]; then
+
+                shopt -s nullglob
+                run_files=( "$vm_backup_folder/${RUN_TS}_"* )
+                shopt -u nullglob
+
+                if (( ${#run_files[@]} > 0 )); then
+                    :
+                    for f in "${run_files[@]}"; do
+                        :
+                        rm -f "$f"
+                    done
+                else
+                    :
+                fi
+
+                if [[ -z "$(ls -A "$vm_backup_folder")" ]]; then
+                    :
+                    rmdir "$vm_backup_folder"
+                else
+                    :
+                fi
+            fi
+            continue 2   # skip entire VM loop
+        fi
+    done
+
     if ((${#vdisks[@]} == 0)); then
         echo "No vdisk entries found in XML for $vm"
     else
@@ -291,7 +351,6 @@ for vm in "${CLEAN_VMS[@]}"; do
 # ------------------------------------------------------------------------------
 # Retention cleanup per VM
 # ------------------------------------------------------------------------------
-
 if [[ "$BACKUPS_TO_KEEP" =~ ^[0-9]+$ ]]; then
 
     if (( BACKUPS_TO_KEEP == 0 )); then

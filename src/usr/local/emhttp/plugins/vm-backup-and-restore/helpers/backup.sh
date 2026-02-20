@@ -17,6 +17,67 @@ format_duration() {
     echo "$out"
 }
 
+classify_path() {
+    local p="$1"
+
+    if [[ "$p" == /mnt/user || "$p" == /mnt/user/* ]]; then
+        echo "USER"
+        return
+    fi
+
+    if [[ "$p" == /mnt/user0 || "$p" == /mnt/user0/* ]]; then
+        echo "USER0"
+        return
+    fi
+
+    echo "OTHER"
+}
+
+validate_mount_compatibility() {
+    local src="$1"
+    local dst="$2"
+
+    local src_class dst_class
+    src_class=$(classify_path "$src")
+    dst_class=$(classify_path "$dst")
+
+    if [[ "$src_class" != "$dst_class" ]]; then
+        echo "[ERROR] Vdisk $src is using mount type ($src_class) and backup destination ($dst_class)"
+        echo "[ERROR] They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0"
+        set_status "Mount type mismatch for $src"
+        return 1
+    fi
+
+    return 0
+}
+
+cleanup_partial_backup() {
+    local folder="$1"
+    local ts="$2"
+
+    if [[ ! -d "$folder" ]]; then
+        return
+    fi
+
+    # Remove only files created during this run
+    shopt -s nullglob
+    local run_files=( "$folder/${ts}_"* )
+    shopt -u nullglob
+
+    for f in "${run_files[@]}"; do
+        :
+        rm -f "$f"
+    done
+
+    # Remove folder only if empty
+    if [[ -z "$(ls -A "$folder")" ]]; then
+        :
+        rmdir "$folder"
+    else
+        :
+    fi
+}
+
 LOG_DIR="/tmp/vm-backup-and-restore"
 LAST_RUN_FILE="$LOG_DIR/vm-backup-and-restore.log"
 ROTATE_DIR="$LOG_DIR/archived_logs"
@@ -233,6 +294,41 @@ for vm in "${CLEAN_VMS[@]}"; do
             | sed '/^$/d'
     )
 
+    # Validate each vdisk path against backup destination
+    for vdisk in "${vdisks[@]}"; do
+        if ! validate_mount_compatibility "$vdisk" "$backup_location"; then
+            echo "[ERROR] Skipping $vm due to incompatible mount types"
+
+            # --- REMOVE ONLY FILES CREATED IN THIS RUN ---
+            if [[ -d "$vm_backup_folder" ]]; then
+
+                # Remove only files created during this run
+                shopt -s nullglob
+                run_files=( "$vm_backup_folder/${RUN_TS}_"* )
+                shopt -u nullglob
+
+                if (( ${#run_files[@]} > 0 )); then
+                    :
+                    for f in "${run_files[@]}"; do
+                        :
+                        rm -f "$f"
+                    done
+                else
+                    :
+                fi
+
+                # Remove folder only if empty
+                if [[ -z "$(ls -A "$vm_backup_folder")" ]]; then
+                    :
+                    rmdir "$vm_backup_folder"
+                else
+                    :
+                fi
+            fi
+            continue 2   # skip entire VM loop
+        fi
+    done
+
     if ((${#vdisks[@]} == 0)); then
         echo "No vdisk entries found in XML for $vm"
     else
@@ -240,8 +336,12 @@ for vm in "${CLEAN_VMS[@]}"; do
         set_status "Backing up vdisks for $vm"
         for vdisk in "${vdisks[@]}"; do
             if [[ ! -f "$vdisk" ]]; then
-                echo "  WARNING: vdisk path does not exist $vdisk"
-                continue
+                echo "[ERROR] $vm's vdisk $vdisk not found"
+                echo "[ERROR] Skipping $vm"
+
+                cleanup_partial_backup "$vm_backup_folder" "$RUN_TS"
+
+                continue 2
             fi
             base="$(basename "$vdisk")"
             dest="$vm_backup_folder/${RUN_TS}_$base"

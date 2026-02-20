@@ -146,7 +146,8 @@ src_class=$(classify_path "$backup_path")
 dst_class=$(classify_path "$vm_domains")
 
 if [[ "$src_class" != "$dst_class" ]]; then
-    echo "[ERROR] Location of backups is using mount type ($src_class) and restore destination ($dst_class). They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0"
+    echo "[ERROR] Location of backups is using mount type ($src_class) and restore destination ($dst_class)."
+    echo "[ERROR] They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0"
     echo "Restore aborted due to mount type mismatch"
     set_restore_status "Restore aborted – mount-type mismatch"
     exit 1

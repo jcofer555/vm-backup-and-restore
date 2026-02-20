@@ -2187,7 +2187,24 @@ if (is_file($plg)) {
 
   let backupRequestInProgress = false;
 
-  $('#backupbtn').on('click', function () {
+  async function fetchVdiskPaths(vmList) {
+    return $.ajax({
+      url: '/plugins/vm-backup-and-restore/helpers/get_vdisk_paths.php',
+      method: 'POST',
+      data: { vms: vmList },
+      dataType: 'json'
+    });
+  }
+
+  function backupclassifyPath(p) {
+    if (p.startsWith('/mnt/user/')) return 'USER';
+    if (p === '/mnt/user') return 'USER';
+    if (p.startsWith('/mnt/user0/')) return 'USER0';
+    if (p === '/mnt/user0') return 'USER0';
+    return 'OTHER';
+  }
+
+  $('#backupbtn').on('click', async function () {
 
     if (backupRequestInProgress) {
       console.warn('Backup already being triggered');
@@ -2206,6 +2223,44 @@ if (is_file($plg)) {
       alert('Please select a backup destination');
       return;
     }
+
+    // -------------------------------
+    // UI-SIDE MOUNT-TYPE VALIDATION
+    // -------------------------------
+    const vmList = vms.split(',').map(v => v.trim()).filter(Boolean);
+    const destClass = backupclassifyPath(dest);
+
+    try {
+      const data = await fetchVdiskPaths(vmList);
+
+      for (const vm of vmList) {
+        const disks = data[vm];
+
+        if (!Array.isArray(disks)) {
+          alert(`Could not read vdisk paths for ${vm}`);
+          return;
+        }
+
+        for (const disk of disks) {
+          const diskClass = backupclassifyPath(disk);
+
+          if (diskClass !== destClass) {
+            alert(
+              `${vm}'s vdisk ${disk} is using mount type (${diskClass}) and backup destination (${destClass})\n\n` +
+              'They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0'
+            );
+            return;
+          }
+        }
+      }
+    } catch (err) {
+      alert('Error validating vdisk paths');
+      console.error(err);
+      return;
+    }
+
+    // If we reach here → UI validation passed
+    // -------------------------------
 
     backupRequestInProgress = true;
 
@@ -2233,7 +2288,6 @@ if (is_file($plg)) {
         alert('Error saving settings');
       })
       .always(function () {
-        // ALWAYS release click lock after request finishes
         backupRequestInProgress = false;
       });
 
@@ -2695,7 +2749,17 @@ if (is_file($plg)) {
       return;
     }
 
+    // Classify both paths
+    const srcClass = classifyPath(dest);
+    const dstClass = classifyPath(restore_dest);
 
+    // If classes differ → alert
+    if (srcClass !== dstClass) {
+      alert(
+        `Location of backups is using mount type (${srcClass}) and restore destination (${dstClass}). They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0`
+      );
+      return;
+    }
 
     if ($('#restorebtn').prop('disabled')) {
       return;
