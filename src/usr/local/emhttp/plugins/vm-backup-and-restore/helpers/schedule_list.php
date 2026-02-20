@@ -12,11 +12,11 @@ if (file_exists($cfg)) {
 
 <thead>
 <tr style="background:#f9f9f9; color:#b30000; text-align:center; border-bottom:2px solid #b30000;">
-    <th style="padding:8px; width:6%;">Cron</th>    
-    <th style="padding:8px; width:8%;">VM(s)</th>
-    <th style="padding:8px; width:17%;">Destination</th>
+    <th style="padding:8px; width:6%;">Scheduling</th>    
+    <th style="padding:8px; width:8%;">VM(s) To Backup</th>
+    <th style="padding:8px; width:14%;">Backup Destination</th>
     <th style="padding:8px; width:6%;">Backups To Keep</th>
-    <th style="padding:8px; width:8%;">Owner</th>
+    <th style="padding:8px; width:8%;">Backup Owner</th>
     <th style="padding:8px; width:6%;">Dry Run</th>
     <th style="padding:8px; width:6%;">Notifications</th>
     <th style="padding:8px; width:16%;">Actions</th>

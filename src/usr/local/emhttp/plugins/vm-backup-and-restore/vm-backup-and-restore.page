@@ -890,7 +890,7 @@ if (is_file($plg)) {
     <form id="vm-backup-and-restore-settings">
 
       <div class="status-row"><span title="Shows which part of the backup process is currently running"
-          class="vm-backup-and-restoretip status-label">Status:</span><span id="status-text">Not Running</span></div>
+          class="vm-backup-and-restoretip status-label">Status:</span><span id="status-text">No Backup Running</span></div>
       <br>
 
       <!-- VM -->
@@ -1280,8 +1280,7 @@ if (is_file($plg)) {
     <form id="vm-backup-and-restore-settings">
 
       <div class="restore-status-row"><span title="Shows which part of the restore process is currently running"
-          class="vm-backup-and-restoretip restore-status-label">Status:</span><span id="restore-status-text">Not
-          Running</span></div>
+          class="vm-backup-and-restoretip restore-status-label">Status:</span><span id="restore-status-text">No Restore Running</span></div>
       <br>
 
       <!-- LOCATION -->
@@ -1488,7 +1487,7 @@ if (is_file($plg)) {
         document.getElementById('status-text').textContent = data.status;
       })
       .catch(() => {
-        document.getElementById('status-text').textContent = 'Not Running';
+        document.getElementById('status-text').textContent = 'No Backup Running';
       });
   }
 
@@ -1502,7 +1501,7 @@ if (is_file($plg)) {
         document.getElementById('restore-status-text').textContent = data.status;
       })
       .catch(() => {
-        document.getElementById('restore-status-text').textContent = 'Not Running';
+        document.getElementById('restore-status-text').textContent = 'No Restore Running';
       });
   }
 
@@ -1559,7 +1558,7 @@ if (is_file($plg)) {
         }
         else if (cronModeSelect.value === "daily" && dailyTime) {
           const [hour, minute] = dailyTime.value.split(":");
-          cronString = `${parseInt(minute, 10)} ${parseInt(hour, 10)} * * *`;
+          cronString = `0 ${parseInt(hour, 10)} * * *`;
         }
         else if (cronModeSelect.value === "weekly" && weeklyDay && weeklyTime) {
           const [hour, minute] = weeklyTime.value.split(":");
@@ -1567,12 +1566,12 @@ if (is_file($plg)) {
             Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3,
             Thursday: 4, Friday: 5, Saturday: 6
           };
-          cronString = `${parseInt(minute, 10)} ${parseInt(hour, 10)} * * ${dayMap[weeklyDay.value]}`;
+          cronString = `0 ${parseInt(hour, 10)} * * ${dayMap[weeklyDay.value]}`;
         }
         else if (cronModeSelect.value === "monthly" && monthlyDay && monthlyTime) {
           const [hour, minute] = monthlyTime.value.split(":");
           const day = parseInt(monthlyDay.value, 10);
-          cronString = `${parseInt(minute, 10)} ${parseInt(hour, 10)} ${day} * *`;
+          cronString = `0 ${parseInt(hour, 10)} ${day} * *`;
         }
         else if (cronModeSelect.value === "custom" && customCron) {
           cronString = customCron.value.trim();

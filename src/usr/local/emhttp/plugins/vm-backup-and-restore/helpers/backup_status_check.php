@@ -3,7 +3,7 @@ header('Content-Type: application/json');
 
 $status_file = '/tmp/vm-backup-and-restore/backup_status.txt';
 
-$status = 'Not Running';
+$status = 'No Backup Running';
 
 if (file_exists($status_file)) {
     $raw = trim(file_get_contents($status_file));
@@ -12,7 +12,7 @@ if (file_exists($status_file)) {
     }
 }
 
-$running = ($status !== 'Not Running');
+$running = ($status !== 'No Backup Running');
 
 echo json_encode([
     'status' => $status,
