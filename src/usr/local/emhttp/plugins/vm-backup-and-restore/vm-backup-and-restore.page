@@ -135,7 +135,6 @@ if (file_exists("/etc/unraid-version")) {
 <style>
   :root {
     --primary-blue: #e6231c;
-    --status-green: #2ECC40;
   }
 
   .vm-backup-and-restore-wrapper {
