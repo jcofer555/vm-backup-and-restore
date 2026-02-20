@@ -4,7 +4,7 @@
 <PLUGIN 
   name="vm-backup-and-restore"
   author="jcofer555"
-  version="2026.02.20.03"
+  version="2026.02.20.04"
   launch="Settings/vm-backup-and-restore"
   pluginURL="https://raw.githubusercontent.com/jcofer555/vm-backup-and-restore/main/plugin/vm-backup-and-restore.plg"
   support="https://forums.unraid.net/topic/197218-vm-backup-restore-for-unraid/"
@@ -16,6 +16,10 @@
 <CHANGES>
 <![CDATA[
 
+### 2026.02.20.04
+
+- Put guards in the UI and enforcement of the guards in the backend to disallow transferring from disk to user, user to disk, disk to user0, and user0 to disk to prevent loss of data
+
 ### 2026.02.20.03
 
 - Fix to disallow backing up to a share root
@@ -24,18 +28,14 @@
 
 - Fix when deleting schedules
 
-### 2026.02.18.01
-
-- Added scheduling for backups
-
 
 For older releases, see https://github.com/jcofer555/vm-backup-and-restore/releases
 ]]>
 </CHANGES>
 
-<FILE Name="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.02.20.03-noarch-1.txz">
-<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.02.20.03/unraid-vm-backup-and-restore-2026.02.20.03-noarch-1.txz</URL>
-<SHA256>cac76aaa1c9a7251a46d7d964f4235ac2ad57d66815049f5e07753f81d8057e9</SHA256>
+<FILE Name="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.02.20.04-noarch-1.txz">
+<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.02.20.04/unraid-vm-backup-and-restore-2026.02.20.04-noarch-1.txz</URL>
+<SHA256>87d51c65cea4b5a05f8a8dc4df6257e39373ca30db519039f97cecc53708fbff</SHA256>
 </FILE>
 
 <!-- ==========================================================
@@ -55,7 +55,7 @@ if [ ! -s "$SCHEDULES_CFG" ]; then
   echo "; VM Backup & Restore schedules" > "$SCHEDULES_CFG"
 fi
 
-PACKAGE_TXZ="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.02.20.03-noarch-1.txz"
+PACKAGE_TXZ="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.02.20.04-noarch-1.txz"
 USER_CFG="/boot/config/plugins/VM-Backup-And-Restore/settings.cfg"
 RESTORE_USER_CFG="/boot/config/plugins/VM-Backup-And-Restore/settings_restore.cfg"
 DEFAULT_CFG="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/default_settings.cfg"
@@ -135,12 +135,12 @@ fi
 mv "$RESTORE_TMP_CFG" "$RESTORE_USER_CFG"
 
 # Remove older txz packages (keep only the current one)
-find /boot/config/plugins/vm-backup-and-restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.02.20.03-noarch-1.txz" -delete
+find /boot/config/plugins/vm-backup-and-restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.02.20.04-noarch-1.txz" -delete
 
 echo ""
 echo "----------------------------------------------------"
 echo " vm-backup-and-restore has been installed."
-echo " Version: 2026.02.20.03"
+echo " Version: 2026.02.20.04"
 echo "----------------------------------------------------"
 echo ""
 
