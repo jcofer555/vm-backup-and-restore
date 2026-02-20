@@ -102,6 +102,22 @@ trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT
 CONFIG="/boot/config/plugins/vm-backup-and-restore/settings_restore.cfg"
 source "$CONFIG" || exit 1
 
+classify_path() {
+    local p="$1"
+
+    if [[ "$p" == /mnt/user || "$p" == /mnt/user/* ]]; then
+        echo "USER"
+        return
+    fi
+
+    if [[ "$p" == /mnt/user0 || "$p" == /mnt/user0/* ]]; then
+        echo "USER0"
+        return
+    fi
+
+    echo "OTHER"
+}
+
 notify_unraid() {
     local title="$1"
     local message="$2"
@@ -125,6 +141,16 @@ IFS=',' read -r -a vm_names <<< "$VMS_TO_RESTORE"
 backup_path="$LOCATION_OF_BACKUPS"
 vm_domains="$RESTORE_DESTINATION"
 DRY_RUN="$DRY_RUN_RESTORE"
+
+src_class=$(classify_path "$backup_path")
+dst_class=$(classify_path "$vm_domains")
+
+if [[ "$src_class" != "$dst_class" ]]; then
+    echo "[ERROR] Location of backups is using mount type ($src_class) and restore destination ($dst_class). They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0"
+    echo "Restore aborted due to mount type mismatch"
+    set_restore_status "Restore aborted – mount-type mismatch"
+    exit 1
+fi
 
 mapfile -t RUNNING_BEFORE < <(virsh list --state-running --name | grep -Fxv "")
 STOPPED_VMS=()

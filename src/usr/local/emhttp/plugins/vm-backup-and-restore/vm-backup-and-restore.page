@@ -2695,17 +2695,7 @@ if (is_file($plg)) {
       return;
     }
 
-    // Classify both paths
-    const srcClass = classifyPath(dest);
-    const dstClass = classifyPath(restore_dest);
 
-    // If classes differ → alert
-    if (srcClass !== dstClass) {
-      alert(
-        `Location of backups is using mount type (${srcClass}) and restore destination (${dstClass}). They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0`
-      );
-      return;
-    }
 
     if ($('#restorebtn').prop('disabled')) {
       return;
