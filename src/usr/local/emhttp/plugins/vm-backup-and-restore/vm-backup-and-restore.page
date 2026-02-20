@@ -890,7 +890,8 @@ if (is_file($plg)) {
     <form id="vm-backup-and-restore-settings">
 
       <div class="status-row"><span title="Shows which part of the backup process is currently running"
-          class="vm-backup-and-restoretip status-label">Status:</span><span id="status-text">No Backup Running</span></div>
+          class="vm-backup-and-restoretip status-label">Status:</span><span id="status-text">No Backup Running</span>
+      </div>
       <br>
 
       <!-- VM -->
@@ -1280,7 +1281,8 @@ if (is_file($plg)) {
     <form id="vm-backup-and-restore-settings">
 
       <div class="restore-status-row"><span title="Shows which part of the restore process is currently running"
-          class="vm-backup-and-restoretip restore-status-label">Status:</span><span id="restore-status-text">No Restore Running</span></div>
+          class="vm-backup-and-restoretip restore-status-label">Status:</span><span id="restore-status-text">No Restore
+          Running</span></div>
       <br>
 
       <!-- LOCATION -->
@@ -2663,6 +2665,14 @@ if (is_file($plg)) {
     return versions;
   }
 
+  function classifyPath(p) {
+    if (p.startsWith('/mnt/user/')) return 'USER';
+    if (p === '/mnt/user') return 'USER';
+    if (p.startsWith('/mnt/user0/')) return 'USER0';
+    if (p === '/mnt/user0') return 'USER0';
+    return 'OTHER';
+  }
+
   $('#restorebtn').on('click', function () {
 
     // Basic validation
@@ -2682,6 +2692,18 @@ if (is_file($plg)) {
 
     if (!restore_dest) {
       alert('Please set a restore destination');
+      return;
+    }
+
+    // Classify both paths
+    const srcClass = classifyPath(dest);
+    const dstClass = classifyPath(restore_dest);
+
+    // If classes differ → alert
+    if (srcClass !== dstClass) {
+      alert(
+        `Location of backups is using mount type (${srcClass}) and restore destination (${dstClass}). They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0`
+      );
       return;
     }
 
