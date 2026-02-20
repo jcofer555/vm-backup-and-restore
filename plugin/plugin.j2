@@ -36,18 +36,11 @@ For older releases, see https://github.com/{{ env['GITHUB_REPOSITORY'] }}/releas
 #  INSTALL / UPGRADE LOGIC
 # ==========================================================
 
-SCHEDULES_CFG="/boot/config/plugins/vm-backup-and-restore/schedules.cfg"
-
-if [ ! -s "$SCHEDULES_CFG" ]; then
-  mkdir -p "$(dirname "$SCHEDULES_CFG")"
-  echo "; VM Backup & Restore schedules" > "$SCHEDULES_CFG"
-fi
-
 PACKAGE_TXZ="/boot/config/plugins/{{ name }}/{{ package_name }}-{{ env['PLUGIN_VERSION'] }}-noarch-1.txz"
-USER_CFG="/boot/config/plugins/VM-Backup-And-Restore/settings.cfg"
-RESTORE_USER_CFG="/boot/config/plugins/VM-Backup-And-Restore/settings_restore.cfg"
-DEFAULT_CFG="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/default_settings.cfg"
-RESTORE_DEFAULT_CFG="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/default_settings_restore.cfg"
+USER_CFG="/boot/config/plugins/{{ name }}/settings.cfg"
+RESTORE_USER_CFG="/boot/config/plugins/{{ name }}/settings_restore.cfg"
+DEFAULT_CFG="/usr/local/emhttp/plugins/{{ name }}/helpers/default_settings.cfg"
+RESTORE_DEFAULT_CFG="/usr/local/emhttp/plugins/{{ name }}/helpers/default_settings_restore.cfg"
 TMP_CFG="/tmp/vm-backup-and-restore_settings.tmp"
 RESTORE_TMP_CFG="/tmp/vm-backup-and-restore_settings_restore.tmp"
 
