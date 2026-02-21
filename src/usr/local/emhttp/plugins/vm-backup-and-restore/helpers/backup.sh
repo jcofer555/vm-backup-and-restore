@@ -122,10 +122,10 @@ source "$CONFIG" || exit 1
 # DRY RUN SUPPORT
 # ------------------------------------------------------------------------------
 
-DRY_RUN="${DRY_RUN:-1}"
+DRY_RUN="${DRY_RUN:-no}"
 
 is_dry_run() {
-    [[ "$DRY_RUN" == "0" ]]
+    [[ "$DRY_RUN" == "yes" ]]
 }
 
 run_cmd() {
@@ -146,7 +146,7 @@ notify_unraid() {
     local title="$1"
     local message="$2"
 
-    if [[ "${NOTIFICATIONS:-0}" == "1" ]]; then
+    if [[ "${NOTIFICATIONS:-no}" == "yes" ]]; then
         /usr/local/emhttp/webGui/scripts/notify \
             -e "unRAID Status" \
             -s "$title" \

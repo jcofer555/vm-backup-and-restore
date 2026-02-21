@@ -10,8 +10,8 @@ VMS_TO_BACKUP="${1:-}"
 BACKUP_DESTINATION="${2:-}"
 BACKUPS_TO_KEEP="${3:-0}"
 BACKUP_OWNER="${4:-nobody}"
-DRY_RUN="${5:-1}"
-NOTIFICATIONS="${6:-0}"
+DRY_RUN="${5:-no}"
+NOTIFICATIONS="${6:-no}"
 
 # ==========================================================
 #  Write all settings

@@ -13,7 +13,7 @@ if [[ -n "${SCHEDULE_ID:-}" ]]; then
     BACKUPS_TO_KEEP="${BACKUPS_TO_KEEP:-0}"
     BACKUP_DESTINATION="${BACKUP_DESTINATION:-/mnt/user/vm_backups}"
     BACKUP_OWNER="${BACKUP_OWNER:-root}"
-    NOTIFICATIONS="${NOTIFICATIONS:-0}"
+    NOTIFICATIONS="${NOTIFICATIONS:-no}"
 fi
 
 SCRIPT_START_EPOCH=$(date +%s)
@@ -106,10 +106,10 @@ echo "Backup session started - $(date '+%Y-%m-%d %H:%M:%S')"
 # ------------------------------------------------------------------------------
 # DRY RUN SUPPORT
 # ------------------------------------------------------------------------------
-DRY_RUN="${DRY_RUN:-1}"
+DRY_RUN="${DRY_RUN:-no}"
 
 is_dry_run() {
-    [[ "$DRY_RUN" == "0" ]]
+    [[ "$DRY_RUN" == "yes" ]]
 }
 
 run_cmd() {
@@ -129,7 +129,7 @@ notify_unraid() {
     local title="$1"
     local message="$2"
 
-    if [[ "${NOTIFICATIONS:-0}" == "1" ]]; then
+    if [[ "${NOTIFICATIONS:-no}" == "yes" ]]; then
         /usr/local/emhttp/webGui/scripts/notify \
             -e "unRAID Status" \
             -s "$title" \

@@ -65,7 +65,7 @@ cleanup() {
     LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
     rm -f "$LOCK_FILE"
 
-    if [[ "$DRY_RUN" != "true" ]]; then
+    if [[ "$DRY_RUN" != "yes" ]]; then
         if (( ${#STOPPED_VMS[@]} > 0 )); then
             :
             for vm in "${STOPPED_VMS[@]}"; do
@@ -122,7 +122,7 @@ notify_unraid() {
     local title="$1"
     local message="$2"
 
-    if [[ "$NOTIFICATIONS_RESTORE" == "1" ]]; then
+    if [[ "$NOTIFICATIONS_RESTORE" == "yes" ]]; then
         /usr/local/emhttp/webGui/scripts/notify \
             -e "unRAID Status" \
             -s "$title" \
@@ -171,7 +171,7 @@ validation_fail() {
 }
 
 run_cmd() {
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "$DRY_RUN" == "yes" ]]; then
         printf '[DRY RUN] '
         printf '%q ' "$@"
         echo

@@ -14,8 +14,8 @@ $defaults = [
     'BACKUP_DESTINATION' => '',
     'BACKUPS_TO_KEEP' => '0',
     'BACKUP_OWNER' => 'nobody',
-    'DRY_RUN' => '1',
-    'NOTIFICATIONS' => '0'
+    'DRY_RUN' => 'no',
+    'NOTIFICATIONS' => 'no'
 ];
 
 // Load existing config if present
@@ -48,8 +48,8 @@ $restoreDefaults = [
     'VMS_TO_RESTORE' => '',
     'VERSIONS' => '',
     'RESTORE_DESTINATION' => '/mnt/user/domains',
-    'DRY_RUN_RESTORE' => 'false',
-    'NOTIFICATIONS_RESTORE' => '0'
+    'DRY_RUN_RESTORE' => 'no',
+    'NOTIFICATIONS_RESTORE' => 'no'
 ];
 
 // Load existing restore config if present
@@ -987,8 +987,12 @@ if (is_file($plg)) {
 
         <span class="vm-backup-and-restoretip" title="Enable to simulate a backup">
           <select id="dry_run" class="short-input" name="DRY_RUN">
-            <option value="0" <?=((string)($settings['DRY_RUN'] ?? '1' )==='0' ) ? 'selected' : '' ?>>Yes</option>
-            <option value="1" <?=((string)($settings['DRY_RUN'] ?? '1' )==='1' ) ? 'selected' : '' ?>>No</option>
+            <option value="yes" <?=(($settings['DRY_RUN'] ?? 'no' )==='yes' ) ? 'selected' : '' ?>>
+              Yes
+            </option>
+            <option value="no" <?=(($settings['DRY_RUN'] ?? 'no' )==='no' ) ? 'selected' : '' ?>>
+              No
+            </option>
           </select>
         </span>
       </div>
@@ -1005,16 +1009,15 @@ if (is_file($plg)) {
         <span class="vm-backup-and-restoretip"
           title="Send Unraid system notifications when VM backup starts and finishes">
           <select id="notifications" class="short-input" name="NOTIFICATIONS">
-            <option value="1" <?=((int)($settings['NOTIFICATIONS'] ?? 0)===1) ? 'selected' : '' ?>>
+            <option value="yes" <?=(($settings['NOTIFICATIONS'] ?? 'no' )==='yes' ) ? 'selected' : '' ?>>
               Yes
             </option>
-            <option value="0" <?=((int)($settings['NOTIFICATIONS'] ?? 0)===0) ? 'selected' : '' ?>>
+            <option value="no" <?=(($settings['NOTIFICATIONS'] ?? 'no' )==='no' ) ? 'selected' : '' ?>>
               No
             </option>
           </select>
         </span>
       </div>
-
 
       <!-- Scheduling Selection -->
       <div class="form-pair" id="cron-expression-row">
@@ -1338,7 +1341,7 @@ if (is_file($plg)) {
         </span>
       </div>
 
-      <!-- DRY RUN -->
+      <!-- DRY RUN RESTORE -->
       <div class="form-pair">
         <label for="dry_run_restore">
           <span class="vm-backup-and-restoretip" title="Enable to simulate a restore">
@@ -1348,16 +1351,17 @@ if (is_file($plg)) {
 
         <span class="vm-backup-and-restoretip" title="Enable to simulate a restore">
           <select id="dry_run_restore" class="short-input" name="DRY_RUN_RESTORE">
-            <?php
-        $val = (string)($restoreSettings['DRY_RUN_RESTORE'] ?? 'true');
-      ?>
-            <option value="true" <?=$val==='true' ? 'selected' : '' ?>>Yes</option>
-            <option value="false" <?=$val==='false' ? 'selected' : '' ?>>No</option>
+            <option value="yes" <?=(($restoreSettings['DRY_RUN_RESTORE'] ?? 'no' )==='yes' ) ? 'selected' : '' ?>>
+              Yes
+            </option>
+            <option value="no" <?=(($restoreSettings['DRY_RUN_RESTORE'] ?? 'no' )==='no' ) ? 'selected' : '' ?>>
+              No
+            </option>
           </select>
         </span>
       </div>
 
-      <!-- NOTIFICATIONS -->
+      <!-- NOTIFICATIONS RESTORE -->
       <div class="form-pair">
         <label for="notifications_restore">
           <span class="vm-backup-and-restoretip"
@@ -1369,12 +1373,10 @@ if (is_file($plg)) {
         <span class="vm-backup-and-restoretip"
           title="Send Unraid system notifications when VM restore starts and finishes">
           <select id="notifications_restore" class="short-input" name="NOTIFICATIONS_RESTORE">
-            <option value="1" <?=((int)($restoreSettings['NOTIFICATIONS_RESTORE'] ?? 0)===1) ? 'selected' : '' ?>
-              >
+            <option value="yes" <?=(($restoreSettings['NOTIFICATIONS_RESTORE'] ?? 'no' )==='yes' ) ? 'selected' : '' ?>>
               Yes
             </option>
-            <option value="0" <?=((int)($restoreSettings['NOTIFICATIONS_RESTORE'] ?? 0)===0) ? 'selected' : '' ?>
-              >
+            <option value="no" <?=(($restoreSettings['NOTIFICATIONS_RESTORE'] ?? 'no' )==='no' ) ? 'selected' : '' ?>>
               No
             </option>
           </select>

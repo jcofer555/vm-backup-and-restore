@@ -10,8 +10,8 @@ LOCATION_OF_BACKUPS="${1:-}"
 VMS_TO_RESTORE="${2:-}"
 VERSIONS="${3:-}"
 RESTORE_DESTINATION="${4:-/mnt/user/domains}"
-DRY_RUN_RESTORE="${5:-false}"
-NOTIFICATIONS_RESTORE="${6:-false}"
+DRY_RUN_RESTORE="${5:-no}"
+NOTIFICATIONS_RESTORE="${6:-no}"
 
 # ==========================================================
 #  Write all settings
