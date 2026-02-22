@@ -87,11 +87,11 @@ cleanup() {
     echo "Restore session finished - $(date '+%Y-%m-%d %H:%M:%S')"
 
     # --- FINAL STATUS UPDATE ---
-    set_restore_status "Restore complete – Duration: $SCRIPT_DURATION_HUMAN"
+    set_restore_status "Restore complete - Duration: $SCRIPT_DURATION_HUMAN"
     # ---------------------------
 
     timestamp="$(date +"%d-%m-%Y %H:%M")"
-    notify_unraid "unRAID VM Restore script" \
+    notify_unraid "VM Backup & Restore" \
     "Restore finished - Duration: $SCRIPT_DURATION_HUMAN"
 
     rm -f "$RESTORE_STATUS_FILE"
@@ -124,7 +124,7 @@ notify_unraid() {
 
     if [[ "$NOTIFICATIONS_RESTORE" == "yes" ]]; then
         /usr/local/emhttp/webGui/scripts/notify \
-            -e "unRAID Status" \
+            -e "VM Backup & Restore" \
             -s "$title" \
             -d "$message" \
             -i "normal"
@@ -132,7 +132,7 @@ notify_unraid() {
 }
 
 timestamp="$(date +"%d-%m-%Y %H:%M")"
-notify_unraid "unRAID VM Restore script" \
+notify_unraid "VM Backup & Restore" \
 "Restore started"
 
 sleep 5

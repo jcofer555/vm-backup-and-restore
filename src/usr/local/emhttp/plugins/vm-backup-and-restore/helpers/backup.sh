@@ -148,7 +148,7 @@ notify_unraid() {
 
     if [[ "${NOTIFICATIONS:-no}" == "yes" ]]; then
         /usr/local/emhttp/webGui/scripts/notify \
-            -e "unRAID Status" \
+            -e "VM Backup & Restore" \
             -s "$title" \
             -d "$message" \
             -i "normal"
@@ -156,7 +156,7 @@ notify_unraid() {
 }
 
 timestamp="$(date +"%d-%m-%Y %H:%M")"
-notify_unraid "unRAID VM Backup script" "Backup started"
+notify_unraid "VM Backup & Restore" "Backup started"
 
 sleep 5
 
@@ -204,7 +204,7 @@ cleanup() {
     SCRIPT_DURATION_HUMAN="$(format_duration "$SCRIPT_DURATION")"
 
     # --- STATUS UPDATE ---
-    set_status "Backup complete – Duration: $SCRIPT_DURATION_HUMAN"
+    set_status "Backup complete - Duration: $SCRIPT_DURATION_HUMAN"
     # ---------------------
 
     if is_dry_run; then
@@ -212,7 +212,7 @@ cleanup() {
         echo "Backup duration: $SCRIPT_DURATION_HUMAN"
         echo "Backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
 
-        notify_unraid "unRAID VM Backup script" \
+        notify_unraid "VM Backup & Restore" \
         "Backup finished - Duration: $SCRIPT_DURATION_HUMAN"
 
         rm -f "$STATUS_FILE"
@@ -232,7 +232,7 @@ cleanup() {
     echo "Backup duration: $SCRIPT_DURATION_HUMAN"
     echo "Backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
 
-    notify_unraid "unRAID VM Backup script" \
+    notify_unraid "VM Backup & Restore" \
     "Backup finished - Duration: $SCRIPT_DURATION_HUMAN"
 
     rm -f "$STATUS_FILE"

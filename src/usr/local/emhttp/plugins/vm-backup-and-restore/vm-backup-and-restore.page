@@ -2370,14 +2370,14 @@ if (is_file($plg)) {
   }
 
   // --- Create or update schedule ---
-  function scheduleJob(type) {
+  async function scheduleJob(type) {
 
     if (!validateBackupPrereqs()) {
       return; // block saving schedule
     }
 
-    if (scheduleUILocked) return;   // prevent double‑clicks during reload
-    lockScheduleUI();               // freeze all schedule action buttons
+    if (scheduleUILocked) return;
+    lockScheduleUI();
 
     const cron = buildCronFromUI();
     if (!cron.valid) {
@@ -2386,7 +2386,51 @@ if (is_file($plg)) {
       return;
     }
 
-    // Gather all input/select values as settings
+    // -------------------------------
+    // INLINE VDISK MOUNT-TYPE CHECK
+    // -------------------------------
+    const vms = $('#vm-hidden-backup').val();
+    const dest = $('#backup_destination').val().trim();
+
+    const vmList = vms.split(',').map(v => v.trim()).filter(Boolean);
+    const destClass = backupclassifyPath(dest);
+
+    try {
+      const data = await fetchVdiskPaths(vmList);
+
+      for (const vm of vmList) {
+        const disks = data[vm];
+
+        if (!Array.isArray(disks)) {
+          unlockScheduleUI();
+          alert(`Could not read vdisk paths for ${vm}`);
+          return;
+        }
+
+        for (const disk of disks) {
+          const diskClass = backupclassifyPath(disk);
+
+          if (diskClass !== destClass) {
+            unlockScheduleUI();
+            alert(
+              `${vm}'s vdisk ${disk} is using mount type (${diskClass}) and backup destination (${destClass})\n\n` +
+              'They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0'
+            );
+            return;
+          }
+        }
+      }
+    } catch (err) {
+      unlockScheduleUI();
+      alert('Error validating vdisk paths');
+      console.error(err);
+      return;
+    }
+
+    // -------------------------------
+    // CONTINUE WITH NORMAL SAVE LOGIC
+    // -------------------------------
+
     const settings = {};
     $('input[name], select[name]').each(function () {
       settings[this.name] = $(this).val();
@@ -2407,12 +2451,8 @@ if (is_file($plg)) {
       },
       success: function (response) {
         resetScheduleUI();
-
-        // Clear editing ID
         window.editingScheduleId = null;
-
         loadSchedules();
-
         showPopup("Schedule saved!");
       },
       error: function (xhr) {
