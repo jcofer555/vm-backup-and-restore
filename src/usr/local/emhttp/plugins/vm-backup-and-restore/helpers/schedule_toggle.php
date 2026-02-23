@@ -14,11 +14,7 @@ if (!isset($schedules[$id])) {
     exit;
 }
 
-/*
- * Normalize ENABLED:
- * Handles "yes", "no", yes, no, true, false
- * Forces string semantics
- */
+// Normalize ENABLED:
 $current = strtolower((string)($schedules[$id]['ENABLED'] ?? 'yes'));
 $schedules[$id]['ENABLED'] = ($current === 'yes') ? 'no' : 'yes';
 

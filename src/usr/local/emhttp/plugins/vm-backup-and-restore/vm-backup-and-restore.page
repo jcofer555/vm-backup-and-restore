@@ -918,6 +918,11 @@ if (file_exists("/etc/unraid-version")) {
     opacity: 0.25;
     cursor: default;
   }
+
+  .flash-backup-schedules-table td {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+}
 </style>
 
 <?php
@@ -1317,6 +1322,7 @@ if (is_file($plg)) {
           class="vm-backup-and-restoretip">
           <button type="button" id="schedule-backup" class="button schedule-button">Schedule It</button>
         </span>
+        
         <span title="Cancel editing of schedule" class="vm-backup-and-restoretip">
           <button type="button" id="cancelEditBtn" style="display:none;">Cancel</button>
         </span>
