@@ -870,6 +870,54 @@ if (file_exists("/etc/unraid-version")) {
     opacity: 0.5;
     cursor: default;
   }
+
+  /* Anchor buttons to log */
+  #log-wrapper {
+    position: relative;
+  }
+
+  /* Scrollable log */
+  #last-run-log {
+    white-space: pre-wrap;
+  }
+
+  /* Buttons pinned inside log */
+  #log-scroll-buttons {
+    position: absolute;
+    right: 24px;
+    bottom: 188px;
+    display: none;
+    /* JS controls visibility */
+    flex-direction: column;
+    gap: 6px;
+    z-index: 10;
+  }
+
+  /* Compact button style (Unraid-safe override) */
+  #log-scroll-buttons>button {
+    width: 24px;
+    min-width: 24px;
+    max-width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 4px;
+    border: 1px solid #444;
+    background: #111;
+    color: #ccc;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.85;
+  }
+
+  #log-scroll-buttons>button:hover {
+    opacity: 1;
+  }
+
+  #log-scroll-buttons>button:disabled {
+    opacity: 0.25;
+    cursor: default;
+  }
 </style>
 
 <?php
@@ -1401,16 +1449,20 @@ if (is_file($plg)) {
     <form id="log-section-form">
 
       <div class="log-header-row">
-        <span title="Clear the flash backup log" class="flash-drivetip">
+        <span title="Clear the vm backup and restore log" class="vm-backup-and-restoretip">
           <button type="button" id="clear-last-run-log">Clear Log</button>
         </span>
 
-        <span title="Copy flash backup log to clipboard" class="flash-drivetip">
+        <span title="Copy vm backup and restore log to clipboard" class="vm-backup-and-restoretip">
           <button type="button" id="copy-last-run-log">Copy</button>
         </span>
       </div>
 
-      <pre id="last-run-log">Backup & restore log not found</pre>
+      <pre id="last-run-log">VM backup & restore log not found</pre>
+      <div id="log-scroll-buttons">
+        <button type="button" id="scroll-log-top">↑</button>
+        <button type="button" id="scroll-log-bottom">↓</button>
+      </div>
   </div>
 
   </form>
@@ -3167,4 +3219,44 @@ if (is_file($plg)) {
       btn.disabled = false;
     }, 1200);
   }
+</script>
+
+<script>
+  const logEl = document.getElementById('last-run-log');
+  const btnTop = document.getElementById('scroll-log-top');
+  const btnBottom = document.getElementById('scroll-log-bottom');
+  const btnContainer = document.getElementById('log-scroll-buttons');
+
+  function updateScrollButtons() {
+    const hasOverflow = logEl.scrollHeight > logEl.clientHeight + 5;
+
+    // Only show buttons if scrolling is possible
+    btnContainer.style.display = hasOverflow ? 'flex' : 'none';
+
+    if (!hasOverflow) return;
+
+    const atTop = logEl.scrollTop <= 0;
+    const atBottom = logEl.scrollTop + logEl.clientHeight >= logEl.scrollHeight - 1;
+
+    btnTop.disabled = atTop;
+    btnBottom.disabled = atBottom;
+  }
+
+  btnTop.addEventListener('click', () => {
+    logEl.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  btnBottom.addEventListener('click', () => {
+    logEl.scrollTo({ top: logEl.scrollHeight, behavior: 'smooth' });
+  });
+
+  // Update on scroll
+  logEl.addEventListener('scroll', updateScrollButtons);
+
+  // Update when log content changes
+  const observer = new MutationObserver(updateScrollButtons);
+  observer.observe(logEl, { childList: true, subtree: true });
+
+  // Initial evaluation
+  updateScrollButtons();
 </script>
