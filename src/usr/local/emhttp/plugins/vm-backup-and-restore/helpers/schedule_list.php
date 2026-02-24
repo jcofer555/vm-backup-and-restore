@@ -5,51 +5,93 @@ $schedules = [];
 if (file_exists($cfg)) {
     $schedules = parse_ini_file($cfg, true, INI_SCANNER_RAW);
 }
+
+function yesNo($value) {
+    $v = strtolower((string)$value);
+    return ($v === 'yes' || $v === '1' || $v === 'true') ? 'Yes' : 'No';
+}
+
+function humanCron($cron) {
+    $cron = trim($cron);
+    $parts = preg_split('/\s+/', $cron);
+    if (count($parts) !== 5) return $cron;
+
+    [$min, $hour, $dom, $month, $dow] = $parts;
+
+    if (preg_match('/^\*\/(\d+)$/', $min, $m) && $hour === '*' && $dom === '*' && $month === '*' && $dow === '*') {
+        $n = (int)$m[1];
+        return "Runs every $n minute" . ($n !== 1 ? 's' : '');
+    }
+
+    if ($min === '*' && $hour === '*' && $dom === '*' && $month === '*' && $dow === '*') {
+        return "Runs every minute";
+    }
+
+    if ($min === '0' && preg_match('/^\*\/(\d+)$/', $hour, $m) && $dom === '*' && $month === '*' && $dow === '*') {
+        $n = (int)$m[1];
+        return "Runs every $n hour" . ($n !== 1 ? 's' : '');
+    }
+
+    if (preg_match('/^\d+$/', $min) && preg_match('/^\d+$/', $hour) && $dom === '*' && $month === '*' && $dow === '*') {
+        $t = date('g:i A', mktime((int)$hour, (int)$min));
+        return "Runs daily at $t";
+    }
+
+    if (preg_match('/^\d+$/', $min) && preg_match('/^\d+$/', $hour) && $dom === '*' && $month === '*' && preg_match('/^\d+$/', $dow)) {
+        $days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        $t = date('g:i A', mktime((int)$hour, (int)$min));
+        $d = $days[(int)$dow] ?? $dow;
+        return "Runs every $d at $t";
+    }
+
+    if (preg_match('/^\d+$/', $min) && preg_match('/^\d+$/', $hour) && preg_match('/^\d+$/', $dom) && $month === '*' && $dow === '*') {
+        $t = date('g:i A', mktime((int)$hour, (int)$min));
+        $suffix = match((int)$dom % 10) {
+            1 => ((int)$dom === 11) ? 'th' : 'st',
+            2 => ((int)$dom === 12) ? 'th' : 'nd',
+            3 => ((int)$dom === 13) ? 'th' : 'rd',
+            default => 'th'
+        };
+        return "Runs monthly on the {$dom}{$suffix} at $t";
+    }
+
+    return $cron;
+}
 ?>
+
+<?php if (!empty($schedules)): ?>
+
+<h3>📅 Scheduled Backup Jobs</h3>
 
 <table class="vm-schedules-table"
        style="width:100%; border-collapse: collapse; margin-top:20px; border:1px solid #ccc; table-layout:fixed;">
 
 <thead>
 <tr style="background:#f9f9f9; color:#b30000; text-align:center; border-bottom:2px solid #b30000;">
-    <th style="padding:8px; width:6%;">Scheduling</th>    
-    <th style="padding:8px; width:8%;">VM(s) To Backup</th>
-    <th style="padding:8px; width:14%;">Backup Destination</th>
-    <th style="padding:8px; width:6%;">Backups To Keep</th>
+    <th style="padding:8px; width:16%;">Scheduling</th>
+    <th style="padding:8px; width:10%;">VM(s) To Backup</th>
+    <th style="padding:8px; width:18%;">Backup Destination</th>
+    <th style="padding:8px; width:8%;">Backups To Keep</th>
     <th style="padding:8px; width:8%;">Backup Owner</th>
     <th style="padding:8px; width:6%;">Dry Run</th>
-    <th style="padding:8px; width:6%;">Notifications</th>
-    <th style="padding:8px; width:16%;">Actions</th>
+    <th style="padding:8px; width:8%;">Notifications</th>
+    <th style="padding:8px; width:26%;">Actions</th>
 </tr>
 </thead>
 
 <tbody>
 
-<?php if (empty($schedules)): ?>
-
-    <tr style="border-bottom:1px solid #ccc;">
-        <td style="padding:12px; text-align:center;" colspan="8">
-            No schedules found
-        </td>
-    </tr>
-
-<?php else: ?>
-
     <?php foreach ($schedules as $id => $s): ?>
 
         <?php
-        // Enabled state
         $enabledBool = ($s['ENABLED'] ?? 'yes') === 'yes';
         $btnText     = $enabledBool ? 'Disable' : 'Enable';
 
-        // Row color
         $rowColor  = $enabledBool ? '#eaf7ea' : '#fdeaea';
         $textColor = $enabledBool ? '#2e7d32' : '#b30000';
 
-        // Cron
         $cron = $s['CRON'] ?? '';
 
-        // Decode SETTINGS JSON
         $settings = [];
         if (!empty($s['SETTINGS'])) {
             $settingsRaw = stripslashes($s['SETTINGS']);
@@ -57,27 +99,17 @@ if (file_exists($cfg)) {
             if (!is_array($settings)) $settings = [];
         }
 
-        /* -------------------------
-           VMs + Destination
-           ------------------------- */
         $vms  = '—';
         $dest = '—';
 
-        if (!empty($settings)) {
-            if (!empty($settings['VMS_TO_BACKUP'])) {
-                $vms = str_replace(',', ', ', $settings['VMS_TO_BACKUP']);
-            }
-
-            if (!empty($settings['BACKUP_DESTINATION'])) {
-                $dest = $settings['BACKUP_DESTINATION'];
-            }
+        if (!empty($settings['VMS_TO_BACKUP'])) {
+            $vms = str_replace(',', ', ', $settings['VMS_TO_BACKUP']);
         }
 
-        /* -------------------------
-           HUMAN-FRIENDLY VALUES
-           ------------------------- */
+        if (!empty($settings['BACKUP_DESTINATION'])) {
+            $dest = $settings['BACKUP_DESTINATION'];
+        }
 
-        // Backups To Keep
         if (!isset($settings['BACKUPS_TO_KEEP'])) {
             $backupsToKeep = '—';
         } else {
@@ -87,29 +119,18 @@ if (file_exists($cfg)) {
             else                 $backupsToKeep = $btk;
         }
 
-        // Backup Owner
         $backupOwner = $settings['BACKUP_OWNER'] ?? '—';
-
-        // Dry Run (1 = no, 0 = yes)
-        if (!isset($settings['DRY_RUN'])) {
-            $dryRun = '—';
-        } else {
-            $dryRun = ((int)$settings['DRY_RUN'] === 1) ? 'No' : 'Yes';
-        }
-
-        // Notifications (1 = yes, 0 = no)
-        if (!isset($settings['NOTIFICATIONS'])) {
-            $notify = '—';
-        } else {
-            $notify = ((int)$settings['NOTIFICATIONS'] === 1) ? 'Yes' : 'No';
-        }
+        $dryRun      = !isset($settings['DRY_RUN'])      ? '—' : yesNo($settings['DRY_RUN']);
+        $notify      = !isset($settings['NOTIFICATIONS']) ? '—' : yesNo($settings['NOTIFICATIONS']);
         ?>
 
         <tr style="border-bottom:1px solid #ccc; background:<?php echo $rowColor; ?>; color:<?php echo $textColor; ?>;">
 
-            <!-- Cron -->
+            <!-- Scheduling -->
             <td style="padding:8px; text-align:center;">
-                <?php echo htmlspecialchars($cron); ?>
+                <span class="vm-backup-and-restoretip" title="<?php echo htmlspecialchars($cron); ?>">
+                    <?php echo htmlspecialchars(humanCron($cron)); ?>
+                </span>
             </td>
 
             <!-- VM(s) -->
@@ -186,7 +207,7 @@ if (file_exists($cfg)) {
 
     <?php endforeach; ?>
 
-<?php endif; ?>
-
 </tbody>
 </table>
+
+<?php endif; ?>
