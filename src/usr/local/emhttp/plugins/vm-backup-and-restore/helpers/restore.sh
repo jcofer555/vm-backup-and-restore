@@ -90,9 +90,13 @@ cleanup() {
     set_restore_status "Restore complete - Duration: $SCRIPT_DURATION_HUMAN"
     # ---------------------------
 
-    timestamp="$(date +"%d-%m-%Y %H:%M")"
-    notify_unraid "VM Backup & Restore" \
-    "Restore finished - Duration: $SCRIPT_DURATION_HUMAN"
+    if (( error_count > 0 )); then
+        notify_restore "warning" "VM Backup & Restore" \
+            "Restore finished with errors - Duration: $SCRIPT_DURATION_HUMAN - Check logs for details"
+    else
+        notify_restore "normal" "VM Backup & Restore" \
+            "Restore finished - Duration: $SCRIPT_DURATION_HUMAN"
+    fi
 
     rm -f "$RESTORE_STATUS_FILE"
 }
@@ -101,6 +105,8 @@ trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT
 
 CONFIG="/boot/config/plugins/vm-backup-and-restore/settings_restore.cfg"
 source "$CONFIG" || exit 1
+
+DISCORD_WEBHOOK_URL_RESTORE="${DISCORD_WEBHOOK_URL_RESTORE//\"/}"
 
 classify_path() {
     local p="$1"
@@ -128,22 +134,38 @@ classify_path() {
     echo "OTHER"
 }
 
-notify_unraid() {
-    local title="$1"
-    local message="$2"
+notify_restore() {
+    local level="$1"
+    local title="$2"
+    local message="$3"
 
-    if [[ "$NOTIFICATIONS_RESTORE" == "yes" ]]; then
-        /usr/local/emhttp/webGui/scripts/notify \
-            -e "VM Backup & Restore" \
-            -s "$title" \
-            -d "$message" \
-            -i "normal"
+    [[ "$NOTIFICATIONS_RESTORE" != "yes" ]] && return 0
+
+    if [[ -n "$DISCORD_WEBHOOK_URL_RESTORE" ]]; then
+        local color
+        case "$level" in
+            alert)   color=15158332 ;;  # red
+            warning) color=16776960 ;;  # yellow
+            *)       color=3066993  ;;  # green
+        esac
+        curl -sf -X POST "$DISCORD_WEBHOOK_URL_RESTORE" \
+            -H "Content-Type: application/json" \
+            -d "{\"embeds\":[{\"title\":\"$title\",\"description\":\"$message\",\"color\":$color}]}" || true
+    else
+        if [[ -x /usr/local/emhttp/webGui/scripts/notify ]]; then
+            /usr/local/emhttp/webGui/scripts/notify \
+                -e "VM Backup & Restore" \
+                -s "$title" \
+                -d "$message" \
+                -i "$level"
+        fi
     fi
 }
 
+error_count=0
+
 timestamp="$(date +"%d-%m-%Y %H:%M")"
-notify_unraid "VM Backup & Restore" \
-"Restore started"
+notify_restore "normal" "VM Backup & Restore" "Restore started"
 
 sleep 5
 
@@ -160,6 +182,7 @@ if [[ "$src_class" != "$dst_class" && "$src_class" != "EXEMPT" && "$dst_class" !
     echo "[ERROR] They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0"
     echo "Restore aborted due to mount type mismatch"
     set_restore_status "Restore aborted – mount-type mismatch"
+    notify_restore "alert" "VM Backup & Restore Error" "Restore aborted due to mount type mismatch"
     exit 1
 fi
 
@@ -178,6 +201,7 @@ err() { echo -e "[ERROR] $1"; }
 validation_fail() {
     err "$1"
     warn "Skipping $vm"
+    ((error_count++))
 }
 
 run_cmd() {

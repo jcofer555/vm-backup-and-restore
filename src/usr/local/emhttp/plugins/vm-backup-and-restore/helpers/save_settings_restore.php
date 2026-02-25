@@ -5,12 +5,13 @@ header('Content-Type: application/json');
 $cmd = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/save_settings_restore.sh';
 
 // --- Grab raw values ---
-$location_of_backups  = $_GET['LOCATION_OF_BACKUPS'] ?? '';
-$vms_to_restore       = $_GET['VMS_TO_RESTORE'] ?? '';
-$versions             = $_GET['VERSIONS'] ?? '';
-$restore_destination  = $_GET['RESTORE_DESTINATION'] ?? '';
-$dry_run_restore      = $_GET['DRY_RUN_RESTORE'] ?? '';
-$notifications_restore= $_GET['NOTIFICATIONS_RESTORE'] ?? '';
+$location_of_backups            = $_GET['LOCATION_OF_BACKUPS'] ?? '';
+$vms_to_restore                 = $_GET['VMS_TO_RESTORE'] ?? '';
+$versions                       = $_GET['VERSIONS'] ?? '';
+$restore_destination            = $_GET['RESTORE_DESTINATION'] ?? '';
+$dry_run_restore                = $_GET['DRY_RUN_RESTORE'] ?? '';
+$notifications_restore          = $_GET['NOTIFICATIONS_RESTORE'] ?? '';
+$discord_webhook_url_restore    = $_GET['DISCORD_WEBHOOK_URL_RESTORE'] ?? '';
 
 // --- Normalize LOCATION_OF_BACKUPS ---
 if ($location_of_backups !== '') {
@@ -36,6 +37,7 @@ $args = [
     $restore_destination,
     $dry_run_restore,
     $notifications_restore,
+    $discord_webhook_url_restore,
 ];
 
 // Escape each argument for safety

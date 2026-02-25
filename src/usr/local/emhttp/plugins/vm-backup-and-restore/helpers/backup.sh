@@ -152,21 +152,40 @@ run_cmd() {
 # Notifications
 # ------------------------------------------------------------------------------
 
-notify_unraid() {
-    local title="$1"
-    local message="$2"
+DISCORD_WEBHOOK_URL="${DISCORD_WEBHOOK_URL//\"/}"
 
-    if [[ "${NOTIFICATIONS:-no}" == "yes" ]]; then
-        /usr/local/emhttp/webGui/scripts/notify \
-            -e "VM Backup & Restore" \
-            -s "$title" \
-            -d "$message" \
-            -i "normal"
+notify_vm() {
+    local level="$1"
+    local title="$2"
+    local message="$3"
+
+    [[ "${NOTIFICATIONS:-no}" != "yes" ]] && return 0
+
+    if [[ -n "$DISCORD_WEBHOOK_URL" ]]; then
+        local color
+        case "$level" in
+            alert)   color=15158332 ;;  # red
+            warning) color=16776960 ;;  # yellow
+            *)       color=3066993  ;;  # green
+        esac
+        curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"embeds\":[{\"title\":\"$title\",\"description\":\"$message\",\"color\":$color}]}" || true
+    else
+        if [[ -x /usr/local/emhttp/webGui/scripts/notify ]]; then
+            /usr/local/emhttp/webGui/scripts/notify \
+                -e "VM Backup & Restore" \
+                -s "$title" \
+                -d "$message" \
+                -i "$level"
+        fi
     fi
 }
 
+error_count=0
+
 timestamp="$(date +"%d-%m-%Y %H:%M")"
-notify_unraid "VM Backup & Restore" "Backup started"
+notify_vm "normal" "VM Backup & Restore" "Backup started"
 
 sleep 5
 
@@ -222,8 +241,8 @@ cleanup() {
         echo "Backup duration: $SCRIPT_DURATION_HUMAN"
         echo "Backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
 
-        notify_unraid "VM Backup & Restore" \
-        "Backup finished - Duration: $SCRIPT_DURATION_HUMAN"
+        notify_vm "normal" "VM Backup & Restore" \
+            "Backup finished - Duration: $SCRIPT_DURATION_HUMAN"
 
         rm -f "$STATUS_FILE"
         return
@@ -242,8 +261,13 @@ cleanup() {
     echo "Backup duration: $SCRIPT_DURATION_HUMAN"
     echo "Backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
 
-    notify_unraid "VM Backup & Restore" \
-    "Backup finished - Duration: $SCRIPT_DURATION_HUMAN"
+    if (( error_count > 0 )); then
+        notify_vm "warning" "VM Backup & Restore" \
+            "Backup finished with errors - Duration: $SCRIPT_DURATION_HUMAN - Check logs for details"
+    else
+        notify_vm "normal" "VM Backup & Restore" \
+            "Backup finished - Duration: $SCRIPT_DURATION_HUMAN"
+    fi
 
     rm -f "$STATUS_FILE"
 }
@@ -267,6 +291,7 @@ for vm in "${CLEAN_VMS[@]}"; do
 
     if [[ ! -f "$vm_xml_path" ]]; then
         echo "ERROR: XML not found for $vm"
+        ((error_count++))
         continue
     fi
 
@@ -308,6 +333,7 @@ for vm in "${CLEAN_VMS[@]}"; do
     for vdisk in "${vdisks[@]}"; do
         if ! validate_mount_compatibility "$vdisk" "$backup_location"; then
             echo "[ERROR] Skipping $vm due to incompatible mount types"
+            ((error_count++))
 
             # --- REMOVE ONLY FILES CREATED IN THIS RUN ---
             if [[ -d "$vm_backup_folder" ]]; then
@@ -348,6 +374,7 @@ for vm in "${CLEAN_VMS[@]}"; do
             if [[ ! -f "$vdisk" ]]; then
                 echo "[ERROR] $vm's vdisk $vdisk not found"
                 echo "[ERROR] Skipping $vm"
+                ((error_count++))
 
                 cleanup_partial_backup "$vm_backup_folder" "$RUN_TS"
 

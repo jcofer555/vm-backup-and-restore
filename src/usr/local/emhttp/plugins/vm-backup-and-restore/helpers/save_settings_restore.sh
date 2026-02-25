@@ -12,6 +12,7 @@ VERSIONS="${3:-}"
 RESTORE_DESTINATION="${4:-/mnt/user/domains}"
 DRY_RUN_RESTORE="${5:-no}"
 NOTIFICATIONS_RESTORE="${6:-no}"
+DISCORD_WEBHOOK_URL_RESTORE="${7:-}"
 
 # ==========================================================
 #  Write all settings
@@ -23,6 +24,7 @@ NOTIFICATIONS_RESTORE="${6:-no}"
   echo "RESTORE_DESTINATION=\"$RESTORE_DESTINATION\""
   echo "DRY_RUN_RESTORE=\"$DRY_RUN_RESTORE\""
   echo "NOTIFICATIONS_RESTORE=\"$NOTIFICATIONS_RESTORE\""
+  echo "DISCORD_WEBHOOK_URL_RESTORE=\"$DISCORD_WEBHOOK_URL_RESTORE\""
 } > "$TMP"
 
 mv "$TMP" "$CONFIG"

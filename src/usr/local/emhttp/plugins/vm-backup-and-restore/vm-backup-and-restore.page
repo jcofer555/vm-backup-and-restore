@@ -15,7 +15,8 @@ $defaults = [
     'BACKUPS_TO_KEEP' => '0',
     'BACKUP_OWNER' => 'nobody',
     'DRY_RUN' => 'no',
-    'NOTIFICATIONS' => 'no'
+    'NOTIFICATIONS' => 'no',
+    'DISCORD_WEBHOOK_URL' => ''
 ];
 
 // Load existing config if present
@@ -49,7 +50,8 @@ $restoreDefaults = [
     'VERSIONS' => '',
     'RESTORE_DESTINATION' => '/mnt/user/domains',
     'DRY_RUN_RESTORE' => 'no',
-    'NOTIFICATIONS_RESTORE' => 'no'
+    'NOTIFICATIONS_RESTORE' => 'no',
+    'DISCORD_WEBHOOK_URL_RESTORE' => ''
 ];
 
 // Load existing restore config if present
@@ -1024,6 +1026,26 @@ if (is_file($plg)) {
         </span>
       </div>
 
+      <!-- DISCORD WEBHOOK URL -->
+      <div class="form-pair" id="discord-webhook-row" style="display:none;">
+        <label for="discord_webhook_url">
+          <span class="vm-backup-and-restoretip"
+            title="Enter your Discord webhook URL to send notifications to Discord instead of Unraid">
+            Discord Webhook URL:
+          </span>
+        </label>
+        <div class="input-wrapper">
+          <span class="vm-backup-and-restoretip"
+            title="Enter your Discord webhook URL to send notifications to Discord instead of Unraid">
+            <input type="text" id="discord_webhook_url" name="DISCORD_WEBHOOK_URL" class="short-input"
+              placeholder="https://discord.com/api/webhooks/..."
+              value="<?php echo htmlspecialchars($settings['DISCORD_WEBHOOK_URL'] ?? ''); ?>">
+          </span>
+          <div id="discord-webhook-error" style="color:yellow; font-size:1.00em; display:none;">* Must start with
+            https://discord.com/api/webhooks/</div>
+        </div>
+      </div>
+
       <!-- Scheduling Selection -->
       <div class="form-pair" id="cron-expression-row">
         <label for="cron_mode">
@@ -1448,6 +1470,26 @@ if (is_file($plg)) {
         </span>
       </div>
 
+      <!-- DISCORD WEBHOOK URL RESTORE -->
+      <div class="form-pair" id="discord-webhook-row-restore" style="display:none;">
+        <label for="discord_webhook_url_restore">
+          <span class="vm-backup-and-restoretip"
+            title="Enter your Discord webhook URL to send notifications to Discord instead of Unraid">
+            Discord Webhook URL:
+          </span>
+        </label>
+        <div class="input-wrapper">
+          <span class="vm-backup-and-restoretip"
+            title="Enter your Discord webhook URL to send notifications to Discord instead of Unraid">
+            <input type="text" id="discord_webhook_url_restore" name="DISCORD_WEBHOOK_URL_RESTORE" class="short-input"
+              placeholder="https://discord.com/api/webhooks/..."
+              value="<?php echo htmlspecialchars($restoreSettings['DISCORD_WEBHOOK_URL_RESTORE'] ?? ''); ?>">
+          </span>
+          <div id="discord-webhook-error-restore" style="color:yellow; font-size:1.00em; display:none;">* Must start with
+            https://discord.com/api/webhooks/</div>
+        </div>
+      </div>
+
       <div id="restore-status" style="color:yellow; font-weight:bold; margin-bottom:6px; display:none;">
         Backup or restore in progress!
       </div>
@@ -1521,6 +1563,52 @@ if (is_file($plg)) {
     }
   });
 
+  function validateDiscordWebhook() {
+    const val = $('#discord_webhook_url').val().trim();
+    if (val !== '' && !val.startsWith('https://discord.com/api/webhooks/')) {
+      $('#discord-webhook-error').show();
+      return false;
+    }
+    $('#discord-webhook-error').hide();
+    return true;
+  }
+
+  function toggleDiscordWebhookRow() {
+    if ($('#notifications').val() === 'yes') {
+      $('#discord-webhook-row').show();
+    } else {
+      $('#discord-webhook-row').hide();
+    }
+  }
+
+  $('#notifications').on('change', toggleDiscordWebhookRow);
+  toggleDiscordWebhookRow();
+
+  $('#discord_webhook_url').on('input', validateDiscordWebhook);
+
+  function validateDiscordWebhookRestore() {
+    const val = $('#discord_webhook_url_restore').val().trim();
+    if (val !== '' && !val.startsWith('https://discord.com/api/webhooks/')) {
+      $('#discord-webhook-error-restore').show();
+      return false;
+    }
+    $('#discord-webhook-error-restore').hide();
+    return true;
+  }
+
+  function toggleDiscordWebhookRowRestore() {
+    if ($('#notifications_restore').val() === 'yes') {
+      $('#discord-webhook-row-restore').show();
+    } else {
+      $('#discord-webhook-row-restore').hide();
+    }
+  }
+
+  $('#notifications_restore').on('change', toggleDiscordWebhookRowRestore);
+  toggleDiscordWebhookRowRestore();
+
+  $('#discord_webhook_url_restore').on('input', validateDiscordWebhookRestore);
+
   let scheduleUILocked = false;
   let rebuildToken = 0;
 
@@ -1535,6 +1623,11 @@ if (is_file($plg)) {
 
     if (!dest) {
       alert("Please select a backup destination for the schedule");
+      return false;
+    }
+
+    if (!validateDiscordWebhook()) {
+      alert("Please enter a valid Discord webhook URL or leave it blank");
       return false;
     }
 
@@ -2342,6 +2435,7 @@ if (is_file($plg)) {
       BACKUP_OWNER: $('#backup_owner').val(),
       DRY_RUN: $('#dry_run').val(),
       NOTIFICATIONS: $('#notifications').val(),
+      DISCORD_WEBHOOK_URL: $('#discord_webhook_url').val().trim(),
       csrf_token: csrfToken
     });
 
@@ -2974,6 +3068,11 @@ if (is_file($plg)) {
       return;
     }
 
+    if (!validateDiscordWebhookRestore()) {
+      alert("Please enter a valid Discord webhook URL or leave it blank");
+      return;
+    }
+
     if ($('#restorebtn').prop('disabled')) {
       return;
     }
@@ -2991,6 +3090,7 @@ if (is_file($plg)) {
       RESTORE_DESTINATION: restore_dest,
       DRY_RUN_RESTORE: $('#dry_run_restore').val(),
       NOTIFICATIONS_RESTORE: $('#notifications_restore').val(),
+      DISCORD_WEBHOOK_URL_RESTORE: $('#discord_webhook_url_restore').val().trim(),
       csrf_token: csrfToken
     });
 

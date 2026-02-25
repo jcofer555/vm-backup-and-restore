@@ -12,6 +12,7 @@ BACKUPS_TO_KEEP="${3:-0}"
 BACKUP_OWNER="${4:-nobody}"
 DRY_RUN="${5:-no}"
 NOTIFICATIONS="${6:-no}"
+DISCORD_WEBHOOK_URL="${7:-}"
 
 # ==========================================================
 #  Write all settings
@@ -23,6 +24,7 @@ NOTIFICATIONS="${6:-no}"
   echo "BACKUP_OWNER=\"$BACKUP_OWNER\""
   echo "DRY_RUN=\"$DRY_RUN\""
   echo "NOTIFICATIONS=\"$NOTIFICATIONS\""
+  echo "DISCORD_WEBHOOK_URL=\"$DISCORD_WEBHOOK_URL\""
 } > "$TMP"
 
 mv "$TMP" "$CONFIG"
