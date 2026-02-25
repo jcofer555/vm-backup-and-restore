@@ -1329,8 +1329,8 @@ if (is_file($plg)) {
           <button type="button" id="backupbtn">Backup Now</button>
         </span>
 
-        <span title="Create/update a backup schedule using the settings shown in the fields above"
-          class="vm-backup-and-restoretip">
+        <span class="vm-backup-and-restoretip"
+          data-tooltip="Create a backup schedule using the settings shown in the fields above">
           <button type="button" id="schedule-backup" class="button schedule-button">Schedule It</button>
         </span>
 
@@ -1503,23 +1503,22 @@ if (is_file($plg)) {
 </div>
 
 <script>
-  $(function () {
-    $(document).on('mouseenter', '.vm-backup-and-restoretip', function () {
-      const $el = $(this);
+  $(document).on('mouseenter', '.vm-backup-and-restoretip', function () {
+    const $el = $(this);
 
-      if (!$el.hasClass('tooltipstered')) {
-        $el.tooltipster({
-          maxWidth: 300
-        });
+    if (!$el.hasClass('tooltipstered')) {
+      $el.tooltipster({
+        maxWidth: 300,
+        content: $el.data('tooltip')
+      });
+      $el.removeAttr('title');
 
-        // Delay auto-open by 500ms
-        setTimeout(() => {
-          if ($el.is(':hover')) {
-            $el.tooltipster('open');
-          }
-        }, 500);
-      }
-    });
+      setTimeout(() => {
+        if ($el.is(':hover')) {
+          $el.tooltipster('open');
+        }
+      }, 500);
+    }
   });
 
   let scheduleUILocked = false;
@@ -2680,6 +2679,9 @@ if (is_file($plg)) {
 
       // Switch Schedule It → Edit
       $('#schedule-backup').text('Update');
+      const $tip = $('#schedule-backup').closest('span');
+      $tip.data('tooltip', 'Update the backup schedule using the settings shown in the fields above');
+      if ($tip.hasClass('tooltipstered')) $tip.tooltipster('content', 'Update the backup schedule using the settings shown in the fields above');
 
       // Show Cancel button
       $('#cancelEditBtn').show();
@@ -2708,6 +2710,9 @@ if (is_file($plg)) {
   function resetScheduleUI() {
     // Revert Edit → Schedule It
     $('#schedule-backup').text('Schedule It');
+    const $tip = $('#schedule-backup').closest('span');
+    $tip.data('tooltip', 'Create a backup schedule using the settings shown in the fields above');
+    if ($tip.hasClass('tooltipstered')) $tip.tooltipster('content', 'Create a backup schedule using the settings shown in the fields above');
 
     // Hide Cancel button
     $('#cancelEditBtn').hide();
@@ -2806,9 +2811,9 @@ if (is_file($plg)) {
     if (!cron) return 'minutes';
     if (/^\*\/\d+ \* \* \* \*$/.test(cron)) return 'minutes';
     if (/^0 \*\/\d+ \* \* \*$/.test(cron)) return 'hourly';
-    if (/^0 \d+ \* \* \*$/.test(cron)) return 'daily';
-    if (/^0 \d+ \* \* [0-6]$/.test(cron)) return 'weekly';
-    if (/^0 \d+ \d+ \* \*$/.test(cron)) return 'monthly';
+    if (/^\d+ \d+ \* \* \*$/.test(cron)) return 'daily';
+    if (/^\d+ \d+ \* \* [0-6]$/.test(cron)) return 'weekly';
+    if (/^\d+ \d+ \d+ \* \*$/.test(cron)) return 'monthly';
     return 'custom';
   }
 
