@@ -30,6 +30,16 @@ classify_path() {
         return
     fi
 
+    if [[ "$p" == /mnt/remotes || "$p" == /mnt/remotes/* ]]; then
+        echo "EXEMPT"
+        return
+    fi
+
+    if [[ "$p" == /mnt/addons || "$p" == /mnt/addons/* ]]; then
+        echo "EXEMPT"
+        return
+    fi
+
     echo "OTHER"
 }
 
@@ -41,7 +51,7 @@ validate_mount_compatibility() {
     src_class=$(classify_path "$src")
     dst_class=$(classify_path "$dst")
 
-    if [[ "$src_class" != "$dst_class" ]]; then
+    if [[ "$src_class" != "$dst_class" && "$src_class" != "EXEMPT" && "$dst_class" != "EXEMPT" ]]; then
         echo "[ERROR] Vdisk $src is using mount type ($src_class) and backup destination ($dst_class)"
         echo "[ERROR] They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0"
         set_status "Mount type mismatch for $src"

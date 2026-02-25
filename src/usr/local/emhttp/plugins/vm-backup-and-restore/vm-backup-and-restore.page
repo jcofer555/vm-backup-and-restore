@@ -2271,6 +2271,8 @@ if (is_file($plg)) {
     if (p === '/mnt/user') return 'USER';
     if (p.startsWith('/mnt/user0/')) return 'USER0';
     if (p === '/mnt/user0') return 'USER0';
+    if (p.startsWith('/mnt/remotes/') || p === '/mnt/remotes') return 'EXEMPT';
+    if (p.startsWith('/mnt/addons/') || p === '/mnt/addons') return 'EXEMPT';
     return 'OTHER';
   }
 
@@ -2314,7 +2316,7 @@ if (is_file($plg)) {
         for (const disk of disks) {
           const diskClass = backupclassifyPath(disk);
 
-          if (diskClass !== destClass) {
+          if (diskClass !== destClass && diskClass !== 'EXEMPT' && destClass !== 'EXEMPT') {
             alert(
               `${vm}'s vdisk ${disk} is using mount type (${diskClass}) and backup destination (${destClass})\n\n` +
               'They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0'
@@ -2567,7 +2569,7 @@ if (is_file($plg)) {
         for (const disk of disks) {
           const diskClass = backupclassifyPath(disk);
 
-          if (diskClass !== destClass) {
+          if (diskClass !== destClass && diskClass !== 'EXEMPT' && destClass !== 'EXEMPT') {
             unlockScheduleUI();
             alert(
               `${vm}'s vdisk ${disk} is using mount type (${diskClass}) and backup destination (${destClass})\n\n` +
