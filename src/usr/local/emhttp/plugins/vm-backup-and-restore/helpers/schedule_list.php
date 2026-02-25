@@ -128,7 +128,7 @@ function humanCron($cron) {
 
             <!-- Scheduling -->
             <td style="padding:8px; text-align:center;">
-                <span class="vm-backup-and-restoretip" title="<?php echo htmlspecialchars($cron); ?>">
+                <span class="vm-backup-and-restoretip" title="<?php echo htmlspecialchars(humanCron($cron)); ?> - <?php echo htmlspecialchars($cron); ?>">
                     <?php echo htmlspecialchars(humanCron($cron)); ?>
                 </span>
             </td>
