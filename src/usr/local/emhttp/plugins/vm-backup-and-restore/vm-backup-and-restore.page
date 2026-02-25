@@ -1693,7 +1693,7 @@ if (is_file($plg)) {
       .catch(() => { document.getElementById('last-run-log').textContent = 'Error loading backup & restore log.'; });
   }
   loadLastRunLog();
-  setInterval(loadLastRunLog, 5000);
+  setInterval(loadLastRunLog, 1000);
 
   // === Clear Log Button ===
   const clearLastRunBtn = document.getElementById("clear-last-run-log");
@@ -2679,7 +2679,7 @@ if (is_file($plg)) {
       loadBackupVMs();
 
       // Switch Schedule It → Edit
-      $('#schedule-backup').text('Edit');
+      $('#schedule-backup').text('Update');
 
       // Show Cancel button
       $('#cancelEditBtn').show();

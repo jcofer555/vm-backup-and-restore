@@ -134,7 +134,9 @@ function humanCron($cron) {
             </td>
 
             <!-- VM(s) -->
-            <td style="padding:8px; text-align:center;">
+            <td style="padding:8px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+                class="vm-backup-and-restoretip"
+                title="<?php echo htmlspecialchars($vms); ?>">
                 <?php echo htmlspecialchars($vms); ?>
             </td>
 
