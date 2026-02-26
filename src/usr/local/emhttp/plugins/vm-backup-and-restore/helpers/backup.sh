@@ -263,15 +263,40 @@ cleanup() {
     LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
     rm -f "$LOCK_FILE"
 
-    if [[ -f "$STOP_FLAG" ]]; then
+if [[ -f "$STOP_FLAG" ]]; then
         rm -f "$STOP_FLAG"
+        if [[ "$DRY_RUN" == "yes" ]]; then
+            echo "Backup was stopped early"
+        else
+            :
+            for vm in "${CLEAN_VMS[@]}"; do
+                [[ -z "$vm" ]] && continue
+                vm_backup_folder="$backup_location/$vm"
+                cleanup_partial_backup "$vm_backup_folder" "$RUN_TS"
+            done
+            echo "Backup was stopped early. Cleaned up files created this run"
+        fi
+
+        if [[ "$DRY_RUN" != "yes" ]]; then
+            if ((${#vms_stopped_by_script[@]} > 0)); then
+                for vm in "${vms_stopped_by_script[@]}"; do
+                    echo "Starting VM $vm"
+                    virsh start "$vm" >/dev/null 2>&1 || echo "WARNING: Failed to start VM $vm"
+                done
+            fi
+        fi
+
+        local h=$(( SCRIPT_DURATION / 3600 ))
+        local m=$(( (SCRIPT_DURATION % 3600) / 60 ))
+        local s=$(( SCRIPT_DURATION % 60 ))
+        SCRIPT_DURATION_HUMAN=""
+        (( h > 0 )) && SCRIPT_DURATION_HUMAN+="${h}h "
+        (( m > 0 )) && SCRIPT_DURATION_HUMAN+="${m}m "
+        SCRIPT_DURATION_HUMAN+="${s}s"
+        echo "Backup duration: $SCRIPT_DURATION_HUMAN"
+        echo "Backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
+
         set_status "Backup stopped and cleaned up"
-        for vm in "${CLEAN_VMS[@]}"; do
-            [[ -z "$vm" ]] && continue
-            vm_backup_folder="$backup_location/$vm"
-            cleanup_partial_backup "$vm_backup_folder" "$RUN_TS"
-        done
-        echo "Backup was stopped early. Cleaned up files created this run"
         rm -f "$STATUS_FILE"
         rm -f "$STOP_FLAG"
         return
