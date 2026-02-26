@@ -2,6 +2,10 @@
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 SCRIPT_START_EPOCH=$(date +%s)
+STOP_FLAG="/tmp/vm-backup-and-restore/restore_stop_requested.txt"
+RSYNC_PID=""
+RESTORED_FILES=()
+TEMP_FILES=()
 
 format_duration() {
     local total=$1
@@ -64,6 +68,35 @@ echo "Restore session started - $(date '+%Y-%m-%d %H:%M:%S')"
 cleanup() {
     LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
     rm -f "$LOCK_FILE"
+
+    if [[ -f "$STOP_FLAG" ]]; then
+        rm -f "$STOP_FLAG"
+        set_restore_status "Restore stopped and cleaned up"
+        for f in "${RESTORED_FILES[@]}"; do
+            rm -f "$f"
+        done
+        # Restore prior XML and NVRAM from temp files
+        for tmp in "${TEMP_FILES[@]}"; do
+            original="${tmp%.pre_restore_tmp}"
+            mv "$tmp" "$original"
+        done
+        # Remove VM folders if empty
+        for vm in "${vm_names[@]}"; do
+            [[ -z "$vm" ]] && continue
+            vm_folder="$vm_domains/$vm"
+            if [[ -d "$vm_folder" && -z "$(ls -A "$vm_folder")" ]]; then
+                rmdir "$vm_folder"
+            fi
+        done
+        echo "Restore was stopped early. Cleaned up files created this run"
+        rm -f "$RESTORE_STATUS_FILE"
+        return
+    fi
+
+    # Normal completion — remove temp files
+    for tmp in "${TEMP_FILES[@]}"; do
+        rm -f "$tmp"
+    done
 
     if [[ "$DRY_RUN" != "yes" ]]; then
         if (( ${#STOPPED_VMS[@]} > 0 )); then
@@ -226,6 +259,24 @@ run_cmd() {
     "$@"
 }
 
+run_rsync() {
+    if [[ "$DRY_RUN" == "yes" ]]; then
+        printf '[DRY RUN] '
+        printf '%q ' rsync "$@"
+        echo
+        return 0
+    fi
+
+    rsync "$@" &
+    RSYNC_PID=$!
+    echo "$RSYNC_PID" > "/tmp/vm-backup-and-restore/restore_rsync.pid"
+    wait $RSYNC_PID
+    local exit_code=$?
+    RSYNC_PID=""
+    rm -f "/tmp/vm-backup-and-restore/restore_rsync.pid"
+    return $exit_code
+}
+
 declare -A version_map
 
 IFS=',' read -ra pairs <<< "$VERSIONS"
@@ -253,7 +304,7 @@ for vm in "${vm_names[@]}"; do
 
     xml_file=$(ls "$backup_dir"/"${prefix}"*.xml 2>/dev/null | head -n1)
     nvram_file=$(ls "$backup_dir"/"${prefix}"*VARS*.fd 2>/dev/null | head -n1)
-    disks=( "$backup_dir"/"${prefix}"vdisk*.img )
+    disks=( "$backup_dir"/"${prefix}"vdisk*.img "$backup_dir"/"${prefix}"*.qcow2 )
 
     if [[ ! -d "$backup_dir" ]]; then
         validation_fail "Backup folder missing: $backup_dir"
@@ -268,7 +319,7 @@ for vm in "${vm_names[@]}"; do
         continue
     fi
     if [[ ! -f "${disks[0]}" ]]; then
-        validation_fail "No versioned vdisk*.img files found for prefix: $prefix"
+        validation_fail "No versioned vdisk*.img or *.qcow2 files found for prefix: $prefix"
         continue
     fi
 
@@ -303,10 +354,19 @@ for vm in "${vm_names[@]}"; do
     set_restore_status "Restoring XML for $vm"
     dest_xml="$xml_base/$vm.xml"
 
+    if [[ -f "$dest_xml" ]]; then
+        cp "$dest_xml" "${dest_xml}.pre_restore_tmp"
+        TEMP_FILES+=("${dest_xml}.pre_restore_tmp")
+    fi
     run_cmd rm -f "$dest_xml"
-    run_cmd rsync -a --sparse --no-perms --no-owner --no-group "$xml_file" "$dest_xml"
+    run_rsync -a --sparse --no-perms --no-owner --no-group "$xml_file" "$dest_xml"
+    RESTORED_FILES+=("$dest_xml")
     run_cmd chmod 644 "$dest_xml"
     log "Restored XML $xml_file → $dest_xml"
+
+    if [[ -f "$STOP_FLAG" ]]; then
+        exit 1
+    fi
 
     # Restore NVRAM
     set_restore_status "Restoring NVRAM for $vm"
@@ -314,22 +374,66 @@ for vm in "${vm_names[@]}"; do
     nvram_filename="${nvram_filename#$prefix}"
     dest_nvram="$nvram_base/$nvram_filename"
 
+    if [[ -f "$dest_nvram" ]]; then
+        cp "$dest_nvram" "${dest_nvram}.pre_restore_tmp"
+        TEMP_FILES+=("${dest_nvram}.pre_restore_tmp")
+    fi
     run_cmd rm -f "$dest_nvram"
-    run_cmd rsync -a --sparse --no-perms --no-owner --no-group "$nvram_file" "$dest_nvram"
+    run_rsync -a --sparse --no-perms --no-owner --no-group "$nvram_file" "$dest_nvram"
+    RESTORED_FILES+=("$dest_nvram")
     run_cmd chmod 644 "$dest_nvram"
     log "Restored NVRAM $nvram_file → $dest_nvram"
+
+    if [[ -f "$STOP_FLAG" ]]; then
+        exit 1
+    fi
 
     # Restore vdisks
     set_restore_status "Restoring vdisks for $vm"
     dest_domain="$vm_domains/$vm"
-    run_cmd mkdir -p "$dest_domain"
+    parent_dataset=$(zfs list -H -o name "$(dirname "$dest_domain")" 2>/dev/null)
+    if [[ -n "$parent_dataset" ]]; then
+        run_cmd zfs create "$parent_dataset/$(basename "$dest_domain")" 2>/dev/null || true
+    else
+        run_cmd mkdir -p "$dest_domain"
+    fi
 
     for d in "${disks[@]}"; do
+        [[ -f "$d" ]] || continue
         file=$(basename "$d")
         file="${file#$prefix}"
-        run_cmd rsync -a --sparse --no-perms --no-owner --no-group "$d" "$dest_domain/$file"
+        run_rsync -a --sparse --no-perms --no-owner --no-group "$d" "$dest_domain/$file"
+        RESTORED_FILES+=("$dest_domain/$file")
         run_cmd chmod 644 "$dest_domain/$file"
         log "Copied VDISK $d → $dest_domain/$file"
+
+        if [[ -f "$STOP_FLAG" ]]; then
+            exit 1
+        fi
+    done
+
+    # Restore any extra files that were backed up alongside vdisks
+    set_restore_status "Restoring extra files for $vm"
+    for extra_file in "$backup_dir"/"${prefix}"*; do
+        [[ -f "$extra_file" ]] || continue
+
+        case "$(basename "$extra_file")" in
+            *.xml) continue ;;
+            *VARS*.fd) continue ;;
+            vdisk*.img) continue ;;
+            *.qcow2) continue ;;
+        esac
+
+        file=$(basename "$extra_file")
+        file="${file#$prefix}"
+        run_rsync -a --sparse --no-perms --no-owner --no-group "$extra_file" "$dest_domain/$file"
+        RESTORED_FILES+=("$dest_domain/$file")
+        run_cmd chmod 644 "$dest_domain/$file"
+        log "Restored extra file $extra_file → $dest_domain/$file"
+
+        if [[ -f "$STOP_FLAG" ]]; then
+            exit 1
+        fi
     done
 
     # Redefine VM

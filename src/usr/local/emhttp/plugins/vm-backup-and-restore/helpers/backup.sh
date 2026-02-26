@@ -2,6 +2,8 @@
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 SCRIPT_START_EPOCH=$(date +%s)
+STOP_FLAG="/tmp/vm-backup-and-restore/stop_requested.txt"
+RSYNC_PID=""
 
 format_duration() {
     local total=$1
@@ -19,24 +21,32 @@ format_duration() {
 
 classify_path() {
     local p="$1"
+    local resolved
+    resolved=$(readlink -f "$p" 2>/dev/null || echo "$p")
 
-    if [[ "$p" == /mnt/user || "$p" == /mnt/user/* ]]; then
+    if [[ "$resolved" == /mnt/user || "$resolved" == /mnt/user/* ]]; then
         echo "USER"
         return
     fi
 
-    if [[ "$p" == /mnt/user0 || "$p" == /mnt/user0/* ]]; then
+    if [[ "$resolved" == /mnt/user0 || "$resolved" == /mnt/user0/* ]]; then
         echo "USER0"
         return
     fi
 
-    if [[ "$p" == /mnt/remotes || "$p" == /mnt/remotes/* ]]; then
+    if [[ "$resolved" == /mnt/remotes || "$resolved" == /mnt/remotes/* ]]; then
         echo "EXEMPT"
         return
     fi
 
-    if [[ "$p" == /mnt/addons || "$p" == /mnt/addons/* ]]; then
+    if [[ "$resolved" == /mnt/addons || "$resolved" == /mnt/addons/* ]]; then
         echo "EXEMPT"
+        return
+    fi
+
+    # Resolved pool path (e.g. /mnt/cache, /mnt/disk1) — treat as equivalent to USER
+    if [[ "$resolved" == /mnt/* ]]; then
+        echo "USER"
         return
     fi
 
@@ -47,9 +57,13 @@ validate_mount_compatibility() {
     local src="$1"
     local dst="$2"
 
+    local resolved_src resolved_dst
+    resolved_src=$(readlink -f "$(dirname "$src")" 2>/dev/null)/$(basename "$src")
+    resolved_dst=$(readlink -f "$dst" 2>/dev/null)
+
     local src_class dst_class
-    src_class=$(classify_path "$src")
-    dst_class=$(classify_path "$dst")
+    src_class=$(classify_path "$resolved_src")
+    dst_class=$(classify_path "$resolved_dst")
 
     if [[ "$src_class" != "$dst_class" && "$src_class" != "EXEMPT" && "$dst_class" != "EXEMPT" ]]; then
         echo "[ERROR] Vdisk $src is using mount type ($src_class) and backup destination ($dst_class)"
@@ -88,10 +102,31 @@ cleanup_partial_backup() {
     fi
 }
 
+run_rsync() {
+    if is_dry_run; then
+        printf '[DRY-RUN] '
+        printf '%q ' rsync "$@"
+        echo
+        return 0
+    fi
+
+    rsync "$@" &
+    RSYNC_PID=$!
+    echo "$RSYNC_PID" > "/tmp/vm-backup-and-restore/rsync.pid"
+    wait $RSYNC_PID
+    local exit_code=$?
+    RSYNC_PID=""
+    rm -f "/tmp/vm-backup-and-restore/rsync.pid"
+    return $exit_code
+}
+
 LOG_DIR="/tmp/vm-backup-and-restore"
 LAST_RUN_FILE="$LOG_DIR/vm-backup-and-restore.log"
 ROTATE_DIR="$LOG_DIR/archived_logs"
 mkdir -p "$ROTATE_DIR"
+
+# Overwrite PID with real script PID
+sed -i "s/PID=.*/PID=$$/" "/tmp/vm-backup-and-restore/lock.txt"
 
 # --- STATUS FILE ADDED ---
 STATUS_FILE="$LOG_DIR/backup_status.txt"
@@ -228,6 +263,20 @@ cleanup() {
     LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
     rm -f "$LOCK_FILE"
 
+    if [[ -f "$STOP_FLAG" ]]; then
+        rm -f "$STOP_FLAG"
+        set_status "Backup stopped and cleaned up"
+        for vm in "${CLEAN_VMS[@]}"; do
+            [[ -z "$vm" ]] && continue
+            vm_backup_folder="$backup_location/$vm"
+            cleanup_partial_backup "$vm_backup_folder" "$RUN_TS"
+        done
+        echo "Backup was stopped early. Cleaned up files created this run"
+        rm -f "$STATUS_FILE"
+        rm -f "$STOP_FLAG"
+        return
+    fi
+
     SCRIPT_END_EPOCH=$(date +%s)
     SCRIPT_DURATION=$(( SCRIPT_END_EPOCH - SCRIPT_START_EPOCH ))
     SCRIPT_DURATION_HUMAN="$(format_duration "$SCRIPT_DURATION")"
@@ -290,7 +339,7 @@ for vm in "${CLEAN_VMS[@]}"; do
     vm_xml_path="/etc/libvirt/qemu/$vm.xml"
 
     if [[ ! -f "$vm_xml_path" ]]; then
-        echo "ERROR: XML not found for $vm"
+        echo "ERROR: XML not located for $vm"
         ((error_count++))
         continue
     fi
@@ -366,13 +415,13 @@ for vm in "${CLEAN_VMS[@]}"; do
     done
 
     if ((${#vdisks[@]} == 0)); then
-        echo "No vdisk entries found in XML for $vm"
+        echo "No vdisk entries located in XML for $vm"
     else
         echo "Backing up vdisks"
         set_status "Backing up vdisks for $vm"
         for vdisk in "${vdisks[@]}"; do
             if [[ ! -f "$vdisk" ]]; then
-                echo "[ERROR] $vm's vdisk $vdisk not found"
+                echo "[ERROR] $vm's vdisk $vdisk not located"
                 echo "[ERROR] Skipping $vm"
                 ((error_count++))
 
@@ -381,17 +430,55 @@ for vm in "${CLEAN_VMS[@]}"; do
                 continue 2
             fi
             base="$(basename "$vdisk")"
+            resolved_vdisk="$(readlink -f "$vdisk" 2>/dev/null || echo "$vdisk")"
             dest="$vm_backup_folder/${RUN_TS}_$base"
             if ! is_dry_run; then
-                echo "$vdisk -> $dest"
+                echo "$resolved_vdisk -> $dest"
             fi
-            run_cmd rsync -aHAX --sparse "$vdisk" "$dest"
+            run_rsync -aHAX --sparse "$resolved_vdisk" "$dest"
+
+            if [[ -f "$STOP_FLAG" ]]; then
+                cleanup_partial_backup "$vm_backup_folder" "$RUN_TS"
+                exit 1
+            fi
         done
+
+        # Backup any extra files in the same folder as the vdisks
+        declare -A vdisk_dirs
+        for vdisk in "${vdisks[@]}"; do
+            resolved_vdisk="$(readlink -f "$vdisk" 2>/dev/null || echo "$vdisk")"
+            vdisk_dirs["$(dirname "$resolved_vdisk")"]=1
+        done
+
+        for dir in "${!vdisk_dirs[@]}"; do
+            for extra_file in "$dir"/*; do
+                [[ -f "$extra_file" ]] || continue
+
+                # Skip files already being backed up
+                already=false
+                for vdisk in "${vdisks[@]}"; do
+                    resolved_vdisk="$(readlink -f "$vdisk" 2>/dev/null || echo "$vdisk")"
+                    [[ "$extra_file" == "$resolved_vdisk" ]] && already=true && break
+                done
+                $already && continue
+
+                base="$(basename "$extra_file")"
+                dest="$vm_backup_folder/${RUN_TS}_$base"
+                echo "Backing up extra file $extra_file -> $dest"
+                run_rsync -aHAX --sparse "$extra_file" "$dest"
+
+                if [[ -f "$STOP_FLAG" ]]; then
+                    cleanup_partial_backup "$vm_backup_folder" "$RUN_TS"
+                    exit 1
+                fi
+            done
+        done
+        unset vdisk_dirs
     fi
 
     xml_dest="$vm_backup_folder/${RUN_TS}_${vm}.xml"
     set_status "Backing up XML for $vm"
-    run_cmd rsync -a "$vm_xml_path" "$xml_dest"
+    run_rsync -a "$vm_xml_path" "$xml_dest"
     echo "Backed up XML $vm_xml_path -> $xml_dest"
 
     nvram_path="$(xmllint --xpath 'string(/domain/os/nvram)' "$vm_xml_path" 2>/dev/null || echo "")"
@@ -400,10 +487,10 @@ for vm in "${CLEAN_VMS[@]}"; do
         nvram_base="$(basename "$nvram_path")"
         nvram_dest="$vm_backup_folder/${RUN_TS}_$nvram_base"
         set_status "Backing up NVRAM for $vm"
-        run_cmd rsync -a "$nvram_path" "$nvram_dest"
+        run_rsync -a "$nvram_path" "$nvram_dest"
         echo "Backed up NVRAM $nvram_path -> $nvram_dest"
     else
-        echo "No valid NVRAM found for $vm"
+        echo "No valid NVRAM located for $vm"
     fi
 
     run_cmd chown -R "$backup_owner:users" "$vm_backup_folder" || echo "WARNING: Changing owner failed for $vm_backup_folder"

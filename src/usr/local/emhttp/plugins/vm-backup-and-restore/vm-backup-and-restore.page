@@ -851,6 +851,7 @@ if (file_exists("/etc/unraid-version")) {
     align-items: center;
   }
 
+  #popupMessagerestore,
   #popupMessage {
     display: none;
     background: yellow;
@@ -1485,7 +1486,8 @@ if (is_file($plg)) {
               placeholder="https://discord.com/api/webhooks/..."
               value="<?php echo htmlspecialchars($restoreSettings['DISCORD_WEBHOOK_URL_RESTORE'] ?? ''); ?>">
           </span>
-          <div id="discord-webhook-error-restore" style="color:yellow; font-size:1.00em; display:none;">* Must start with
+          <div id="discord-webhook-error-restore" style="color:yellow; font-size:1.00em; display:none;">* Must start
+            with
             https://discord.com/api/webhooks/</div>
         </div>
       </div>
@@ -1497,9 +1499,11 @@ if (is_file($plg)) {
       <!-- Restore Button-->
       <div class="form-group">
         <span title="Run restore of selected VM(s)" class="vm-backup-and-restoretip">
-          <button type="button" id="restorebtn">Restore</button>
+          <button type="button" id="restorebtn">Restore Now</button>
         </span>
       </div>
+
+      <div id="popupMessagerestore"></div>
 
     </form>
   </div>
@@ -1636,12 +1640,20 @@ if (is_file($plg)) {
 
   function lockScheduleUI() {
     scheduleUILocked = true;
-    $(".schedule-action-btn").prop("disabled", true);
+    $(".schedule-action-btn").each(function () {
+      if ($(this).text() !== 'Stop') {
+        $(this).prop("disabled", true);
+      }
+    });
   }
 
   function unlockScheduleUI() {
     scheduleUILocked = false;
-    $(".schedule-action-btn").prop("disabled", false);
+    $(".schedule-action-btn").each(function () {
+      if ($(this).text() !== 'Stop') {
+        $(this).prop("disabled", false);
+      }
+    });
   }
 
   function updateBackupStatus() {
@@ -2199,6 +2211,7 @@ if (is_file($plg)) {
 
   // --- Unified button state controller ---
   function updateBackupButtonState() {
+    if (backupbtn.textContent === 'Stop') return;
     backupbtn.disabled = !(cronValid && !backupRunning);
   }
 
@@ -2289,13 +2302,15 @@ if (is_file($plg)) {
     const status = $('#backup-status');
     const btn = $('#backupbtn');
 
+    if (btn.text() === 'Stop') return;
+
     // --- Backup is running ---
     if (running) {
       if (!backupStartTime) {
         backupStartTime = Date.now();
       }
 
-      btn.text('Backup running...');
+      btn.text('Backup Now');
       status.show();
 
       return;
@@ -2358,6 +2373,20 @@ if (is_file($plg)) {
     });
   }
 
+  async function resolvePathServer(p) {
+    try {
+      const res = await fetch('/plugins/vm-backup-and-restore/helpers/resolve_path.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'path=' + encodeURIComponent(p) + '&csrf_token=' + encodeURIComponent(csrfToken)
+      });
+      const text = await res.text();
+      return text.trim() || p;
+    } catch (e) {
+      return p;
+    }
+  }
+
   function backupclassifyPath(p) {
     if (p.startsWith('/mnt/user/')) return 'USER';
     if (p === '/mnt/user') return 'USER';
@@ -2369,6 +2398,18 @@ if (is_file($plg)) {
   }
 
   $('#backupbtn').on('click', async function () {
+
+    if ($('#backupbtn').text() === 'Stop') {
+      $.post('/plugins/vm-backup-and-restore/helpers/stop_backup.php')
+        .done(function () {
+          console.log('Stop signal sent.');
+          showPopup('Stop requested. Backup stopping');
+        })
+        .fail(function () {
+          alert('Failed to send stop signal');
+        });
+      return;
+    }
 
     if (backupRequestInProgress) {
       console.warn('Backup already being triggered');
@@ -2392,7 +2433,8 @@ if (is_file($plg)) {
     // UI-SIDE MOUNT-TYPE VALIDATION
     // -------------------------------
     const vmList = vms.split(',').map(v => v.trim()).filter(Boolean);
-    const destClass = backupclassifyPath(dest);
+    const resolvedDest = await resolvePathServer(dest);
+    const destClass = backupclassifyPath(resolvedDest);
 
     try {
       const data = await fetchVdiskPaths(vmList);
@@ -2406,7 +2448,8 @@ if (is_file($plg)) {
         }
 
         for (const disk of disks) {
-          const diskClass = backupclassifyPath(disk);
+          const resolvedDisk = await resolvePathServer(disk);
+          const diskClass = backupclassifyPath(resolvedDisk);
 
           if (diskClass !== destClass && diskClass !== 'EXEMPT' && destClass !== 'EXEMPT') {
             alert(
@@ -2563,7 +2606,9 @@ if (is_file($plg)) {
   window.editingScheduleId = null;
 
   // --- Load schedule list ---
-  function loadSchedules() {
+function loadSchedules(force = false) {
+    if (scheduleUILocked && !force) return $.Deferred().resolve().promise();
+
     return $.get(
       '/plugins/vm-backup-and-restore/helpers/schedule_list.php',
       function (html) {
@@ -2645,7 +2690,8 @@ if (is_file($plg)) {
     const dest = $('#backup_destination').val().trim();
 
     const vmList = vms.split(',').map(v => v.trim()).filter(Boolean);
-    const destClass = backupclassifyPath(dest);
+    const resolvedDest = await resolvePathServer(dest);
+    const destClass = backupclassifyPath(resolvedDest);
 
     try {
       const data = await fetchVdiskPaths(vmList);
@@ -2660,7 +2706,8 @@ if (is_file($plg)) {
         }
 
         for (const disk of disks) {
-          const diskClass = backupclassifyPath(disk);
+          const resolvedDisk = await resolvePathServer(disk);
+          const diskClass = backupclassifyPath(resolvedDisk);
 
           if (diskClass !== destClass && diskClass !== 'EXEMPT' && destClass !== 'EXEMPT') {
             unlockScheduleUI();
@@ -2712,7 +2759,7 @@ if (is_file($plg)) {
       success: function (response) {
         resetScheduleUI();
         window.editingScheduleId = null;
-        loadSchedules();
+        loadSchedules(true);
         showPopup("Schedule saved!");
       },
       error: function (xhr) {
@@ -2801,6 +2848,19 @@ if (is_file($plg)) {
     }, 3000);
   }
 
+  function showPopuprestore(message) {
+    const popup = $('#popupMessagerestore');
+
+    popup.text(message).fadeIn(150);
+
+    setTimeout(() => {
+      popup.fadeOut(200, () => {
+        popup.text('');
+        popup.hide();
+      });
+    }, 3000);
+  }
+
   function resetScheduleUI() {
     // Revert Edit → Schedule It
     $('#schedule-backup').text('Schedule It');
@@ -2827,22 +2887,23 @@ if (is_file($plg)) {
       '/plugins/vm-backup-and-restore/helpers/schedule_delete.php',
       { id: id }
     ).always(() => {
-      loadSchedules();
+      loadSchedules(true);
     });
   }
 
   // --- Run backup manually ---
-  function runScheduleBackup(id, btn) {
+function runScheduleBackup(id, btn) {
     if (scheduleUILocked) return;
 
     if (!confirm("Are you sure you want to run this backup now?")) return;
 
     lockScheduleUI();
 
-    // Disable clicked button and change tooltip
     btn.disabled = true;
     const originalText = btn.textContent;
-    const originalTitle = btn.getAttribute('title');
+    const originalTitle = $(btn).hasClass('tooltipstered')
+      ? $(btn).tooltipster('content')
+      : (btn.getAttribute('title') || 'Run schedule');
 
     btn.textContent = "Running";
 
@@ -2857,14 +2918,40 @@ if (is_file($plg)) {
           return;
         }
 
+        btn.textContent = 'Stop';
+        btn.disabled = false;
+        btn.setAttribute('title', 'Stop backup');
+        if ($(btn).hasClass('tooltipstered')) {
+          $(btn).tooltipster('content', 'Stop backup');
+        } else {
+          $(btn).tooltipster({ content: 'Stop backup' });
+        }
+        btn.removeAttribute('title');
+
+        btn.onclick = function () {
+          $.post('/plugins/vm-backup-and-restore/helpers/stop_backup.php')
+            .done(function () {
+              console.log('Stop signal sent');
+              showPopup('Stop requested. Cleaning up');
+            })
+            .fail(function () {
+              alert('Failed to send stop signal');
+            });
+        };
+
         // Poll lock
         const poll = setInterval(function () {
-          $.getJSON('/plugins/vm-backup-and-restore/helpers/check_lock.php', function (res) {
-            if (!res.locked) {
+          $.getJSON('/plugins/vm-backup-and-restore/helpers/check_lock.php', function (data) {
+            if (!data.locked) {
               clearInterval(poll);
 
-              btn.disabled = false;
               btn.textContent = originalText;
+              btn.setAttribute('title', originalTitle);
+              if ($(btn).hasClass('tooltipstered')) {
+                $(btn).tooltipster('content', originalTitle);
+              }
+              btn.removeAttribute('title');
+              btn.onclick = function () { runScheduleBackup(id, btn); };
 
               unlockScheduleUI();
             }
@@ -2896,7 +2983,7 @@ if (is_file($plg)) {
       '/plugins/vm-backup-and-restore/helpers/schedule_toggle.php',
       { id: id }
     ).always(() => {
-      loadSchedules();
+      loadSchedules(true);
     });
   }
 
@@ -2954,6 +3041,8 @@ if (is_file($plg)) {
     const btn = $('#restorebtn');
     const status = $('#restore-status');
 
+    if (btn.text() === 'Stop') return;
+
     if (running) {
 
       if (!restoreStartTime) {
@@ -2961,7 +3050,7 @@ if (is_file($plg)) {
       }
 
       btn.prop('disabled', true);
-      btn.text('Restore running...');
+      btn.text('Restore Now');
       status.show();
 
       return;
@@ -3031,10 +3120,24 @@ if (is_file($plg)) {
     if (p === '/mnt/user') return 'USER';
     if (p.startsWith('/mnt/user0/')) return 'USER0';
     if (p === '/mnt/user0') return 'USER0';
+    if (p.startsWith('/mnt/remotes/') || p === '/mnt/remotes') return 'EXEMPT';
+    if (p.startsWith('/mnt/addons/') || p === '/mnt/addons') return 'EXEMPT';
     return 'OTHER';
   }
 
-  $('#restorebtn').on('click', function () {
+  $('#restorebtn').on('click', async function () {
+
+    if ($('#restorebtn').text() === 'Stop') {
+      $.post('/plugins/vm-backup-and-restore/helpers/stop_restore.php')
+        .done(function () {
+          console.log('Stop restore signal sent');
+          showPopuprestore('Stop requested. Restore stopping');
+        })
+        .fail(function () {
+          alert('Failed to send stop signal');
+        });
+      return;
+    }
 
     // Basic validation
     const vms_restore = $('#vm-hidden-restore').val();
@@ -3057,8 +3160,10 @@ if (is_file($plg)) {
     }
 
     // Classify both paths
-    const srcClass = classifyPath(dest);
-    const dstClass = classifyPath(restore_dest);
+    const resolvedSrc = await resolvePathServer(dest);
+    const resolvedDst = await resolvePathServer(restore_dest);
+    const srcClass = classifyPath(resolvedSrc);
+    const dstClass = classifyPath(resolvedDst);
 
     // If classes differ → alert
     if (srcClass !== dstClass) {
@@ -3338,24 +3443,80 @@ if (is_file($plg)) {
   (function () {
     const CHECK_INTERVAL = 1000;
 
-    function updateRunButtons(locked) {
+function updateRunButtons(locked, anyLocked = false) {
       document.querySelectorAll('.run-schedule-btn').forEach(btn => {
-        btn.disabled = locked;
-        if (locked) {
-          btn.classList.add('disabled');
-        } else {
-          btn.classList.remove('disabled');
+        const currentText = btn.textContent.trim();
+        if (locked && currentText !== 'Stop') {
+          btn.disabled = false;
+          btn.setAttribute('title', 'Stop backup');
+          if ($(btn).hasClass('tooltipstered')) {
+            $(btn).tooltipster('content', 'Stop backup');
+          }
+        } else if (!locked && currentText === 'Stop') {
+          btn.textContent = 'Run';
+          btn.disabled = false;
+          btn.setAttribute('title', 'Run schedule');
+          if ($(btn).hasClass('tooltipstered')) {
+            $(btn).tooltipster('content', 'Run schedule');
+          }
+        } else if (!locked && currentText !== 'Stop') {
+          btn.disabled = anyLocked;
+          if (anyLocked) {
+            btn.classList.add('disabled');
+          } else {
+            btn.classList.remove('disabled');
+          }
         }
       });
+
+      const backupBtn = document.getElementById('backupbtn');
+      if (backupBtn) {
+        const $span = $(backupBtn).closest('span');
+        const currentText = backupBtn.textContent;
+        if (locked && currentText !== 'Stop') {
+          backupBtn.textContent = 'Stop';
+          backupBtn.disabled = false;
+          $span.data('tooltip', 'Stop backup of selected VM(s)');
+          if ($span.hasClass('tooltipstered')) $span.tooltipster('content', 'Stop backup of selected VM(s)');
+          $('#backup-status').show();
+        } else if (!locked && currentText === 'Stop') {
+          backupBtn.textContent = 'Backup Now';
+          $span.data('tooltip', 'Run backup of selected VM(s)');
+          if ($span.hasClass('tooltipstered')) $span.tooltipster('content', 'Run backup of selected VM(s)');
+          $('#backup-status').hide();
+        }
+      }
     }
 
-    async function pollLock() {
+async function pollLock() {
       try {
         const res = await fetch('/plugins/vm-backup-and-restore/helpers/check_lock.php');
         const data = await res.json();
-        updateRunButtons(Boolean(data.locked));
+        const backupLocked = data.locked && data.mode !== 'restore';
+        const restoreLocked = data.locked && data.mode === 'restore';
+        updateRunButtons(backupLocked, data.locked);
+        updateRestoreButton(restoreLocked);
       } catch (e) {
         console.error('Failed to check lock:', e);
+      }
+    }
+
+    function updateRestoreButton(locked) {
+      const restoreBtn = document.getElementById('restorebtn');
+      if (!restoreBtn) return;
+      const $span = $(restoreBtn).closest('span');
+      const currentText = restoreBtn.textContent;
+      if (locked && currentText !== 'Stop') {
+        restoreBtn.textContent = 'Stop';
+        restoreBtn.disabled = false;
+        $span.data('tooltip', 'Stop restore of selected VM(s)');
+        if ($span.hasClass('tooltipstered')) $span.tooltipster('content', 'Stop restore of selected VM(s)');
+        $('#restore-status').show();
+      } else if (!locked && currentText === 'Stop') {
+        restoreBtn.textContent = 'Restore';
+        $span.data('tooltip', 'Run restore of selected VM(s)');
+        if ($span.hasClass('tooltipstered')) $span.tooltipster('content', 'Run restore of selected VM(s)');
+        $('#restore-status').hide();
       }
     }
 
