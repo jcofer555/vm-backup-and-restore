@@ -3595,4 +3595,17 @@ async function pollLock() {
       btn.disabled = false;
     }, 1200);
   }
+
+  function debounceButton(btn, delay = 1500) {
+  btn.addEventListener('click', function handler() {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    setTimeout(() => btn.disabled = false, delay);
+  }, true);
+}
+
+['backupbtn', 'restorebtn', 'schedule-backup', 'cancelEditBtn', 'clear-last-run-log', 'copy-last-run-log', 'confirmFolderSelection', 'closeFolderPicker'].forEach(id => {
+  const btn = document.getElementById(id);
+  if (btn) debounceButton(btn);
+});
 </script>
