@@ -1587,7 +1587,7 @@ if (is_file($plg)) {
         <button type="button" id="newFolderOk">OK</button>
         <button type="button" id="newFolderCancel">Cancel</button>
       </span>
-      <button type="button" id="confirmFolderSelection">Select</button>
+      <button type="button" id="confirmFolderSelection">Done</button>
     </div>
   </div>
 </div>
