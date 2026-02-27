@@ -13,6 +13,7 @@ BACKUP_OWNER="${4:-nobody}"
 DRY_RUN="${5:-no}"
 NOTIFICATIONS="${6:-no}"
 DISCORD_WEBHOOK_URL="${7:-}"
+PUSHOVER_USER_KEY="${8:-}"
 
 # ==========================================================
 #  Write all settings
@@ -25,6 +26,7 @@ DISCORD_WEBHOOK_URL="${7:-}"
   echo "DRY_RUN=\"$DRY_RUN\""
   echo "NOTIFICATIONS=\"$NOTIFICATIONS\""
   echo "DISCORD_WEBHOOK_URL=\"$DISCORD_WEBHOOK_URL\""
+  echo "PUSHOVER_USER_KEY=\"$PUSHOVER_USER_KEY\""
 } > "$TMP"
 
 mv "$TMP" "$CONFIG"

@@ -11,6 +11,7 @@ $backup_owner           = $_GET['BACKUP_OWNER'] ?? '';
 $dry_run                = $_GET['DRY_RUN'] ?? '';
 $notifications          = $_GET['NOTIFICATIONS'] ?? '';
 $discord_webhook_url    = $_GET['DISCORD_WEBHOOK_URL'] ?? '';
+$pushover_user_key      = $_GET['PUSHOVER_USER_KEY'] ?? '';
 
 // --- Normalize paths ---
 if ($backup_destination !== '') {
@@ -29,6 +30,7 @@ $args = [
     $dry_run,
     $notifications,
     $discord_webhook_url,
+    $pushover_user_key,
 ];
 
 // Escape each argument for safety

@@ -13,6 +13,7 @@ RESTORE_DESTINATION="${4:-/mnt/user/domains}"
 DRY_RUN_RESTORE="${5:-no}"
 NOTIFICATIONS_RESTORE="${6:-no}"
 DISCORD_WEBHOOK_URL_RESTORE="${7:-}"
+PUSHOVER_USER_KEY_RESTORE="${8:-}"
 
 # ==========================================================
 #  Write all settings
@@ -25,6 +26,7 @@ DISCORD_WEBHOOK_URL_RESTORE="${7:-}"
   echo "DRY_RUN_RESTORE=\"$DRY_RUN_RESTORE\""
   echo "NOTIFICATIONS_RESTORE=\"$NOTIFICATIONS_RESTORE\""
   echo "DISCORD_WEBHOOK_URL_RESTORE=\"$DISCORD_WEBHOOK_URL_RESTORE\""
+  echo "PUSHOVER_USER_KEY_RESTORE=\"$PUSHOVER_USER_KEY_RESTORE\""
 } > "$TMP"
 
 mv "$TMP" "$CONFIG"

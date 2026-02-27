@@ -171,7 +171,7 @@ cleanup() {
         (( m > 0 )) && SCRIPT_DURATION_HUMAN+="${m}m "
         SCRIPT_DURATION_HUMAN+="${s}s"
         echo "Backup duration: $SCRIPT_DURATION_HUMAN"
-        echo "Backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "Scheduled backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
 
         set_status "Backup stopped and cleaned up"
         rm -f "$STATUS_FILE"
@@ -190,7 +190,7 @@ cleanup() {
     if is_dry_run; then
         echo "Skipping VM restarts because dry run is enabled"
         echo "Backup duration: $SCRIPT_DURATION_HUMAN"
-        echo "Backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "Schedule backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
 
         notify_vm "normal" "VM Backup & Restore" \
             "Backup finished - Duration: $SCRIPT_DURATION_HUMAN"
@@ -210,7 +210,7 @@ cleanup() {
     fi
 
     echo "Backup duration: $SCRIPT_DURATION_HUMAN"
-    echo "Backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "Scheduled backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
 
     if (( error_count > 0 )); then
         notify_vm "warning" "VM Backup & Restore" \
@@ -268,7 +268,7 @@ fi
 exec > >(tee -a "$LAST_RUN_FILE") 2>&1
 
 echo "--------------------------------------------------------------------------------------------------"
-echo "Backup session started - $(date '+%Y-%m-%d %H:%M:%S')"
+echo "Scheduled backup session started - $(date '+%Y-%m-%d %H:%M:%S')"
 
 # DRY RUN
 is_dry_run() { [[ "$DRY_RUN" == "yes" ]]; }
@@ -288,6 +288,7 @@ run_cmd() {
 # ------------------------------------------------------------------------------
 
 DISCORD_WEBHOOK_URL="${DISCORD_WEBHOOK_URL//\"/}"
+PUSHOVER_USER_KEY="${PUSHOVER_USER_KEY//\"/}"
 
 notify_vm() {
     local level="$1"
@@ -299,13 +300,45 @@ notify_vm() {
     if [[ -n "$DISCORD_WEBHOOK_URL" ]]; then
         local color
         case "$level" in
-            alert)   color=15158332 ;;  # red
-            warning) color=16776960 ;;  # yellow
-            *)       color=3066993  ;;  # green
+            alert)   color=15158332 ;;
+            warning) color=16776960 ;;
+            *)       color=3066993  ;;
         esac
-        curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
-            -H "Content-Type: application/json" \
-            -d "{\"embeds\":[{\"title\":\"$title\",\"description\":\"$message\",\"color\":$color}]}" || true
+
+        if [[ "$DISCORD_WEBHOOK_URL" == *"discord.com/api/webhooks"* ]]; then
+            curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
+                -H "Content-Type: application/json" \
+                -d "{\"embeds\":[{\"title\":\"$title\",\"description\":\"$message\",\"color\":$color}]}" || true
+
+        elif [[ "$DISCORD_WEBHOOK_URL" == *"hooks.slack.com"* ]]; then
+            curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
+                -H "Content-Type: application/json" \
+                -d "{\"text\":\"*$title*\n$message\"}" || true
+
+        elif [[ "$DISCORD_WEBHOOK_URL" == *"outlook.office.com/webhook"* ]]; then
+            curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
+                -H "Content-Type: application/json" \
+                -d "{\"title\":\"$title\",\"text\":\"$message\"}" || true
+
+        elif [[ "$DISCORD_WEBHOOK_URL" == *"/message"* ]]; then
+            # Gotify
+            curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
+                -H "Content-Type: application/json" \
+                -d "{\"title\":\"$title\",\"message\":\"$message\",\"priority\":5}" || true
+
+        elif [[ "$DISCORD_WEBHOOK_URL" == *"ntfy.sh"* || "$DISCORD_WEBHOOK_URL" == *"/ntfy/"* ]]; then
+            curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
+                -H "Title: $title" \
+                -d "$message" > /dev/null || true
+
+        elif [[ "$DISCORD_WEBHOOK_URL" == *"api.pushover.net"* ]]; then
+            local token="${DISCORD_WEBHOOK_URL##*/}"
+            curl -sf -X POST "https://api.pushover.net/1/messages.json" \
+                -d "token=${token}" \
+                -d "user=${PUSHOVER_USER_KEY}" \
+                -d "title=${title}" \
+                -d "message=${message}" > /dev/null || true
+        fi
     else
         if [[ -x /usr/local/emhttp/webGui/scripts/notify ]]; then
             /usr/local/emhttp/webGui/scripts/notify \

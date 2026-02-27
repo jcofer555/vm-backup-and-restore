@@ -140,6 +140,7 @@ CONFIG="/boot/config/plugins/vm-backup-and-restore/settings_restore.cfg"
 source "$CONFIG" || exit 1
 
 DISCORD_WEBHOOK_URL_RESTORE="${DISCORD_WEBHOOK_URL_RESTORE//\"/}"
+PUSHOVER_USER_KEY_RESTORE="${PUSHOVER_USER_KEY_RESTORE//\"/}"
 
 classify_path() {
     local p="$1"
@@ -177,13 +178,45 @@ notify_restore() {
     if [[ -n "$DISCORD_WEBHOOK_URL_RESTORE" ]]; then
         local color
         case "$level" in
-            alert)   color=15158332 ;;  # red
-            warning) color=16776960 ;;  # yellow
-            *)       color=3066993  ;;  # green
+            alert)   color=15158332 ;;
+            warning) color=16776960 ;;
+            *)       color=3066993  ;;
         esac
-        curl -sf -X POST "$DISCORD_WEBHOOK_URL_RESTORE" \
-            -H "Content-Type: application/json" \
-            -d "{\"embeds\":[{\"title\":\"$title\",\"description\":\"$message\",\"color\":$color}]}" || true
+
+        if [[ "$DISCORD_WEBHOOK_URL_RESTORE" == *"discord.com/api/webhooks"* ]]; then
+            curl -sf -X POST "$DISCORD_WEBHOOK_URL_RESTORE" \
+                -H "Content-Type: application/json" \
+                -d "{\"embeds\":[{\"title\":\"$title\",\"description\":\"$message\",\"color\":$color}]}" || true
+
+        elif [[ "$DISCORD_WEBHOOK_URL_RESTORE" == *"hooks.slack.com"* ]]; then
+            curl -sf -X POST "$DISCORD_WEBHOOK_URL_RESTORE" \
+                -H "Content-Type: application/json" \
+                -d "{\"text\":\"*$title*\n$message\"}" || true
+
+        elif [[ "$DISCORD_WEBHOOK_URL_RESTORE" == *"outlook.office.com/webhook"* ]]; then
+            curl -sf -X POST "$DISCORD_WEBHOOK_URL_RESTORE" \
+                -H "Content-Type: application/json" \
+                -d "{\"title\":\"$title\",\"text\":\"$message\"}" || true
+
+        elif [[ "$DISCORD_WEBHOOK_URL_RESTORE" == *"/message"* ]]; then
+            # Gotify
+            curl -sf -X POST "$DISCORD_WEBHOOK_URL_RESTORE" \
+                -H "Content-Type: application/json" \
+                -d "{\"title\":\"$title\",\"message\":\"$message\",\"priority\":5}" || true
+
+        elif [[ "$DISCORD_WEBHOOK_URL_RESTORE" == *"ntfy.sh"* || "$DISCORD_WEBHOOK_URL_RESTORE" == *"/ntfy/"* ]]; then
+            curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
+                -H "Title: $title" \
+                -d "$message" > /dev/null || true
+
+        elif [[ "$DISCORD_WEBHOOK_URL_RESTORE" == *"api.pushover.net"* ]]; then
+            local token="${DISCORD_WEBHOOK_URL_RESTORE##*/}"
+            curl -sf -X POST "https://api.pushover.net/1/messages.json" \
+                -d "token=${token}" \
+                -d "user=${PUSHOVER_USER_KEY_RESTORE}" \
+                -d "title=${title}" \
+                -d "message=${message}" > /dev/null || true
+        fi
     else
         if [[ -x /usr/local/emhttp/webGui/scripts/notify ]]; then
             /usr/local/emhttp/webGui/scripts/notify \

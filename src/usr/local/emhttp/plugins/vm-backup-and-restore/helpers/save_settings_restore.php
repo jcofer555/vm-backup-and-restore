@@ -12,6 +12,7 @@ $restore_destination            = $_GET['RESTORE_DESTINATION'] ?? '';
 $dry_run_restore                = $_GET['DRY_RUN_RESTORE'] ?? '';
 $notifications_restore          = $_GET['NOTIFICATIONS_RESTORE'] ?? '';
 $discord_webhook_url_restore    = $_GET['DISCORD_WEBHOOK_URL_RESTORE'] ?? '';
+$pushover_user_key_restore      = $_GET['PUSHOVER_USER_KEY_RESTORE'] ?? '';
 
 // --- Normalize LOCATION_OF_BACKUPS ---
 if ($location_of_backups !== '') {
@@ -38,6 +39,7 @@ $args = [
     $dry_run_restore,
     $notifications_restore,
     $discord_webhook_url_restore,
+    $pushover_user_key_restore,
 ];
 
 // Escape each argument for safety

@@ -16,7 +16,8 @@ $defaults = [
     'BACKUP_OWNER' => 'nobody',
     'DRY_RUN' => 'no',
     'NOTIFICATIONS' => 'no',
-    'DISCORD_WEBHOOK_URL' => ''
+    'DISCORD_WEBHOOK_URL' => '',
+    'PUSHOVER_USER_KEY' => ''
 ];
 
 // Load existing config if present
@@ -51,7 +52,8 @@ $restoreDefaults = [
     'RESTORE_DESTINATION' => '/mnt/user/domains',
     'DRY_RUN_RESTORE' => 'no',
     'NOTIFICATIONS_RESTORE' => 'no',
-    'DISCORD_WEBHOOK_URL_RESTORE' => ''
+    'DISCORD_WEBHOOK_URL_RESTORE' => '',
+    'PUSHOVER_USER_KEY_RESTORE' => ''
 ];
 
 // Load existing restore config if present
@@ -851,6 +853,7 @@ if (file_exists("/etc/unraid-version")) {
     align-items: center;
   }
 
+  #logtoast,
   #popupMessagerestore,
   #popupMessage {
     display: none;
@@ -1032,18 +1035,35 @@ if (is_file($plg)) {
         <label for="discord_webhook_url">
           <span class="vm-backup-and-restoretip"
             title="Enter your Discord webhook URL to send notifications to Discord instead of Unraid">
-            Discord Webhook URL:
+            Webhook URL:
           </span>
         </label>
         <div class="input-wrapper">
           <span class="vm-backup-and-restoretip"
             title="Enter your Discord webhook URL to send notifications to Discord instead of Unraid">
             <input type="text" id="discord_webhook_url" name="DISCORD_WEBHOOK_URL" class="short-input"
-              placeholder="https://discord.com/api/webhooks/..."
-              value="<?php echo htmlspecialchars($settings['DISCORD_WEBHOOK_URL'] ?? ''); ?>">
+              placeholder="Webhook URL" value="<?php echo htmlspecialchars($settings['DISCORD_WEBHOOK_URL'] ?? ''); ?>">
           </span>
-          <div id="discord-webhook-error" style="color:yellow; font-size:1.00em; display:none;">* Must start with
-            https://discord.com/api/webhooks/</div>
+          <div id="discord-webhook-error" style="color:yellow; font-size:1.00em; display:none;">* Must be a valid
+            webhook URL (Discord, Slack, Teams, Gotify, or Ntfy)</div>
+        </div>
+      </div>
+
+      <!-- PUSHOVER USER KEY -->
+      <div class="form-pair" id="pushover-user-key-row" style="display:none;">
+        <label for="pushover_user_key">
+          <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">
+            Pushover User Key:
+          </span>
+        </label>
+        <div class="input-wrapper">
+          <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">
+            <input type="text" id="pushover_user_key" name="PUSHOVER_USER_KEY" class="short-input"
+              placeholder="user key from pushover.net"
+              value="<?php echo htmlspecialchars($settings['PUSHOVER_USER_KEY'] ?? ''); ?>">
+          </span>
+          <div id="pushover-user-key-error" style="color:yellow; font-size:1.00em; display:none;">* Pushover user key is
+            required</div>
         </div>
       </div>
 
@@ -1475,20 +1495,37 @@ if (is_file($plg)) {
       <div class="form-pair" id="discord-webhook-row-restore" style="display:none;">
         <label for="discord_webhook_url_restore">
           <span class="vm-backup-and-restoretip"
-            title="Enter your Discord webhook URL to send notifications to Discord instead of Unraid">
-            Discord Webhook URL:
+            title="Enter your webhook URL to send notifications to instead of Unraid">
+            Webhook URL:
           </span>
         </label>
         <div class="input-wrapper">
           <span class="vm-backup-and-restoretip"
-            title="Enter your Discord webhook URL to send notifications to Discord instead of Unraid">
+            title="Enter your webhook URL to send notifications to instead of Unraid">
             <input type="text" id="discord_webhook_url_restore" name="DISCORD_WEBHOOK_URL_RESTORE" class="short-input"
-              placeholder="https://discord.com/api/webhooks/..."
+              placeholder="Webhook URL"
               value="<?php echo htmlspecialchars($restoreSettings['DISCORD_WEBHOOK_URL_RESTORE'] ?? ''); ?>">
           </span>
-          <div id="discord-webhook-error-restore" style="color:yellow; font-size:1.00em; display:none;">* Must start
-            with
-            https://discord.com/api/webhooks/</div>
+          <div id="discord-webhook-error-restore" style="color:yellow; font-size:1.00em; display:none;">* Must be a
+            valid webhook URL (Discord, Slack, Teams, Gotify, or Ntfy)</div>
+        </div>
+      </div>
+
+      <!-- PUSHOVER USER KEY RESTORE -->
+      <div class="form-pair" id="pushover-user-key-row-restore" style="display:none;">
+        <label for="pushover_user_key_restore">
+          <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">
+            Pushover User Key:
+          </span>
+        </label>
+        <div class="input-wrapper">
+          <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">
+            <input type="text" id="pushover_user_key_restore" name="PUSHOVER_USER_KEY_RESTORE" class="short-input"
+              placeholder="user key from pushover.net"
+              value="<?php echo htmlspecialchars($restoreSettings['PUSHOVER_USER_KEY_RESTORE'] ?? ''); ?>">
+          </span>
+          <div id="pushover-user-key-error-restore" style="color:yellow; font-size:1.00em; display:none;">* Pushover
+            user key is required</div>
         </div>
       </div>
 
@@ -1516,6 +1553,7 @@ if (is_file($plg)) {
           <button type="button" id="clear-last-run-log">Clear Log</button>
         </span>
 
+        <div id="logtoast">Log copied</div>
         <span title="Copy vm backup and restore log to clipboard" class="vm-backup-and-restoretip">
           <button type="button" id="copy-last-run-log">Copy</button>
         </span>
@@ -1543,6 +1581,12 @@ if (is_file($plg)) {
     <div id="folderList" class="vm-folder-list"></div>
 
     <div class="vm-modal-footer">
+      <button type="button" id="createFolderBtn">Create Folder</button>
+      <span id="newFolderInputWrap" style="display:none;">
+        <input type="text" id="newFolderName" placeholder="Folder name">
+        <button type="button" id="newFolderOk">OK</button>
+        <button type="button" id="newFolderCancel">Cancel</button>
+      </span>
       <button type="button" id="confirmFolderSelection">Select</button>
     </div>
   </div>
@@ -1567,37 +1611,77 @@ if (is_file($plg)) {
     }
   });
 
+  document.getElementById('copy-last-run-log').addEventListener('click', () => {
+    const toast = document.getElementById('logtoast');
+    toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 2000);
+  });
+
+  function isValidWebhookUrl(url) {
+    if (url.startsWith('https://discord.com/api/webhooks/')) return true;
+    if (url.startsWith('https://hooks.slack.com/')) return true;
+    if (url.startsWith('https://outlook.office.com/webhook')) return true;
+    if (url.startsWith('https://api.pushover.net/')) return true;
+    if (url.includes('ntfy.sh')) return true;
+    if (url.includes('/ntfy/')) return true;
+    if (url.includes('/message') && url.startsWith('https://')) return true;
+    return false;
+  }
+
   function validateDiscordWebhook() {
     const val = $('#discord_webhook_url').val().trim();
-    if (val !== '' && !val.startsWith('https://discord.com/api/webhooks/')) {
-      $('#discord-webhook-error').show();
-      return false;
+    const valid = val === '' || isValidWebhookUrl(val);
+    $('#discord-webhook-error').toggle(!valid);
+    togglePushoverUserKeyRow();
+    return valid;
+  }
+
+  function togglePushoverUserKeyRow() {
+    const val = $('#discord_webhook_url').val().trim();
+    if (val.startsWith('https://api.pushover.net/')) {
+      $('#pushover-user-key-row').show();
+    } else {
+      $('#pushover-user-key-row').hide();
+      $('#pushover_user_key').val('');
     }
-    $('#discord-webhook-error').hide();
-    return true;
   }
 
   function toggleDiscordWebhookRow() {
     if ($('#notifications').val() === 'yes') {
       $('#discord-webhook-row').show();
+      togglePushoverUserKeyRow();
     } else {
       $('#discord-webhook-row').hide();
+      $('#pushover-user-key-row').hide();
+      $('#pushover_user_key').val('');
+    }
+  }
+
+  function toggleDiscordWebhookRowRestore() {
+    if ($('#notifications_restore').val() === 'yes') {
+      $('#discord-webhook-row-restore').show();
+      togglePushoverUserKeyRowRestore();
+    } else {
+      $('#discord-webhook-row-restore').hide();
+      $('#pushover-user-key-row-restore').hide();
+      $('#pushover_user_key_restore').val('');
     }
   }
 
   $('#notifications').on('change', toggleDiscordWebhookRow);
   toggleDiscordWebhookRow();
 
-  $('#discord_webhook_url').on('input', validateDiscordWebhook);
+  $('#discord_webhook_url').on('input', function () {
+    validateDiscordWebhook();
+    togglePushoverUserKeyRow();
+  });
 
   function validateDiscordWebhookRestore() {
     const val = $('#discord_webhook_url_restore').val().trim();
-    if (val !== '' && !val.startsWith('https://discord.com/api/webhooks/')) {
-      $('#discord-webhook-error-restore').show();
-      return false;
-    }
-    $('#discord-webhook-error-restore').hide();
-    return true;
+    const valid = val === '' || isValidWebhookUrl(val);
+    $('#discord-webhook-error-restore').toggle(!valid);
+    togglePushoverUserKeyRowRestore();
+    return valid;
   }
 
   function toggleDiscordWebhookRowRestore() {
@@ -1611,7 +1695,10 @@ if (is_file($plg)) {
   $('#notifications_restore').on('change', toggleDiscordWebhookRowRestore);
   toggleDiscordWebhookRowRestore();
 
-  $('#discord_webhook_url_restore').on('input', validateDiscordWebhookRestore);
+  $('#discord_webhook_url_restore').on('input', function () {
+    validateDiscordWebhookRestore();
+    togglePushoverUserKeyRowRestore();
+  });
 
   let scheduleUILocked = false;
   let rebuildToken = 0;
@@ -1631,7 +1718,7 @@ if (is_file($plg)) {
     }
 
     if (!validateDiscordWebhook()) {
-      alert("Please enter a valid Discord webhook URL or leave it blank");
+      alert("Please enter a valid discord webhook URL or leave it blank");
       return false;
     }
 
@@ -2479,6 +2566,7 @@ if (is_file($plg)) {
       DRY_RUN: $('#dry_run').val(),
       NOTIFICATIONS: $('#notifications').val(),
       DISCORD_WEBHOOK_URL: $('#discord_webhook_url').val().trim(),
+      PUSHOVER_USER_KEY: $('#pushover_user_key').val().trim(),
       csrf_token: csrfToken
     });
 
@@ -2606,7 +2694,7 @@ if (is_file($plg)) {
   window.editingScheduleId = null;
 
   // --- Load schedule list ---
-function loadSchedules(force = false) {
+  function loadSchedules(force = false) {
     if (scheduleUILocked && !force) return $.Deferred().resolve().promise();
 
     return $.get(
@@ -2892,7 +2980,7 @@ function loadSchedules(force = false) {
   }
 
   // --- Run backup manually ---
-function runScheduleBackup(id, btn) {
+  function runScheduleBackup(id, btn) {
     if (scheduleUILocked) return;
 
     if (!confirm("Are you sure you want to run this backup now?")) return;
@@ -3174,7 +3262,7 @@ function runScheduleBackup(id, btn) {
     }
 
     if (!validateDiscordWebhookRestore()) {
-      alert("Please enter a valid Discord webhook URL or leave it blank");
+      alert("Please enter a valid discord webhook URL or leave it blank");
       return;
     }
 
@@ -3196,6 +3284,7 @@ function runScheduleBackup(id, btn) {
       DRY_RUN_RESTORE: $('#dry_run_restore').val(),
       NOTIFICATIONS_RESTORE: $('#notifications_restore').val(),
       DISCORD_WEBHOOK_URL_RESTORE: $('#discord_webhook_url_restore').val().trim(),
+      PUSHOVER_USER_KEY_RESTORE: $('#pushover_user_key_restore').val().trim(),
       csrf_token: csrfToken
     });
 
@@ -3259,18 +3348,12 @@ function runScheduleBackup(id, btn) {
       .then(r => r.text())
       .then(resolvedPath => {
         const $field = $('#' + targetInputId);
-
-        // Deterministic: always write something
         $field.val(resolvedPath || selectedPath);
-
-        // Trigger any listeners
         $field.trigger('input');
         $field.trigger('change');
-
         $('#folderPickerModal').hide();
       })
       .catch(() => {
-        // Fallback: original path
         const $field = $('#' + targetInputId);
         $field.val(selectedPath);
         $field.trigger('change');
@@ -3283,7 +3366,7 @@ function runScheduleBackup(id, btn) {
     $.getJSON('/plugins/vm-backup-and-restore/helpers/list_folders.php',
       {
         path: path,
-        field: activeInputFieldId   // send which field is active
+        field: activeInputFieldId
       },
 
       function (data) {
@@ -3302,12 +3385,12 @@ function runScheduleBackup(id, btn) {
           buildPath += '/' + part;
 
           breadcrumbHTML += `
-          <span class="breadcrumb-part"
-                data-path="${buildPath}"
-                style="cursor:pointer;">
-            ${part}
-          </span>
-        `;
+        <span class="breadcrumb-part"
+              data-path="${buildPath}"
+              style="cursor:pointer;">
+          ${part}
+        </span>
+      `;
 
           if (index < parts.length - 1) {
             breadcrumbHTML += ' / ';
@@ -3322,38 +3405,39 @@ function runScheduleBackup(id, btn) {
         ----------------------- */
         let html = '';
 
-        // Up Directory (never above /mnt)
         if (data.parent) {
           html += `
-          <div class="vm-folder-item browse-row"
-               data-path="${data.parent}"
-               style="cursor:pointer; display:flex; align-items:center;">
-            .. Up Directory
-          </div>
-        `;
+        <div class="vm-folder-item browse-row"
+             data-path="${data.parent}"
+             style="cursor:pointer; display:flex; align-items:center;">
+          .. Up Directory
+        </div>
+      `;
         }
 
         data.folders.forEach(folder => {
 
           const disabledAttr = folder.selectable ? '' : 'disabled';
-          const tooltip = folder.selectable ? '' : 'title="Can’t select. Browse deeper"';
+          const tooltip = folder.selectable ? '' : 'title="Cannott select. Browse deeper"';
           const disabledStyle = folder.selectable ? '' : 'style="opacity:0.4;"';
 
           html += `
-          <div class="vm-folder-item browse-row"
-               data-path="${folder.path}"
-               style="cursor:pointer; display:flex; align-items:center; gap:8px;">
+  <div class="vm-folder-item browse-row"
+       data-path="${folder.path}"
+       style="display:flex; align-items:center; gap:0px;">
 
-            <input type="checkbox"
-                   class="folder-checkbox"
-                   value="${folder.path}"
-                   ${disabledAttr}
-                   ${tooltip}
-                   ${disabledStyle}>
+    <label class="folder-check-label" style="display:flex; align-items:center; cursor:pointer; padding:9px 2px 4px 4px;">
+      <input type="checkbox"
+             class="folder-checkbox"
+             value="${folder.path}"
+             ${disabledAttr}
+             ${tooltip}
+             ${disabledStyle}>
+    </label>
 
-            <span>${folder.name}</span>
-          </div>
-        `;
+    <span class="folder-name-label" style="flex:1; cursor:pointer;">${folder.name}</span>
+  </div>
+`;
         });
 
         $('#folderList').html(html);
@@ -3370,27 +3454,30 @@ function runScheduleBackup(id, btn) {
 
         /* -----------------------
            Browse Row Click
-           (except checkbox)
         ----------------------- */
         $('.browse-row').off('click').on('click', function (e) {
-
-          if ($(e.target).is('input')) return;
-
+          if ($(e.target).closest('.folder-check-label').length) return;
+          if ($(e.target).closest('.folder-name-label').length) return;
           const newPath = $(this).data('path');
           loadFolders(newPath);
         });
 
+        $('.folder-name-label').off('click').on('click', function () {
+          const newPath = $(this).closest('.browse-row').data('path');
+          loadFolders(newPath);
+        });
+
+        $('.folder-check-label').off('click').on('click', function (e) {
+          e.stopPropagation();
+        });
 
         /* -----------------------
            Single Checkbox Selection
         ----------------------- */
         $('.folder-checkbox').off('change').on('change', function (e) {
-
           if (this.disabled) return;
-
           $('.folder-checkbox').not(this).prop('checked', false);
           selectedFolder = this.checked ? $(this).val() : null;
-
           e.stopPropagation();
         });
 
@@ -3427,6 +3514,34 @@ function runScheduleBackup(id, btn) {
     resolveAndApplyPath(selectedFolder, activeInputFieldId);
   });
 
+  $('#createFolderBtn').on('click', function () {
+    $('#newFolderInputWrap').show();
+    $('#newFolderName').val('').focus();
+  });
+
+  $('#newFolderCancel').on('click', function () {
+    $('#newFolderInputWrap').hide();
+    $('#newFolderName').val('');
+  });
+
+  $('#newFolderOk').on('click', function () {
+    const name = $('#newFolderName').val().trim();
+    if (!name) return;
+
+    $.post('/plugins/vm-backup-and-restore/helpers/create_folder.php',
+      { path: currentPath, name: name, csrf_token: csrf_token },
+      function (res) {
+        if (res.success) {
+          $('#newFolderInputWrap').hide();
+          $('#newFolderName').val('');
+          loadFolders(currentPath);
+        } else {
+          alert(res.error || 'Failed to create folder');
+        }
+      }, 'json'
+    );
+  });
+
   $(document).ready(function () {
     const $field = $('#restore_destination');
     if ($field.length === 0) return;
@@ -3443,23 +3558,24 @@ function runScheduleBackup(id, btn) {
   (function () {
     const CHECK_INTERVAL = 1000;
 
-function updateRunButtons(locked, anyLocked = false) {
+    function updateRunButtons(locked, anyLocked = false, scheduleLocked = false) {
       document.querySelectorAll('.run-schedule-btn').forEach(btn => {
         const currentText = btn.textContent.trim();
-        if (locked && currentText !== 'Stop') {
+        if (scheduleLocked && currentText === 'Stop') {
           btn.disabled = false;
           btn.setAttribute('title', 'Stop backup');
           if ($(btn).hasClass('tooltipstered')) {
             $(btn).tooltipster('content', 'Stop backup');
           }
-        } else if (!locked && currentText === 'Stop') {
+          btn.removeAttribute('title');
+        } else if (!scheduleLocked && currentText === 'Stop') {
           btn.textContent = 'Run';
           btn.disabled = false;
           btn.setAttribute('title', 'Run schedule');
           if ($(btn).hasClass('tooltipstered')) {
             $(btn).tooltipster('content', 'Run schedule');
           }
-        } else if (!locked && currentText !== 'Stop') {
+        } else if (currentText !== 'Stop') {
           btn.disabled = anyLocked;
           if (anyLocked) {
             btn.classList.add('disabled');
@@ -3488,13 +3604,14 @@ function updateRunButtons(locked, anyLocked = false) {
       }
     }
 
-async function pollLock() {
+    async function pollLock() {
       try {
         const res = await fetch('/plugins/vm-backup-and-restore/helpers/check_lock.php');
         const data = await res.json();
-        const backupLocked = data.locked && data.mode !== 'restore';
+        const backupLocked = data.locked && data.mode === 'manual';
         const restoreLocked = data.locked && data.mode === 'restore';
-        updateRunButtons(backupLocked, data.locked);
+        const scheduleLocked = data.locked && data.mode === 'schedule';
+        updateRunButtons(backupLocked, data.locked, scheduleLocked);
         updateRestoreButton(restoreLocked);
       } catch (e) {
         console.error('Failed to check lock:', e);
@@ -3596,16 +3713,17 @@ async function pollLock() {
     }, 1200);
   }
 
-  function debounceButton(btn, delay = 1500) {
-  btn.addEventListener('click', function handler() {
-    if (btn.disabled) return;
-    btn.disabled = true;
-    setTimeout(() => btn.disabled = false, delay);
-  }, true);
-}
+  function debounceButton(btn, delay = 500) {
+    let cooling = false;
+    btn.addEventListener('click', function () {
+      if (cooling) return;
+      cooling = true;
+      setTimeout(() => cooling = false, delay);
+    });
+  }
 
-['backupbtn', 'restorebtn', 'schedule-backup', 'cancelEditBtn', 'clear-last-run-log', 'copy-last-run-log', 'confirmFolderSelection', 'closeFolderPicker'].forEach(id => {
-  const btn = document.getElementById(id);
-  if (btn) debounceButton(btn);
-});
+  ['backupbtn', 'restorebtn', 'schedule-backup', 'cancelEditBtn', 'clear-last-run-log', 'copy-last-run-log', 'confirmFolderSelection', 'closeFolderPicker'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) debounceButton(btn);
+  });
 </script>
