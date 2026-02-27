@@ -1045,7 +1045,7 @@ if (is_file($plg)) {
               placeholder="Webhook URL" value="<?php echo htmlspecialchars($settings['DISCORD_WEBHOOK_URL'] ?? ''); ?>">
           </span>
           <div id="discord-webhook-error" style="color:yellow; font-size:1.00em; display:none;">* Must be a valid
-            webhook URL (Discord, Slack, Teams, Gotify, or Ntfy)</div>
+            webhook URL (Discord, Slack, Teams, Gotify, Pushover, or Ntfy)</div>
         </div>
       </div>
 
@@ -1507,7 +1507,7 @@ if (is_file($plg)) {
               value="<?php echo htmlspecialchars($restoreSettings['DISCORD_WEBHOOK_URL_RESTORE'] ?? ''); ?>">
           </span>
           <div id="discord-webhook-error-restore" style="color:yellow; font-size:1.00em; display:none;">* Must be a
-            valid webhook URL (Discord, Slack, Teams, Gotify, or Ntfy)</div>
+            valid webhook URL (Discord, Slack, Teams, Gotify, Pushover, or Ntfy)</div>
         </div>
       </div>
 
