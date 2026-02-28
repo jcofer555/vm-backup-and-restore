@@ -10,7 +10,8 @@ $backups_to_keep        = $_GET['BACKUPS_TO_KEEP'] ?? '';
 $backup_owner           = $_GET['BACKUP_OWNER'] ?? '';
 $dry_run                = $_GET['DRY_RUN'] ?? '';
 $notifications          = $_GET['NOTIFICATIONS'] ?? '';
-$discord_webhook_url    = $_GET['DISCORD_WEBHOOK_URL'] ?? '';
+$notification_service   = $_GET['NOTIFICATION_SERVICE'] ?? '';
+$WEBHOOK_URL    = $_GET['WEBHOOK_URL'] ?? '';
 $pushover_user_key      = $_GET['PUSHOVER_USER_KEY'] ?? '';
 
 // --- Normalize paths ---
@@ -29,7 +30,8 @@ $args = [
     $backup_owner,
     $dry_run,
     $notifications,
-    $discord_webhook_url,
+    $notification_service,
+    $WEBHOOK_URL,
     $pushover_user_key,
 ];
 

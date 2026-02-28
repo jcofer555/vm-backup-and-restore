@@ -16,7 +16,8 @@ $defaults = [
     'BACKUP_OWNER' => 'nobody',
     'DRY_RUN' => 'no',
     'NOTIFICATIONS' => 'no',
-    'DISCORD_WEBHOOK_URL' => '',
+    'NOTIFICATION_SERVICE' => '',
+    'WEBHOOK_URL' => '',
     'PUSHOVER_USER_KEY' => ''
 ];
 
@@ -52,7 +53,8 @@ $restoreDefaults = [
     'RESTORE_DESTINATION' => '/mnt/user/domains',
     'DRY_RUN_RESTORE' => 'no',
     'NOTIFICATIONS_RESTORE' => 'no',
-    'DISCORD_WEBHOOK_URL_RESTORE' => '',
+    'NOTIFICATION_SERVICE_RESTORE' => '',
+    'WEBHOOK_URL_RESTORE' => '',
     'PUSHOVER_USER_KEY_RESTORE' => ''
 ];
 
@@ -1030,22 +1032,45 @@ if (is_file($plg)) {
         </span>
       </div>
 
-      <!-- DISCORD WEBHOOK URL -->
-      <div class="form-pair" id="discord-webhook-row" style="display:none;">
-        <label for="discord_webhook_url">
-          <span class="vm-backup-and-restoretip"
-            title="Enter your Discord webhook URL to send notifications to Discord instead of Unraid">
+      <!-- NOTIFICATION SERVICE -->
+      <div class="form-pair" id="notification-service-row" style="display:none;">
+        <label for="notification_service">
+          <span class="vm-backup-and-restoretip" title="Optional: Choose which notification service to use">
+            Service:
+          </span>
+        </label>
+        <span class="vm-backup-and-restoretip" title="Optional: Choose which notification service to use">
+          <select id="notification_service" name="NOTIFICATION_SERVICE" class="short-input">
+            <option value="" <?=(($settings['NOTIFICATION_SERVICE'] ?? '' )==='' ) ? 'selected' : '' ?>>Unraid Built-in
+            </option>
+            <option value="Discord" <?=(($settings['NOTIFICATION_SERVICE'] ?? '' )==='Discord' ) ? 'selected' : '' ?>
+              >Discord</option>
+            <option value="Gotify" <?=(($settings['NOTIFICATION_SERVICE'] ?? '' )==='Gotify' ) ? 'selected' : '' ?>
+              >Gotify</option>
+            <option value="Ntfy" <?=(($settings['NOTIFICATION_SERVICE'] ?? '' )==='Ntfy' ) ? 'selected' : '' ?>>Ntfy
+            </option>
+            <option value="Pushover" <?=(($settings['NOTIFICATION_SERVICE'] ?? '' )==='Pushover' ) ? 'selected' : '' ?>
+              >Pushover</option>
+            <option value="Slack" <?=(($settings['NOTIFICATION_SERVICE'] ?? '' )==='Slack' ) ? 'selected' : '' ?>>Slack
+            </option>
+          </select>
+        </span>
+      </div>
+
+      <!-- WEBHOOK URL -->
+      <div class="form-pair" id="webhook-url-row" style="display:none;">
+        <label for="webhook_url">
+          <span class="vm-backup-and-restoretip" id="webhook-url-label-tip" title="">
             Webhook URL:
           </span>
         </label>
         <div class="input-wrapper">
-          <span class="vm-backup-and-restoretip"
-            title="Enter your Discord webhook URL to send notifications to Discord instead of Unraid">
-            <input type="text" id="discord_webhook_url" name="DISCORD_WEBHOOK_URL" class="short-input"
-              placeholder="Webhook URL" value="<?php echo htmlspecialchars($settings['DISCORD_WEBHOOK_URL'] ?? ''); ?>">
+          <span class="vm-backup-and-restoretip" id="webhook-url-input-tip" title="">
+            <input type="text" id="webhook_url" name="WEBHOOK_URL" class="short-input" placeholder=""
+              value="<?php echo htmlspecialchars($settings['WEBHOOK_URL'] ?? ''); ?>">
           </span>
-          <div id="discord-webhook-error" style="color:yellow; font-size:1.00em; display:none;">* Must be a valid
-            webhook URL (Discord, Slack, Teams, Gotify, Pushover, or Ntfy)</div>
+          <div id="discord-webhook-error" style="color:yellow; font-size:1.00em; display:none;">* Invalid webhook URL
+            for selected service</div>
         </div>
       </div>
 
@@ -1059,7 +1084,7 @@ if (is_file($plg)) {
         <div class="input-wrapper">
           <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">
             <input type="text" id="pushover_user_key" name="PUSHOVER_USER_KEY" class="short-input"
-              placeholder="user key from pushover.net"
+              placeholder="user key from pushover.net/dashboard"
               value="<?php echo htmlspecialchars($settings['PUSHOVER_USER_KEY'] ?? ''); ?>">
           </span>
           <div id="pushover-user-key-error" style="color:yellow; font-size:1.00em; display:none;">* Pushover user key is
@@ -1491,23 +1516,45 @@ if (is_file($plg)) {
         </span>
       </div>
 
-      <!-- DISCORD WEBHOOK URL RESTORE -->
-      <div class="form-pair" id="discord-webhook-row-restore" style="display:none;">
-        <label for="discord_webhook_url_restore">
-          <span class="vm-backup-and-restoretip"
-            title="Enter your webhook URL to send notifications to instead of Unraid">
+      <!-- NOTIFICATION SERVICE RESTORE -->
+      <div class="form-pair" id="notification-service-row-restore" style="display:none;">
+        <label for="notification_service_restore">
+          <span class="vm-backup-and-restoretip" title="Optional: Choose which notification service to use">
+            Service:
+          </span>
+        </label>
+        <span class="vm-backup-and-restoretip" title="Optional: Choose which notification service to use">
+          <select id="notification_service_restore" name="NOTIFICATION_SERVICE_RESTORE" class="short-input">
+            <option value="" <?=(($restoreSettings['NOTIFICATION_SERVICE_RESTORE'] ?? '' )==='' ) ? 'selected' : '' ?>
+              >Select service</option>
+            <option value="Discord" <?=(($restoreSettings['NOTIFICATION_SERVICE_RESTORE'] ?? '' )==='Discord' )
+              ? 'selected' : '' ?>>Discord</option>
+            <option value="Gotify" <?=(($restoreSettings['NOTIFICATION_SERVICE_RESTORE'] ?? '' )==='Gotify' )
+              ? 'selected' : '' ?>>Gotify</option>
+            <option value="Ntfy" <?=(($restoreSettings['NOTIFICATION_SERVICE_RESTORE'] ?? '' )==='Ntfy' ) ? 'selected'
+              : '' ?>>Ntfy</option>
+            <option value="Pushover" <?=(($restoreSettings['NOTIFICATION_SERVICE_RESTORE'] ?? '' )==='Pushover' )
+              ? 'selected' : '' ?>>Pushover</option>
+            <option value="Slack" <?=(($restoreSettings['NOTIFICATION_SERVICE_RESTORE'] ?? '' )==='Slack' ) ? 'selected'
+              : '' ?>>Slack</option>
+          </select>
+        </span>
+      </div>
+
+      <!-- WEBHOOK URL RESTORE -->
+      <div class="form-pair" id="webhook-url-row-restore" style="display:none;">
+        <label for="webhook_url_restore">
+          <span class="vm-backup-and-restoretip" id="webhook-url-label-tip-restore" title="">
             Webhook URL:
           </span>
         </label>
         <div class="input-wrapper">
-          <span class="vm-backup-and-restoretip"
-            title="Enter your webhook URL to send notifications to instead of Unraid">
-            <input type="text" id="discord_webhook_url_restore" name="DISCORD_WEBHOOK_URL_RESTORE" class="short-input"
-              placeholder="Webhook URL"
-              value="<?php echo htmlspecialchars($restoreSettings['DISCORD_WEBHOOK_URL_RESTORE'] ?? ''); ?>">
+          <span class="vm-backup-and-restoretip" id="webhook-url-input-tip-restore" title="">
+            <input type="text" id="webhook_url_restore" name="WEBHOOK_URL_RESTORE" class="short-input" placeholder=""
+              value="<?php echo htmlspecialchars($restoreSettings['WEBHOOK_URL_RESTORE'] ?? ''); ?>">
           </span>
-          <div id="discord-webhook-error-restore" style="color:yellow; font-size:1.00em; display:none;">* Must be a
-            valid webhook URL (Discord, Slack, Teams, Gotify, Pushover, or Ntfy)</div>
+          <div id="discord-webhook-error-restore" style="color:yellow; font-size:1.00em; display:none;">* Invalid
+            webhook URL for selected service</div>
         </div>
       </div>
 
@@ -1521,7 +1568,7 @@ if (is_file($plg)) {
         <div class="input-wrapper">
           <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">
             <input type="text" id="pushover_user_key_restore" name="PUSHOVER_USER_KEY_RESTORE" class="short-input"
-              placeholder="user key from pushover.net"
+              placeholder="user key from pushover.net/dashboard"
               value="<?php echo htmlspecialchars($restoreSettings['PUSHOVER_USER_KEY_RESTORE'] ?? ''); ?>">
           </span>
           <div id="pushover-user-key-error-restore" style="color:yellow; font-size:1.00em; display:none;">* Pushover
@@ -1617,87 +1664,182 @@ if (is_file($plg)) {
     setTimeout(() => toast.style.display = 'none', 2000);
   });
 
-  function isValidWebhookUrl(url) {
-    if (url.startsWith('https://discord.com/api/webhooks/')) return true;
-    if (url.startsWith('https://hooks.slack.com/')) return true;
-    if (url.startsWith('https://outlook.office.com/webhook')) return true;
-    if (url.startsWith('https://api.pushover.net/')) return true;
-    if (url.includes('ntfy.sh')) return true;
-    if (url.includes('/ntfy/')) return true;
-    if (url.includes('/message') && url.startsWith('https://')) return true;
-    return false;
+  const SERVICE_CONFIG = {
+    Discord: {
+      label: 'Discord Webhook URL',
+      tooltip: 'Enter your Discord webhook URL e.g. https://discord.com/api/webhooks/API_KEY or just API_KEY',
+      placeholder: 'https://discord.com/api/webhooks/...',
+      prefix: 'https://discord.com/api/webhooks/'
+    },
+    Gotify: {
+      label: 'Gotify URL',
+      tooltip: 'Enter your Gotify server message URL e.g. https://gotify.example.com/message?token=TOKEN or just TOKEN',
+      placeholder: 'https://gotify.example.com/message?token=...',
+      prefix: 'https://gotify.example.com/message?token='
+    },
+    Ntfy: {
+      label: 'Ntfy URL',
+      tooltip: 'Enter your Ntfy topic URL e.g. https://ntfy.sh/yourtopic or just yourtopic',
+      placeholder: 'https://ntfy.sh/yourtopic',
+      prefix: 'https://ntfy.sh/'
+    },
+    Pushover: {
+      label: 'Pushover App Token URL',
+      tooltip: 'Enter your Pushover app token from pushover.net/apps e.g. https://api.pushover.net/APPTOKEN or just APPTOKEN',
+      placeholder: 'https://api.pushover.net/YOURAPPTOKEN',
+      prefix: 'https://api.pushover.net/'
+    },
+    Slack: {
+      label: 'Slack Webhook URL',
+      tooltip: 'Enter your Slack webhook URL e.g. https://hooks.slack.com/services/ID or just ID',
+      placeholder: 'https://hooks.slack.com/services/ID',
+      prefix: 'https://hooks.slack.com/services/'
+    }
+  };
+
+  function normalizeWebhookUrl(val, service) {
+    val = val.trim();
+    if (!val) return val;
+    if (val.startsWith('https://')) return val;
+    const cfg = SERVICE_CONFIG[service];
+    if (cfg) return cfg.prefix + val;
+    return val;
+  }
+
+  function validateWebhookUrl(val, service) {
+    if (!val) return true;
+    const cfg = SERVICE_CONFIG[service];
+    if (!cfg) return false;
+    return val.startsWith(cfg.prefix);
+  }
+
+  function applyServiceUI(service, suffix) {
+    const s = suffix ? '-' + suffix : '';
+    const cfg = SERVICE_CONFIG[service];
+    if (!cfg) return;
+
+    const $labelTip = $('#webhook-url-label-tip' + s);
+    const $inputTip = $('#webhook-url-input-tip' + s);
+    const inputId = suffix ? 'webhook_url_' + suffix : 'webhook_url';
+    const pushoverRow = suffix ? '#pushover-user-key-row-' + suffix : '#pushover-user-key-row';
+    const pkInput = suffix ? '#pushover_user_key_' + suffix : '#pushover_user_key';
+
+    // Update label text
+    $labelTip.text(cfg.label);
+
+    // Destroy existing tooltipster instances before updating title
+    if ($labelTip.hasClass('tooltipstered')) $labelTip.tooltipster('destroy');
+    if ($inputTip.hasClass('tooltipstered')) $inputTip.tooltipster('destroy');
+
+    // Update title attribute (tooltipster reads this on next hover)
+    $labelTip.attr('title', cfg.tooltip);
+    $inputTip.attr('title', cfg.tooltip);
+
+    // Update placeholder
+    $('#' + inputId).attr('placeholder', cfg.placeholder);
+
+    // Show/hide Pushover user key row
+    if (service === 'Pushover') {
+      $(pushoverRow).show();
+    } else {
+      $(pushoverRow).hide();
+      $(pkInput).val('');
+    }
+  }
+
+  function toggleNotificationRows(suffix) {
+    const s = suffix ? '_' + suffix : '';
+    const notifVal = $('#notifications' + s).val();
+    const serviceRowId = suffix ? '#notification-service-row-' + suffix : '#notification-service-row';
+    const webhookRowId = suffix ? '#webhook-url-row-' + suffix : '#webhook-url-row';
+    const pushoverRowId = suffix ? '#pushover-user-key-row-' + suffix : '#pushover-user-key-row';
+    const serviceSelectId = suffix ? '#notification_service_' + suffix : '#notification_service';
+
+    if (notifVal === 'yes') {
+      $(serviceRowId).show();
+      const service = $(serviceSelectId).val();
+      if (service) {
+        $(webhookRowId).show();
+        applyServiceUI(service, suffix);
+      } else {
+        $(webhookRowId).hide();
+        $(pushoverRowId).hide();
+      }
+    } else {
+      $(serviceRowId).hide();
+      $(webhookRowId).hide();
+      $(pushoverRowId).hide();
+    }
   }
 
   function validateDiscordWebhook() {
-    const val = $('#discord_webhook_url').val().trim();
-    const valid = val === '' || isValidWebhookUrl(val);
+    const service = $('#notification_service').val();
+    const val = $('#webhook_url').val().trim();
+    const valid = val === '' || validateWebhookUrl(val, service);
     $('#discord-webhook-error').toggle(!valid);
-    togglePushoverUserKeyRow();
     return valid;
   }
-
-  function togglePushoverUserKeyRow() {
-    const val = $('#discord_webhook_url').val().trim();
-    if (val.startsWith('https://api.pushover.net/')) {
-      $('#pushover-user-key-row').show();
-    } else {
-      $('#pushover-user-key-row').hide();
-      $('#pushover_user_key').val('');
-    }
-  }
-
-  function toggleDiscordWebhookRow() {
-    if ($('#notifications').val() === 'yes') {
-      $('#discord-webhook-row').show();
-      togglePushoverUserKeyRow();
-    } else {
-      $('#discord-webhook-row').hide();
-      $('#pushover-user-key-row').hide();
-      $('#pushover_user_key').val('');
-    }
-  }
-
-  function toggleDiscordWebhookRowRestore() {
-    if ($('#notifications_restore').val() === 'yes') {
-      $('#discord-webhook-row-restore').show();
-      togglePushoverUserKeyRowRestore();
-    } else {
-      $('#discord-webhook-row-restore').hide();
-      $('#pushover-user-key-row-restore').hide();
-      $('#pushover_user_key_restore').val('');
-    }
-  }
-
-  $('#notifications').on('change', toggleDiscordWebhookRow);
-  toggleDiscordWebhookRow();
-
-  $('#discord_webhook_url').on('input', function () {
-    validateDiscordWebhook();
-    togglePushoverUserKeyRow();
-  });
 
   function validateDiscordWebhookRestore() {
-    const val = $('#discord_webhook_url_restore').val().trim();
-    const valid = val === '' || isValidWebhookUrl(val);
+    const service = $('#notification_service_restore').val();
+    const val = $('#webhook_url_restore').val().trim();
+    const valid = val === '' || validateWebhookUrl(val, service);
     $('#discord-webhook-error-restore').toggle(!valid);
-    togglePushoverUserKeyRowRestore();
     return valid;
   }
 
-  function toggleDiscordWebhookRowRestore() {
-    if ($('#notifications_restore').val() === 'yes') {
-      $('#discord-webhook-row-restore').show();
+  // Backup section listeners
+  $('#notifications').on('change', function () { toggleNotificationRows(''); });
+  toggleNotificationRows('');
+
+  $('#notification_service').on('change', function () {
+    const service = $(this).val();
+    if (service) {
+      $('#webhook-url-row').show();
+      applyServiceUI(service, '');
+      validateDiscordWebhook();
     } else {
-      $('#discord-webhook-row-restore').hide();
+      $('#webhook-url-row').hide();
+      $('#pushover-user-key-row').hide();
     }
-  }
+  });
 
-  $('#notifications_restore').on('change', toggleDiscordWebhookRowRestore);
-  toggleDiscordWebhookRowRestore();
+  $('#webhook_url').on('input', function () {
+    validateDiscordWebhook();
+  });
 
-  $('#discord_webhook_url_restore').on('input', function () {
+  $('#webhook_url').on('blur', function () {
+    const service = $('#notification_service').val();
+    const normalized = normalizeWebhookUrl($(this).val(), service);
+    $(this).val(normalized);
+    validateDiscordWebhook();
+  });
+
+  // Restore section listeners
+  $('#notifications_restore').on('change', function () { toggleNotificationRows('restore'); });
+  toggleNotificationRows('restore');
+
+  $('#notification_service_restore').on('change', function () {
+    const service = $(this).val();
+    if (service) {
+      $('#webhook-url-row-restore').show();
+      applyServiceUI(service, 'restore');
+      validateDiscordWebhookRestore();
+    } else {
+      $('#webhook-url-row-restore').hide();
+      $('#pushover-user-key-row-restore').hide();
+    }
+  });
+
+  $('#webhook_url_restore').on('input', function () {
     validateDiscordWebhookRestore();
-    togglePushoverUserKeyRowRestore();
+  });
+
+  $('#webhook_url_restore').on('blur', function () {
+    const service = $('#notification_service_restore').val();
+    const normalized = normalizeWebhookUrl($(this).val(), service);
+    $(this).val(normalized);
+    validateDiscordWebhookRestore();
   });
 
   let scheduleUILocked = false;
@@ -1718,8 +1860,16 @@ if (is_file($plg)) {
     }
 
     if (!validateDiscordWebhook()) {
-      alert("Please enter a valid discord webhook URL or leave it blank");
+      alert("Please enter a valid webhook URL or leave it blank");
       return false;
+    }
+
+    const service = $('#notification_service').val();
+    if (service === 'Pushover' && $('#notifications').val() === 'yes') {
+      if (!$('#pushover_user_key').val().trim()) {
+        alert('Please enter your Pushover user key');
+        return false;
+      }
     }
 
     return true;
@@ -2553,6 +2703,19 @@ if (is_file($plg)) {
       return;
     }
 
+    if (!validateDiscordWebhook()) {
+      alert("Please enter a valid webhook URL or leave it blank");
+      return;
+    }
+
+    const service = $('#notification_service').val();
+    if (service === 'Pushover' && $('#notifications').val() === 'yes') {
+      if (!$('#pushover_user_key').val().trim()) {
+        alert('Please enter your Pushover user key');
+        return;
+      }
+    }
+
     // If we reach here → UI validation passed
     // -------------------------------
 
@@ -2565,7 +2728,8 @@ if (is_file($plg)) {
       BACKUP_OWNER: $('#backup_owner').val(),
       DRY_RUN: $('#dry_run').val(),
       NOTIFICATIONS: $('#notifications').val(),
-      DISCORD_WEBHOOK_URL: $('#discord_webhook_url').val().trim(),
+      NOTIFICATION_SERVICE: $('#notification_service').val(),
+      WEBHOOK_URL: $('#webhook_url').val().trim(),
       PUSHOVER_USER_KEY: $('#pushover_user_key').val().trim(),
       csrf_token: csrfToken
     });
@@ -3262,8 +3426,16 @@ if (is_file($plg)) {
     }
 
     if (!validateDiscordWebhookRestore()) {
-      alert("Please enter a valid discord webhook URL or leave it blank");
+      alert("Please enter a valid webhook URL or leave it blank");
       return;
+    }
+
+    const serviceRestore = $('#notification_service_restore').val();
+    if (serviceRestore === 'Pushover' && $('#notifications_restore').val() === 'yes') {
+      if (!$('#pushover_user_key_restore').val().trim()) {
+        alert('Please enter your Pushover user key');
+        return;
+      }
     }
 
     if ($('#restorebtn').prop('disabled')) {
@@ -3283,7 +3455,8 @@ if (is_file($plg)) {
       RESTORE_DESTINATION: restore_dest,
       DRY_RUN_RESTORE: $('#dry_run_restore').val(),
       NOTIFICATIONS_RESTORE: $('#notifications_restore').val(),
-      DISCORD_WEBHOOK_URL_RESTORE: $('#discord_webhook_url_restore').val().trim(),
+      NOTIFICATION_SERVICE_RESTORE: $('#notification_service_restore').val(),
+      WEBHOOK_URL_RESTORE: $('#webhook_url_restore').val().trim(),
       PUSHOVER_USER_KEY_RESTORE: $('#pushover_user_key_restore').val().trim(),
       csrf_token: csrfToken
     });

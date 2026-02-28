@@ -130,6 +130,9 @@ cleanup() {
         debug_log "Removed temp file: $tmp"
     done
 
+        notify_restore "warning" "VM Backup & Restore" \
+        "Restore was stopped early - Duration: $SCRIPT_DURATION_HUMAN"
+
     if [[ "$DRY_RUN" != "yes" ]]; then
         if (( ${#STOPPED_VMS[@]} > 0 )); then
             for vm in "${STOPPED_VMS[@]}"; do
@@ -172,7 +175,7 @@ CONFIG="/boot/config/plugins/vm-backup-and-restore/settings_restore.cfg"
 debug_log "Loading config: $CONFIG"
 source "$CONFIG" || { debug_log "ERROR: Failed to source config: $CONFIG"; exit 1; }
 
-DISCORD_WEBHOOK_URL_RESTORE="${DISCORD_WEBHOOK_URL_RESTORE//\"/}"
+WEBHOOK_URL_RESTORE="${WEBHOOK_URL_RESTORE//\"/}"
 PUSHOVER_USER_KEY_RESTORE="${PUSHOVER_USER_KEY_RESTORE//\"/}"
 
 classify_path() {
@@ -210,7 +213,7 @@ notify_restore() {
 
     [[ "$NOTIFICATIONS_RESTORE" != "yes" ]] && { debug_log "Notifications disabled, skipping"; return 0; }
 
-    if [[ -n "$DISCORD_WEBHOOK_URL_RESTORE" ]]; then
+    if [[ -n "$WEBHOOK_URL_RESTORE" ]]; then
         local color
         case "$level" in
             alert)   color=15158332 ;;
@@ -218,39 +221,39 @@ notify_restore() {
             *)       color=3066993  ;;
         esac
 
-        if [[ "$DISCORD_WEBHOOK_URL_RESTORE" == *"discord.com/api/webhooks"* ]]; then
+        if [[ "$WEBHOOK_URL_RESTORE" == *"discord.com/api/webhooks"* ]]; then
             debug_log "Sending Discord webhook notification"
-            curl -sf -X POST "$DISCORD_WEBHOOK_URL_RESTORE" \
+            curl -sf -X POST "$WEBHOOK_URL_RESTORE" \
                 -H "Content-Type: application/json" \
                 -d "{\"embeds\":[{\"title\":\"$title\",\"description\":\"$message\",\"color\":$color}]}" || true
 
-        elif [[ "$DISCORD_WEBHOOK_URL_RESTORE" == *"hooks.slack.com"* ]]; then
+        elif [[ "$WEBHOOK_URL_RESTORE" == *"hooks.slack.com"* ]]; then
             debug_log "Sending Slack webhook notification"
-            curl -sf -X POST "$DISCORD_WEBHOOK_URL_RESTORE" \
+            curl -sf -X POST "$WEBHOOK_URL_RESTORE" \
                 -H "Content-Type: application/json" \
                 -d "{\"text\":\"*$title*\n$message\"}" || true
 
-        elif [[ "$DISCORD_WEBHOOK_URL_RESTORE" == *"outlook.office.com/webhook"* ]]; then
+        elif [[ "$WEBHOOK_URL_RESTORE" == *"outlook.office.com/webhook"* ]]; then
             debug_log "Sending Teams webhook notification"
-            curl -sf -X POST "$DISCORD_WEBHOOK_URL_RESTORE" \
+            curl -sf -X POST "$WEBHOOK_URL_RESTORE" \
                 -H "Content-Type: application/json" \
                 -d "{\"title\":\"$title\",\"text\":\"$message\"}" || true
 
-        elif [[ "$DISCORD_WEBHOOK_URL_RESTORE" == *"/message"* ]]; then
+        elif [[ "$WEBHOOK_URL_RESTORE" == *"/message"* ]]; then
             debug_log "Sending Gotify notification"
-            curl -sf -X POST "$DISCORD_WEBHOOK_URL_RESTORE" \
+            curl -sf -X POST "$WEBHOOK_URL_RESTORE" \
                 -H "Content-Type: application/json" \
                 -d "{\"title\":\"$title\",\"message\":\"$message\",\"priority\":5}" || true
 
-        elif [[ "$DISCORD_WEBHOOK_URL_RESTORE" == *"ntfy.sh"* || "$DISCORD_WEBHOOK_URL_RESTORE" == *"/ntfy/"* ]]; then
+        elif [[ "$WEBHOOK_URL_RESTORE" == *"ntfy.sh"* || "$WEBHOOK_URL_RESTORE" == *"/ntfy/"* ]]; then
             debug_log "Sending ntfy notification"
-            curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
+            curl -sf -X POST "$WEBHOOK_URL" \
                 -H "Title: $title" \
                 -d "$message" > /dev/null || true
 
-        elif [[ "$DISCORD_WEBHOOK_URL_RESTORE" == *"api.pushover.net"* ]]; then
+        elif [[ "$WEBHOOK_URL_RESTORE" == *"api.pushover.net"* ]]; then
             debug_log "Sending Pushover notification"
-            local token="${DISCORD_WEBHOOK_URL_RESTORE##*/}"
+            local token="${WEBHOOK_URL_RESTORE##*/}"
             curl -sf -X POST "https://api.pushover.net/1/messages.json" \
                 -d "token=${token}" \
                 -d "user=${PUSHOVER_USER_KEY_RESTORE}" \
@@ -289,7 +292,7 @@ debug_log "backup_path=$backup_path"
 debug_log "vm_domains=$vm_domains"
 debug_log "DRY_RUN=$DRY_RUN"
 debug_log "NOTIFICATIONS_RESTORE=$NOTIFICATIONS_RESTORE"
-debug_log "DISCORD_WEBHOOK_URL_RESTORE=${DISCORD_WEBHOOK_URL_RESTORE:+(set)}"
+debug_log "WEBHOOK_URL_RESTORE=${WEBHOOK_URL_RESTORE:+(set)}"
 debug_log "PUSHOVER_USER_KEY_RESTORE=${PUSHOVER_USER_KEY_RESTORE:+(set)}"
 debug_log "VERSIONS=$VERSIONS"
 debug_log "SCRIPT_START_EPOCH=$SCRIPT_START_EPOCH"
@@ -541,11 +544,16 @@ for vm in "${vm_names[@]}"; do
     for extra_file in "$backup_dir"/"${prefix}"*; do
         [[ -f "$extra_file" ]] || continue
 
+        # Skip files already restored in the vdisk section
+        already_copied=false
+        for d in "${disks[@]}"; do
+            [[ "$extra_file" == "$d" ]] && { already_copied=true; break; }
+        done
+        [[ "$already_copied" == true ]] && continue
+
         case "$(basename "$extra_file")" in
             *.xml) continue ;;
             *VARS*.fd) continue ;;
-            vdisk*.img) continue ;;
-            *.qcow2) continue ;;
         esac
 
         file=$(basename "$extra_file")

@@ -12,8 +12,9 @@ BACKUPS_TO_KEEP="${3:-0}"
 BACKUP_OWNER="${4:-nobody}"
 DRY_RUN="${5:-no}"
 NOTIFICATIONS="${6:-no}"
-DISCORD_WEBHOOK_URL="${7:-}"
-PUSHOVER_USER_KEY="${8:-}"
+NOTIFICATION_SERVICE="${7:-}"
+WEBHOOK_URL="${8:-}"
+PUSHOVER_USER_KEY="${9:-}"
 
 # ==========================================================
 #  Write all settings
@@ -25,7 +26,8 @@ PUSHOVER_USER_KEY="${8:-}"
   echo "BACKUP_OWNER=\"$BACKUP_OWNER\""
   echo "DRY_RUN=\"$DRY_RUN\""
   echo "NOTIFICATIONS=\"$NOTIFICATIONS\""
-  echo "DISCORD_WEBHOOK_URL=\"$DISCORD_WEBHOOK_URL\""
+  echo "NOTIFICATION_SERVICE=\"$NOTIFICATION_SERVICE\""
+  echo "WEBHOOK_URL=\"$WEBHOOK_URL\""
   echo "PUSHOVER_USER_KEY=\"$PUSHOVER_USER_KEY\""
 } > "$TMP"
 

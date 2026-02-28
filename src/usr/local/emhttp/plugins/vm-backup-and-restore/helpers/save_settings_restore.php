@@ -11,7 +11,8 @@ $versions                       = $_GET['VERSIONS'] ?? '';
 $restore_destination            = $_GET['RESTORE_DESTINATION'] ?? '';
 $dry_run_restore                = $_GET['DRY_RUN_RESTORE'] ?? '';
 $notifications_restore          = $_GET['NOTIFICATIONS_RESTORE'] ?? '';
-$discord_webhook_url_restore    = $_GET['DISCORD_WEBHOOK_URL_RESTORE'] ?? '';
+$notifications_service_restore  = $_GET['NOTIFICATION_SERVICE_RESTORE'] ?? '';
+$webhook_url_restore            = $_GET['WEBHOOK_URL_RESTORE'] ?? '';
 $pushover_user_key_restore      = $_GET['PUSHOVER_USER_KEY_RESTORE'] ?? '';
 
 // --- Normalize LOCATION_OF_BACKUPS ---
@@ -38,7 +39,8 @@ $args = [
     $restore_destination,
     $dry_run_restore,
     $notifications_restore,
-    $discord_webhook_url_restore,
+    $notifications_service_restore,
+    $webhook_url_restore,
     $pushover_user_key_restore,
 ];
 

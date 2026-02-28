@@ -220,7 +220,7 @@ run_cmd() {
 # Notifications
 # ------------------------------------------------------------------------------
 
-DISCORD_WEBHOOK_URL="${DISCORD_WEBHOOK_URL//\"/}"
+WEBHOOK_URL="${WEBHOOK_URL//\"/}"
 PUSHOVER_USER_KEY="${PUSHOVER_USER_KEY//\"/}"
 
 notify_vm() {
@@ -232,7 +232,7 @@ notify_vm() {
 
     [[ "${NOTIFICATIONS:-no}" != "yes" ]] && { debug_log "Notifications disabled, skipping"; return 0; }
 
-    if [[ -n "$DISCORD_WEBHOOK_URL" ]]; then
+    if [[ -n "$WEBHOOK_URL" ]]; then
         local color
         case "$level" in
             alert)   color=15158332 ;;
@@ -240,39 +240,39 @@ notify_vm() {
             *)       color=3066993  ;;
         esac
 
-        if [[ "$DISCORD_WEBHOOK_URL" == *"discord.com/api/webhooks"* ]]; then
+        if [[ "$WEBHOOK_URL" == *"discord.com/api/webhooks"* ]]; then
             debug_log "Sending Discord webhook notification"
-            curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
+            curl -sf -X POST "$WEBHOOK_URL" \
                 -H "Content-Type: application/json" \
                 -d "{\"embeds\":[{\"title\":\"$title\",\"description\":\"$message\",\"color\":$color}]}" || true
 
-        elif [[ "$DISCORD_WEBHOOK_URL" == *"hooks.slack.com"* ]]; then
+        elif [[ "$WEBHOOK_URL" == *"hooks.slack.com"* ]]; then
             debug_log "Sending Slack webhook notification"
-            curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
+            curl -sf -X POST "$WEBHOOK_URL" \
                 -H "Content-Type: application/json" \
                 -d "{\"text\":\"*$title*\n$message\"}" || true
 
-        elif [[ "$DISCORD_WEBHOOK_URL" == *"outlook.office.com/webhook"* ]]; then
+        elif [[ "$WEBHOOK_URL" == *"outlook.office.com/webhook"* ]]; then
             debug_log "Sending Teams webhook notification"
-            curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
+            curl -sf -X POST "$WEBHOOK_URL" \
                 -H "Content-Type: application/json" \
                 -d "{\"title\":\"$title\",\"text\":\"$message\"}" || true
 
-        elif [[ "$DISCORD_WEBHOOK_URL" == *"/message"* ]]; then
+        elif [[ "$WEBHOOK_URL" == *"/message"* ]]; then
             debug_log "Sending Gotify notification"
-            curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
+            curl -sf -X POST "$WEBHOOK_URL" \
                 -H "Content-Type: application/json" \
                 -d "{\"title\":\"$title\",\"message\":\"$message\",\"priority\":5}" || true
 
-        elif [[ "$DISCORD_WEBHOOK_URL" == *"ntfy.sh"* || "$DISCORD_WEBHOOK_URL" == *"/ntfy/"* ]]; then
+        elif [[ "$WEBHOOK_URL" == *"ntfy.sh"* || "$WEBHOOK_URL" == *"/ntfy/"* ]]; then
             debug_log "Sending ntfy notification"
-            curl -sf -X POST "$DISCORD_WEBHOOK_URL" \
+            curl -sf -X POST "$WEBHOOK_URL" \
                 -H "Title: $title" \
                 -d "$message" > /dev/null || true
 
-        elif [[ "$DISCORD_WEBHOOK_URL" == *"api.pushover.net"* ]]; then
+        elif [[ "$WEBHOOK_URL" == *"api.pushover.net"* ]]; then
             debug_log "Sending Pushover notification"
-            local token="${DISCORD_WEBHOOK_URL##*/}"
+            local token="${WEBHOOK_URL##*/}"
             curl -sf -X POST "https://api.pushover.net/1/messages.json" \
                 -d "token=${token}" \
                 -d "user=${PUSHOVER_USER_KEY}" \
@@ -315,7 +315,7 @@ debug_log "BACKUPS_TO_KEEP=$BACKUPS_TO_KEEP"
 debug_log "backup_owner=$backup_owner"
 debug_log "backup_location=$backup_location"
 debug_log "NOTIFICATIONS=${NOTIFICATIONS:-no}"
-debug_log "DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:+(set)}"
+debug_log "WEBHOOK_URL=${WEBHOOK_URL:+(set)}"
 debug_log "PUSHOVER_USER_KEY=${PUSHOVER_USER_KEY:+(set)}"
 debug_log "SCRIPT_START_EPOCH=$SCRIPT_START_EPOCH"
 
@@ -365,6 +365,9 @@ cleanup() {
             done
             echo "Backup was stopped early. Cleaned up files created this run"
         fi
+
+            notify_vm "warning" "VM Backup & Restore" \
+            "Backup was stopped early - Duration: $SCRIPT_DURATION_HUMAN"
 
         if [[ "$DRY_RUN" != "yes" ]]; then
             if ((${#vms_stopped_by_script[@]} > 0)); then
