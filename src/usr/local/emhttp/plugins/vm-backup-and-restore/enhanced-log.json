@@ -1,5 +1,8 @@
 {
     "files": [
-        "/tmp/vm-backup-and-restore/vm-backup-and-restore.log"
+        "/tmp/vm-backup-and-restore/vm-backup-and-restore.log",
+        "/tmp/vm-backup-and-restore/vm-backup-debug.log",
+        "/tmp/vm-backup-and-restore/vm-restore-debug.log",
+        "/tmp/vm-backup-and-restore/vm-scheduled-backup-debug.log"
     ]
 }
