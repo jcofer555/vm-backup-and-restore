@@ -4,15 +4,21 @@ header('Content-Type: application/json');
 $cmd = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/save_settings.sh';
 
 // --- Grab raw values ---
-$vms_to_backup          = $_GET['VMS_TO_BACKUP'] ?? '';
-$backup_destination     = $_GET['BACKUP_DESTINATION'] ?? '';
-$backups_to_keep        = $_GET['BACKUPS_TO_KEEP'] ?? '';
-$backup_owner           = $_GET['BACKUP_OWNER'] ?? '';
-$dry_run                = $_GET['DRY_RUN'] ?? '';
-$notifications          = $_GET['NOTIFICATIONS'] ?? '';
-$notification_service   = $_GET['NOTIFICATION_SERVICE'] ?? '';
-$WEBHOOK_URL    = $_GET['WEBHOOK_URL'] ?? '';
-$pushover_user_key      = $_GET['PUSHOVER_USER_KEY'] ?? '';
+$vms_to_backup        = $_GET['VMS_TO_BACKUP'] ?? '';
+$backup_destination   = $_GET['BACKUP_DESTINATION'] ?? '';
+$backups_to_keep      = $_GET['BACKUPS_TO_KEEP'] ?? '';
+$backup_owner         = $_GET['BACKUP_OWNER'] ?? '';
+$dry_run              = $_GET['DRY_RUN'] ?? '';
+$notifications        = $_GET['NOTIFICATIONS'] ?? '';
+$notification_service = $_GET['NOTIFICATION_SERVICE'] ?? '';
+$pushover_user_key    = $_GET['PUSHOVER_USER_KEY'] ?? '';
+
+// --- Collect per-service webhook URLs ---
+$services = ['DISCORD', 'GOTIFY', 'NTFY', 'PUSHOVER', 'SLACK', 'UNRAID'];
+$webhookUrls = [];
+foreach ($services as $svc) {
+    $webhookUrls[$svc] = $_GET['WEBHOOK_' . $svc] ?? '';
+}
 
 // --- Normalize paths ---
 if ($backup_destination !== '') {
@@ -31,7 +37,11 @@ $args = [
     $dry_run,
     $notifications,
     $notification_service,
-    $WEBHOOK_URL,
+    $webhookUrls['DISCORD'],
+    $webhookUrls['GOTIFY'],
+    $webhookUrls['NTFY'],
+    $webhookUrls['PUSHOVER'],
+    $webhookUrls['SLACK'],
     $pushover_user_key,
 ];
 

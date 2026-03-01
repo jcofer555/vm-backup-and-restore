@@ -1,6 +1,6 @@
 Menu="Utilities"
 Type="xmenu"
-Title="VM Backup & Restore"
+Title="VM Backup & Restore Beta"
 Icon="icon.png"
 Tag="icon.png"
 Markdown="false"
@@ -8,17 +8,20 @@ Markdown="false"
 <?php
 $cfgPath = '/boot/config/plugins/vm-backup-and-restore/settings.cfg';
 
-// Define all default keys and their order
 $defaults = [
-    'VMS_TO_BACKUP' => '',
-    'BACKUP_DESTINATION' => '',
-    'BACKUPS_TO_KEEP' => '0',
-    'BACKUP_OWNER' => 'nobody',
-    'DRY_RUN' => 'no',
-    'NOTIFICATIONS' => 'no',
+    'VMS_TO_BACKUP'        => '',
+    'BACKUP_DESTINATION'   => '',
+    'BACKUPS_TO_KEEP'      => '0',
+    'BACKUP_OWNER'         => 'nobody',
+    'DRY_RUN'              => 'no',
+    'NOTIFICATIONS'        => 'no',
     'NOTIFICATION_SERVICE' => '',
-    'WEBHOOK_URL' => '',
-    'PUSHOVER_USER_KEY' => ''
+    'WEBHOOK_DISCORD'      => '',
+    'WEBHOOK_GOTIFY'       => '',
+    'WEBHOOK_NTFY'         => '',
+    'WEBHOOK_PUSHOVER'     => '',
+    'WEBHOOK_SLACK'        => '',
+    'PUSHOVER_USER_KEY'    => ''
 ];
 
 // Load existing config if present
@@ -45,17 +48,20 @@ $settings = $existing;
 <?php
 $restoreCfgPath = '/boot/config/plugins/vm-backup-and-restore/settings_restore.cfg';
 
-// Define all default keys and their order for restore
 $restoreDefaults = [
-    'LOCATION_OF_BACKUPS' => '',
-    'VMS_TO_RESTORE' => '',
-    'VERSIONS' => '',
-    'RESTORE_DESTINATION' => '/mnt/user/domains',
-    'DRY_RUN_RESTORE' => 'no',
-    'NOTIFICATIONS_RESTORE' => 'no',
+    'LOCATION_OF_BACKUPS'          => '',
+    'VMS_TO_RESTORE'               => '',
+    'VERSIONS'                     => '',
+    'RESTORE_DESTINATION'          => '/mnt/user/domains',
+    'DRY_RUN_RESTORE'              => 'no',
+    'NOTIFICATIONS_RESTORE'        => 'no',
     'NOTIFICATION_SERVICE_RESTORE' => '',
-    'WEBHOOK_URL_RESTORE' => '',
-    'PUSHOVER_USER_KEY_RESTORE' => ''
+    'WEBHOOK_DISCORD_RESTORE'      => '',
+    'WEBHOOK_GOTIFY_RESTORE'       => '',
+    'WEBHOOK_NTFY_RESTORE'         => '',
+    'WEBHOOK_PUSHOVER_RESTORE'     => '',
+    'WEBHOOK_SLACK_RESTORE'        => '',
+    'PUSHOVER_USER_KEY_RESTORE'    => ''
 ];
 
 // Load existing restore config if present
@@ -159,24 +165,17 @@ if (file_exists("/etc/unraid-version")) {
     color: #f0f8ff;
     padding: 20px;
     flex: 1 1 auto;
-    /* grow and shrink dynamically */
     height: auto;
-    /* dynamic height */
     max-height: none;
-    /* remove fixed limit */
     overflow: visible;
-    /* expand with content */
     min-width: 0;
     width: 100%;
-    /* prevent overflow on long content */
     box-sizing: border-box;
   }
 
   #log-section {
     max-height: 74vh;
-    /* match your other panels */
     overflow: hidden;
-    /* prevent container expansion */
     display: flex;
     flex-direction: column;
     padding-top: 0;
@@ -184,22 +183,17 @@ if (file_exists("/etc/unraid-version")) {
 
   #vm-backup-and-restore-settings {
     padding-top: 0px !important;
-    /* reduce from default 20px */
   }
 
   #last-run-container {
     padding-top: 10px !important;
-    /* reduce from default 20px */
   }
 
   #last-run-container h3 {
     margin-top: 0 !important;
-    /* remove any top margin */
     margin-bottom: 10px;
-    /* keep small spacing below title */
   }
 
-  /* fine-tune widths */
   #vm-backup-and-restore-settings {
     flex-basis: 25%;
   }
@@ -367,7 +361,6 @@ if (file_exists("/etc/unraid-version")) {
 
   .form-pair label {
     width: 130px;
-    /* Match other field labels */
     color: var(--primary-blue);
     font-weight: bold;
     text-align: left;
@@ -379,17 +372,14 @@ if (file_exists("/etc/unraid-version")) {
     background: #111;
     color: #fff;
     width: 200px;
-    /* Full width under input-wrapper */
     min-width: fit-content;
     max-width: 100%;
-    /* Cap the input width */
   }
 
   .form-pair input[type="text"],
   .form-pair input[type="password"] {
     min-width: fit-content;
     max-width: 100%;
-    /* Cap the input width */
   }
 
   .short-input {
@@ -463,7 +453,6 @@ if (file_exists("/etc/unraid-version")) {
     padding-right: 0;
   }
 
-  /* Force Chrome/Webkit to place arrows at field edge */
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {
     margin: 0;
@@ -485,13 +474,11 @@ if (file_exists("/etc/unraid-version")) {
     box-sizing: border-box;
   }
 
-  /* Focus outline for keyboard users */
   :focus-visible {
     outline: 2px solid var(--primary-blue);
     outline-offset: 2px;
   }
 
-  /* Hover and focus for interactive elements */
   button:hover,
   input[type="checkbox"]:hover,
   select:hover,
@@ -507,7 +494,6 @@ if (file_exists("/etc/unraid-version")) {
     box-shadow: none
   }
 
-  /* Scrollbar dark theme for readability */
   ::-webkit-scrollbar {
     width: 8px;
   }
@@ -521,7 +507,6 @@ if (file_exists("/etc/unraid-version")) {
     display: flex;
     align-items: center;
     gap: 0px;
-    /* same spacing as other checkboxes */
     cursor: pointer;
     color: var(--primary-blue);
   }
@@ -530,7 +515,6 @@ if (file_exists("/etc/unraid-version")) {
     width: 16px;
     height: 16px;
     transform: scale(1.1);
-    /* same enlargement as others */
     accent-color: var(--primary-blue);
     cursor: pointer;
   }
@@ -639,10 +623,8 @@ if (file_exists("/etc/unraid-version")) {
 
   .checkbox-row label.vm-backup-and-restoretip {
     display: inline-flex;
-    /* shrink to content */
     align-items: center;
     width: auto;
-    /* prevent stretching */
     cursor: pointer;
   }
 
@@ -749,14 +731,12 @@ if (file_exists("/etc/unraid-version")) {
     color: red;
   }
 
-  /* Main 3-panel layout */
   #vm-backup-and-restore-layout {
     display: grid;
     grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr) minmax(420px, 1.6fr);
     gap: 20px;
     width: 100%;
     align-items: stretch;
-    /* equal height panels */
   }
 
   #vm-backup-and-restore-layout {
@@ -851,7 +831,6 @@ if (file_exists("/etc/unraid-version")) {
   .backup-actions {
     display: flex;
     gap: 10px;
-    /* space between buttons */
     align-items: center;
   }
 
@@ -902,7 +881,8 @@ if (is_file($plg)) {
     <form id="vm-backup-and-restore-settings">
 
       <div class="status-row"><span title="Shows which part of the backup process is currently running"
-          class="vm-backup-and-restoretip status-label">Status:</span><span id="status-text">No Backup Running</span>
+          class="vm-backup-and-restoretip status-label">Status:</span><span id="status-text">No Backup
+          Running</span>
       </div>
       <br>
 
@@ -920,7 +900,6 @@ if (is_file($plg)) {
           <div class="vm-dropdown-list"></div>
         </div>
 
-        <!-- Hidden field that JS reads on page load -->
         <input type="hidden" id="vm-hidden-backup" name="VMS_TO_BACKUP"
           value="<?php echo htmlspecialchars($settings['VMS_TO_BACKUP'] ?? '') ?>">
       </div>
@@ -956,10 +935,8 @@ if (is_file($plg)) {
           <select id="backups_to_keep" class="short-input" name="BACKUPS_TO_KEEP">
             <?php
         $current = $settings['BACKUPS_TO_KEEP'] ?? 0;
-
         for ($i = 0; $i <= 99; $i++) {
           $selected = ((int)$current === $i) ? 'selected' : '';
-
           if ($i === 0) {
             echo "<option value=\"0\" $selected>Unlimited</option>";
           } elseif ($i === 1) {
@@ -1000,12 +977,8 @@ if (is_file($plg)) {
 
         <span class="vm-backup-and-restoretip" title="Enable to simulate a backup">
           <select id="dry_run" class="short-input" name="DRY_RUN">
-            <option value="yes" <?=(($settings['DRY_RUN'] ?? 'no' )==='yes' ) ? 'selected' : '' ?>>
-              Yes
-            </option>
-            <option value="no" <?=(($settings['DRY_RUN'] ?? 'no' )==='no' ) ? 'selected' : '' ?>>
-              No
-            </option>
+            <option value="yes" <?=(($settings['DRY_RUN'] ?? 'no' )==='yes' ) ? 'selected' : '' ?>>Yes</option>
+            <option value="no" <?=(($settings['DRY_RUN'] ?? 'no' )==='no' ) ? 'selected' : '' ?>>No</option>
           </select>
         </span>
       </div>
@@ -1022,75 +995,48 @@ if (is_file($plg)) {
         <span class="vm-backup-and-restoretip"
           title="Send Unraid system notifications when VM backup starts and finishes">
           <select id="notifications" class="short-input" name="NOTIFICATIONS">
-            <option value="yes" <?=(($settings['NOTIFICATIONS'] ?? 'no' )==='yes' ) ? 'selected' : '' ?>>
-              Yes
-            </option>
-            <option value="no" <?=(($settings['NOTIFICATIONS'] ?? 'no' )==='no' ) ? 'selected' : '' ?>>
-              No
-            </option>
+            <option value="yes" <?=(($settings['NOTIFICATIONS'] ?? 'no' )==='yes' ) ? 'selected' : '' ?>>Yes</option>
+            <option value="no" <?=(($settings['NOTIFICATIONS'] ?? 'no' )==='no' ) ? 'selected' : '' ?>>No</option>
           </select>
         </span>
       </div>
 
       <!-- NOTIFICATION SERVICE -->
       <div class="form-pair" id="notification-service-row" style="display:none;">
-        <label for="notification_service">
-          <span class="vm-backup-and-restoretip" title="Optional: Choose which notification service to use">
+        <label>
+          <span class="vm-backup-and-restoretip" title="Choose which notification service(s) to use">
             Service:
           </span>
         </label>
-        <span class="vm-backup-and-restoretip" title="Optional: Choose which notification service to use">
-          <select id="notification_service" name="NOTIFICATION_SERVICE" class="short-input">
-            <option value="" <?=(($settings['NOTIFICATION_SERVICE'] ?? '' )==='' ) ? 'selected' : '' ?>>Unraid Built-in
+        <span>
+          <select id="notification_service_hidden" name="NOTIFICATION_SERVICE" multiple style="display:none;">
+            <?php
+            $selectedServices = array_filter(explode(',', $settings['NOTIFICATION_SERVICE'] ?? ''));
+            foreach (['Discord','Gotify','Ntfy','Pushover','Slack','Unraid'] as $svc):
+            ?>
+            <option value="<?= $svc ?>" <?=in_array($svc, $selectedServices) ? 'selected' : '' ?>>
+              <?= $svc ?>
             </option>
-            <option value="Discord" <?=(($settings['NOTIFICATION_SERVICE'] ?? '' )==='Discord' ) ? 'selected' : '' ?>
-              >Discord</option>
-            <option value="Gotify" <?=(($settings['NOTIFICATION_SERVICE'] ?? '' )==='Gotify' ) ? 'selected' : '' ?>
-              >Gotify</option>
-            <option value="Ntfy" <?=(($settings['NOTIFICATION_SERVICE'] ?? '' )==='Ntfy' ) ? 'selected' : '' ?>>Ntfy
-            </option>
-            <option value="Pushover" <?=(($settings['NOTIFICATION_SERVICE'] ?? '' )==='Pushover' ) ? 'selected' : '' ?>
-              >Pushover</option>
-            <option value="Slack" <?=(($settings['NOTIFICATION_SERVICE'] ?? '' )==='Slack' ) ? 'selected' : '' ?>>Slack
-            </option>
+            <?php endforeach; ?>
           </select>
+          <div id="notification_service" class="vm-multiselect" style="width:200px;">
+            <div class="vm-dropdown-label" id="notification-service-label">Select service(s)</div>
+            <div class="vm-dropdown-list" id="notification-service-list" style="display:none;">
+              <?php foreach (['Discord','Gotify','Ntfy','Pushover','Slack','Unraid'] as $svc): ?>
+              <div>
+                <label>
+                  <input type="checkbox" value="<?= $svc ?>" <?=in_array($svc, $selectedServices) ? 'checked' : '' ?>>
+                  <?= $svc ?>
+                </label>
+              </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
         </span>
       </div>
 
-      <!-- WEBHOOK URL -->
-      <div class="form-pair" id="webhook-url-row" style="display:none;">
-        <label for="webhook_url">
-          <span class="vm-backup-and-restoretip" id="webhook-url-label-tip" title="">
-            Webhook URL:
-          </span>
-        </label>
-        <div class="input-wrapper">
-          <span class="vm-backup-and-restoretip" id="webhook-url-input-tip" title="">
-            <input type="text" id="webhook_url" name="WEBHOOK_URL" class="short-input" placeholder=""
-              value="<?php echo htmlspecialchars($settings['WEBHOOK_URL'] ?? ''); ?>">
-          </span>
-          <div id="discord-webhook-error" style="color:yellow; font-size:1.00em; display:none;">* Invalid webhook URL
-            for selected service</div>
-        </div>
-      </div>
-
-      <!-- PUSHOVER USER KEY -->
-      <div class="form-pair" id="pushover-user-key-row" style="display:none;">
-        <label for="pushover_user_key">
-          <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">
-            Pushover User Key:
-          </span>
-        </label>
-        <div class="input-wrapper">
-          <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">
-            <input type="text" id="pushover_user_key" name="PUSHOVER_USER_KEY" class="short-input"
-              placeholder="user key from pushover.net/dashboard"
-              value="<?php echo htmlspecialchars($settings['PUSHOVER_USER_KEY'] ?? ''); ?>">
-          </span>
-          <div id="pushover-user-key-error" style="color:yellow; font-size:1.00em; display:none;">* Pushover user key is
-            required</div>
-        </div>
-      </div>
+      <!-- WEBHOOK FIELDS CONTAINER (dynamically populated) -->
+      <div id="webhook-fields-container"></div>
 
       <!-- Scheduling Selection -->
       <div class="form-pair" id="cron-expression-row">
@@ -1107,8 +1053,7 @@ if (is_file($plg)) {
               <option value="hourly" <?php echo (($settings['CRON_MODE'] ?? '' )==='hourly' ) ? 'selected' : '' ; ?>
                 >Hourly</option>
               <option value="daily" <?php echo (($settings['CRON_MODE'] ?? 'daily' )==='daily' ) ? 'selected' : '' ; ?>
-                >Daily
-              </option>
+                >Daily</option>
               <option value="weekly" <?php echo (($settings['CRON_MODE'] ?? '' )==='weekly' ) ? 'selected' : '' ; ?>
                 >Weekly</option>
               <option value="monthly" <?php echo (($settings['CRON_MODE'] ?? '' )==='monthly' ) ? 'selected' : '' ; ?>
@@ -1130,18 +1075,11 @@ if (is_file($plg)) {
           </label>
           <div class="input-wrapper">
             <span class="vm-backup-and-restoretip" title="Select minute frequency">
-
               <?php
-          // --- Normalize MINUTES_FREQUENCY before rendering ---
           $raw = $settings['MINUTES_FREQUENCY'] ?? '';
           $freq = intval($raw);
-
-          // If missing, invalid, or < 1 → default to 30
-          if ($freq < 1) {
-            $freq = 30;
-          }
+          if ($freq < 1) { $freq = 30; }
         ?>
-
               <select id="minutes_frequency" name="MINUTES_FREQUENCY" class="short-input">
                 <?php
             for ($i = 1; $i <= 59; $i++) {
@@ -1150,7 +1088,6 @@ if (is_file($plg)) {
             }
           ?>
               </select>
-
             </span>
           </div>
         </div>
@@ -1234,7 +1171,7 @@ if (is_file($plg)) {
           <div class="input-wrapper">
             <span class="vm-backup-and-restoretip" title="Select day of the week">
               <select id="weekly_day" name="WEEKLY_DAY" class="short-input">
-                <?php 
+                <?php
             $days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
             foreach ($days as $day): ?>
                 <option value="<?php echo $day; ?>" <?php echo (($settings['WEEKLY_DAY'] ?? '' )===$day) ? 'selected'
@@ -1299,7 +1236,7 @@ if (is_file($plg)) {
           <div class="input-wrapper">
             <span class="vm-backup-and-restoretip" title="Select day of the month">
               <select id="monthly_day" name="MONTHLY_DAY" class="short-input">
-                <?php for ($d = 1; $d <= 31; $d++): 
+                <?php for ($d = 1; $d <= 31; $d++):
             $day = str_pad($d, 2, "0", STR_PAD_LEFT); ?>
                 <option value="<?php echo $day; ?>" <?php echo (($settings['MONTHLY_DAY'] ?? '' )===$day) ? 'selected'
                   : '' ; ?>>
@@ -1371,19 +1308,15 @@ if (is_file($plg)) {
         </div>
 
         <div class="form-pair">
-
-          <!-- Wrong number of fields OR invalid characters -->
           <div id="cron-warning-fields" class="field-warning" role="alert" style="display:none;">
             ⚠️ Enter a valid cron expression with 5 fields separated by spaces.
             Only numbers, *, and / are allowed.
             Visit <a href="https://crontab.guru/" target="_blank">crontab.guru</a> for help.
           </div>
 
-          <!-- Slash rule: must be exactly */N -->
           <div id="cron-warning-slash" class="field-warning" role="alert" style="display:none;">
             ⚠️ Fields using "/" must be in the form */N (example: */5).
           </div>
-
         </div>
       </div>
 
@@ -1416,7 +1349,8 @@ if (is_file($plg)) {
     <form id="vm-backup-and-restore-settings">
 
       <div class="restore-status-row"><span title="Shows which part of the restore process is currently running"
-          class="vm-backup-and-restoretip restore-status-label">Status:</span><span id="restore-status-text">No Restore
+          class="vm-backup-and-restoretip restore-status-label">Status:</span><span id="restore-status-text">No
+          Restore
           Running</span></div>
       <br>
 
@@ -1446,12 +1380,10 @@ if (is_file($plg)) {
         <div id="vm-dropdown-restore" class="vm-multiselect vm-backup-and-restoretip"
           title="Choose which VM(s) to restore"
           data-selected="<?php echo htmlspecialchars($restoreSettings['VMS_TO_RESTORE'] ?? '') ?>">
-
           <div class="vm-dropdown-label-restore">Select VM(s)</div>
           <div class="vm-dropdown-list-restore"></div>
         </div>
 
-        <!-- Hidden field that JS reads on page load -->
         <input type="hidden" id="vm-hidden-restore" name="VMS_TO_RESTORE"
           value="<?php echo htmlspecialchars($restoreSettings['VMS_TO_RESTORE'] ?? '') ?>">
       </div>
@@ -1484,11 +1416,9 @@ if (is_file($plg)) {
 
         <span class="vm-backup-and-restoretip" title="Enable to simulate a restore">
           <select id="dry_run_restore" class="short-input" name="DRY_RUN_RESTORE">
-            <option value="yes" <?=(($restoreSettings['DRY_RUN_RESTORE'] ?? 'no' )==='yes' ) ? 'selected' : '' ?>>
-              Yes
+            <option value="yes" <?=(($restoreSettings['DRY_RUN_RESTORE'] ?? 'no' )==='yes' ) ? 'selected' : '' ?>>Yes
             </option>
-            <option value="no" <?=(($restoreSettings['DRY_RUN_RESTORE'] ?? 'no' )==='no' ) ? 'selected' : '' ?>>
-              No
+            <option value="no" <?=(($restoreSettings['DRY_RUN_RESTORE'] ?? 'no' )==='no' ) ? 'selected' : '' ?>>No
             </option>
           </select>
         </span>
@@ -1506,11 +1436,9 @@ if (is_file($plg)) {
         <span class="vm-backup-and-restoretip"
           title="Send Unraid system notifications when VM restore starts and finishes">
           <select id="notifications_restore" class="short-input" name="NOTIFICATIONS_RESTORE">
-            <option value="yes" <?=(($restoreSettings['NOTIFICATIONS_RESTORE'] ?? 'no' )==='yes' ) ? 'selected' : '' ?>>
-              Yes
-            </option>
-            <option value="no" <?=(($restoreSettings['NOTIFICATIONS_RESTORE'] ?? 'no' )==='no' ) ? 'selected' : '' ?>>
-              No
+            <option value="yes" <?=(($restoreSettings['NOTIFICATIONS_RESTORE'] ?? 'no' )==='yes' ) ? 'selected' : '' ?>
+              >Yes</option>
+            <option value="no" <?=(($restoreSettings['NOTIFICATIONS_RESTORE'] ?? 'no' )==='no' ) ? 'selected' : '' ?>>No
             </option>
           </select>
         </span>
@@ -1518,63 +1446,42 @@ if (is_file($plg)) {
 
       <!-- NOTIFICATION SERVICE RESTORE -->
       <div class="form-pair" id="notification-service-row-restore" style="display:none;">
-        <label for="notification_service_restore">
-          <span class="vm-backup-and-restoretip" title="Optional: Choose which notification service to use">
+        <label>
+          <span class="vm-backup-and-restoretip" title="Choose which notification service(s) to use">
             Service:
           </span>
         </label>
-        <span class="vm-backup-and-restoretip" title="Optional: Choose which notification service to use">
-          <select id="notification_service_restore" name="NOTIFICATION_SERVICE_RESTORE" class="short-input">
-            <option value="" <?=(($restoreSettings['NOTIFICATION_SERVICE_RESTORE'] ?? '' )==='' ) ? 'selected' : '' ?>
-              >Select service</option>
-            <option value="Discord" <?=(($restoreSettings['NOTIFICATION_SERVICE_RESTORE'] ?? '' )==='Discord' )
-              ? 'selected' : '' ?>>Discord</option>
-            <option value="Gotify" <?=(($restoreSettings['NOTIFICATION_SERVICE_RESTORE'] ?? '' )==='Gotify' )
-              ? 'selected' : '' ?>>Gotify</option>
-            <option value="Ntfy" <?=(($restoreSettings['NOTIFICATION_SERVICE_RESTORE'] ?? '' )==='Ntfy' ) ? 'selected'
-              : '' ?>>Ntfy</option>
-            <option value="Pushover" <?=(($restoreSettings['NOTIFICATION_SERVICE_RESTORE'] ?? '' )==='Pushover' )
-              ? 'selected' : '' ?>>Pushover</option>
-            <option value="Slack" <?=(($restoreSettings['NOTIFICATION_SERVICE_RESTORE'] ?? '' )==='Slack' ) ? 'selected'
-              : '' ?>>Slack</option>
+        <span>
+          <select id="notification_service_restore_hidden" name="NOTIFICATION_SERVICE_RESTORE" multiple
+            style="display:none;">
+            <?php
+            $selectedServicesRestore = array_filter(explode(',', $restoreSettings['NOTIFICATION_SERVICE_RESTORE'] ?? ''));
+            foreach (['Discord','Gotify','Ntfy','Pushover','Slack','Unraid'] as $svc):
+            ?>
+            <option value="<?= $svc ?>" <?=in_array($svc, $selectedServicesRestore) ? 'selected' : '' ?>>
+              <?= $svc ?>
+            </option>
+            <?php endforeach; ?>
           </select>
+          <div id="notification_service_restore" class="vm-multiselect" style="width:200px;">
+            <div class="vm-dropdown-label" id="notification-service-label-restore">Select service(s)</div>
+            <div class="vm-dropdown-list" id="notification-service-list-restore" style="display:none;">
+              <?php foreach (['Discord','Gotify','Ntfy','Pushover','Slack','Unraid'] as $svc): ?>
+              <div>
+                <label>
+                  <input type="checkbox" value="<?= $svc ?>" <?=in_array($svc, $selectedServicesRestore) ? 'checked'
+                    : '' ?>>
+                  <?= $svc ?>
+                </label>
+              </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
         </span>
       </div>
 
-      <!-- WEBHOOK URL RESTORE -->
-      <div class="form-pair" id="webhook-url-row-restore" style="display:none;">
-        <label for="webhook_url_restore">
-          <span class="vm-backup-and-restoretip" id="webhook-url-label-tip-restore" title="">
-            Webhook URL:
-          </span>
-        </label>
-        <div class="input-wrapper">
-          <span class="vm-backup-and-restoretip" id="webhook-url-input-tip-restore" title="">
-            <input type="text" id="webhook_url_restore" name="WEBHOOK_URL_RESTORE" class="short-input" placeholder=""
-              value="<?php echo htmlspecialchars($restoreSettings['WEBHOOK_URL_RESTORE'] ?? ''); ?>">
-          </span>
-          <div id="discord-webhook-error-restore" style="color:yellow; font-size:1.00em; display:none;">* Invalid
-            webhook URL for selected service</div>
-        </div>
-      </div>
-
-      <!-- PUSHOVER USER KEY RESTORE -->
-      <div class="form-pair" id="pushover-user-key-row-restore" style="display:none;">
-        <label for="pushover_user_key_restore">
-          <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">
-            Pushover User Key:
-          </span>
-        </label>
-        <div class="input-wrapper">
-          <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">
-            <input type="text" id="pushover_user_key_restore" name="PUSHOVER_USER_KEY_RESTORE" class="short-input"
-              placeholder="user key from pushover.net/dashboard"
-              value="<?php echo htmlspecialchars($restoreSettings['PUSHOVER_USER_KEY_RESTORE'] ?? ''); ?>">
-          </span>
-          <div id="pushover-user-key-error-restore" style="color:yellow; font-size:1.00em; display:none;">* Pushover
-            user key is required</div>
-        </div>
-      </div>
+      <!-- WEBHOOK FIELDS CONTAINER RESTORE (dynamically populated) -->
+      <div id="webhook-fields-container-restore"></div>
 
       <div id="restore-status" style="color:yellow; font-weight:bold; margin-bottom:6px; display:none;">
         Backup or restore in progress!
@@ -1607,9 +1514,9 @@ if (is_file($plg)) {
       </div>
 
       <pre id="last-run-log">VM backup & restore log not found</pre>
+    </form>
   </div>
 
-  </form>
 </div>
 
 <div id="schedule-list"></div>
@@ -1640,6 +1547,27 @@ if (is_file($plg)) {
 </div>
 
 <script>
+  const SAVED_WEBHOOKS = {
+    DISCORD: "<?= htmlspecialchars($settings['WEBHOOK_DISCORD'] ?? '') ?>",
+    GOTIFY: "<?= htmlspecialchars($settings['WEBHOOK_GOTIFY'] ?? '') ?>",
+    NTFY: "<?= htmlspecialchars($settings['WEBHOOK_NTFY'] ?? '') ?>",
+    PUSHOVER: "<?= htmlspecialchars($settings['WEBHOOK_PUSHOVER'] ?? '') ?>",
+    SLACK: "<?= htmlspecialchars($settings['WEBHOOK_SLACK'] ?? '') ?>"
+  };
+
+  const SAVED_WEBHOOKS_RESTORE = {
+    DISCORD: "<?= htmlspecialchars($restoreSettings['WEBHOOK_DISCORD_RESTORE'] ?? '') ?>",
+    GOTIFY: "<?= htmlspecialchars($restoreSettings['WEBHOOK_GOTIFY_RESTORE'] ?? '') ?>",
+    NTFY: "<?= htmlspecialchars($restoreSettings['WEBHOOK_NTFY_RESTORE'] ?? '') ?>",
+    PUSHOVER: "<?= htmlspecialchars($restoreSettings['WEBHOOK_PUSHOVER_RESTORE'] ?? '') ?>",
+    SLACK: "<?= htmlspecialchars($restoreSettings['WEBHOOK_SLACK_RESTORE'] ?? '') ?>"
+  };
+
+  const SAVED_PUSHOVER_USER_KEY = "<?= htmlspecialchars($settings['PUSHOVER_USER_KEY'] ?? '') ?>";
+  const SAVED_PUSHOVER_USER_KEY_RESTORE = "<?= htmlspecialchars($restoreSettings['PUSHOVER_USER_KEY_RESTORE'] ?? '') ?>";
+</script>
+
+<script>
   $(document).on('mouseenter', '.vm-backup-and-restoretip', function () {
     const $el = $(this);
 
@@ -1667,33 +1595,51 @@ if (is_file($plg)) {
   const SERVICE_CONFIG = {
     Discord: {
       label: 'Discord Webhook URL',
-      tooltip: 'Enter your Discord webhook URL e.g. https://discord.com/api/webhooks/API_KEY or just API_KEY',
+      tooltip: 'Enter your Discord webhook URL e.g. https://discord.com/api/webhooks/ID/TOKEN or just ID/TOKEN',
       placeholder: 'https://discord.com/api/webhooks/...',
-      prefix: 'https://discord.com/api/webhooks/'
+      prefix: 'https://discord.com/api/webhooks/',
+      needsUserKey: false,
+      needsUrl: true
     },
     Gotify: {
       label: 'Gotify URL',
       tooltip: 'Enter your Gotify server message URL e.g. https://gotify.example.com/message?token=TOKEN or just TOKEN',
       placeholder: 'https://gotify.example.com/message?token=...',
-      prefix: 'https://gotify.example.com/message?token='
+      prefix: 'https://gotify.example.com/message?token=',
+      needsUserKey: false,
+      needsUrl: true
     },
     Ntfy: {
       label: 'Ntfy URL',
       tooltip: 'Enter your Ntfy topic URL e.g. https://ntfy.sh/yourtopic or just yourtopic',
       placeholder: 'https://ntfy.sh/yourtopic',
-      prefix: 'https://ntfy.sh/'
+      prefix: 'https://ntfy.sh/',
+      needsUserKey: false,
+      needsUrl: true
     },
     Pushover: {
       label: 'Pushover App Token URL',
-      tooltip: 'Enter your Pushover app token from pushover.net/apps e.g. https://api.pushover.net/APPTOKEN or just APPTOKEN',
+      tooltip: 'Enter your Pushover app token e.g. https://api.pushover.net/APPTOKEN or just APPTOKEN',
       placeholder: 'https://api.pushover.net/YOURAPPTOKEN',
-      prefix: 'https://api.pushover.net/'
+      prefix: 'https://api.pushover.net/',
+      needsUserKey: true,
+      needsUrl: true
     },
     Slack: {
       label: 'Slack Webhook URL',
       tooltip: 'Enter your Slack webhook URL e.g. https://hooks.slack.com/services/ID or just ID',
       placeholder: 'https://hooks.slack.com/services/ID',
-      prefix: 'https://hooks.slack.com/services/'
+      prefix: 'https://hooks.slack.com/services/',
+      needsUserKey: false,
+      needsUrl: true
+    },
+    Unraid: {
+      label: null,
+      tooltip: "Uses Unraid's built-in notification system",
+      placeholder: null,
+      prefix: null,
+      needsUserKey: false,
+      needsUrl: false
     }
   };
 
@@ -1702,148 +1648,186 @@ if (is_file($plg)) {
     if (!val) return val;
     if (val.startsWith('https://')) return val;
     const cfg = SERVICE_CONFIG[service];
-    if (cfg) return cfg.prefix + val;
+    if (cfg && cfg.prefix) return cfg.prefix + val;
     return val;
   }
 
   function validateWebhookUrl(val, service) {
     if (!val) return true;
     const cfg = SERVICE_CONFIG[service];
-    if (!cfg) return false;
+    if (!cfg || !cfg.prefix) return true;
     return val.startsWith(cfg.prefix);
   }
 
-  function applyServiceUI(service, suffix) {
-    const s = suffix ? '-' + suffix : '';
-    const cfg = SERVICE_CONFIG[service];
-    if (!cfg) return;
+  function getSelectedServices(suffix) {
+    const listId = suffix ? '#notification-service-list-' + suffix : '#notification-service-list';
+    return $(listId).find('input:checked').map(function () { return $(this).val(); }).get();
+  }
 
-    const $labelTip = $('#webhook-url-label-tip' + s);
-    const $inputTip = $('#webhook-url-input-tip' + s);
-    const inputId = suffix ? 'webhook_url_' + suffix : 'webhook_url';
-    const pushoverRow = suffix ? '#pushover-user-key-row-' + suffix : '#pushover-user-key-row';
-    const pkInput = suffix ? '#pushover_user_key_' + suffix : '#pushover_user_key';
+  function updateServiceLabel(suffix) {
+    const services = getSelectedServices(suffix);
+    const labelId = suffix ? '#notification-service-label-' + suffix : '#notification-service-label';
+    $(labelId).text(services.length ? services.join(', ') : 'Select service(s)');
+  }
 
-    // Update label text
-    $labelTip.text(cfg.label);
+  function rebuildWebhookFields(suffix) {
+    const s = suffix || '';
+    const containerId = s ? '#webhook-fields-container-' + s : '#webhook-fields-container';
+    const services = getSelectedServices(s);
+    const container = $(containerId);
+    container.empty();
 
-    // Destroy existing tooltipster instances before updating title
-    if ($labelTip.hasClass('tooltipstered')) $labelTip.tooltipster('destroy');
-    if ($inputTip.hasClass('tooltipstered')) $inputTip.tooltipster('destroy');
+    const savedWebhooks = s ? SAVED_WEBHOOKS_RESTORE : SAVED_WEBHOOKS;
+    const savedPushoverKey = s ? SAVED_PUSHOVER_USER_KEY_RESTORE : SAVED_PUSHOVER_USER_KEY;
 
-    // Update title attribute (tooltipster reads this on next hover)
-    $labelTip.attr('title', cfg.tooltip);
-    $inputTip.attr('title', cfg.tooltip);
+    services.forEach(function (service) {
+      const cfg = SERVICE_CONFIG[service];
+      if (!cfg) return;
 
-    // Update placeholder
-    $('#' + inputId).attr('placeholder', cfg.placeholder);
+      const s_dash = s ? '-' + s : '';
+      const s_under = s ? '_' + s : '';
 
-    // Show/hide Pushover user key row
-    if (service === 'Pushover') {
-      $(pushoverRow).show();
-    } else {
-      $(pushoverRow).hide();
-      $(pkInput).val('');
-    }
+      if (cfg.needsUrl) {
+        const urlFieldId = 'webhook_url_' + service.toLowerCase() + s_under;
+        const errorId = 'webhook-error-' + service.toLowerCase() + s_dash;
+        const savedVal = savedWebhooks[service.toUpperCase()] || '';
+
+        const urlRow = $(`
+        <div class="form-pair" id="webhook-row-${service.toLowerCase()}${s_dash}">
+          <label>
+            <span class="vm-backup-and-restoretip" title="${cfg.tooltip}">${cfg.label}:</span>
+          </label>
+          <div class="input-wrapper">
+            <span class="vm-backup-and-restoretip" title="${cfg.tooltip}">
+              <input type="text" id="${urlFieldId}" class="short-input webhook-url-input"
+                data-service="${service}" data-suffix="${s}"
+                placeholder="${cfg.placeholder}" value="${savedVal}">
+            </span>
+            <div id="${errorId}" style="color:yellow; font-size:1.00em; display:none;">* Invalid ${service} webhook URL</div>
+          </div>
+        </div>
+      `);
+
+        container.append(urlRow);
+      }
+
+      if (cfg.needsUserKey) {
+        const pkFieldId = 'pushover_user_key' + s_under;
+        const pkErrorId = 'pushover-user-key-error' + s_dash;
+
+        const pkRow = $(`
+        <div class="form-pair" id="pushover-user-key-row${s_dash}">
+          <label>
+            <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">Pushover User Key:</span>
+          </label>
+          <div class="input-wrapper">
+            <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">
+              <input type="text" id="${pkFieldId}" name="PUSHOVER_USER_KEY${s ? '_RESTORE' : ''}"
+                class="short-input" placeholder="user key from pushover.net/dashboard" value="${savedPushoverKey}">
+            </span>
+            <div id="${pkErrorId}" style="color:yellow; font-size:1.00em; display:none;">* Pushover user key is required</div>
+          </div>
+        </div>
+      `);
+
+        container.append(pkRow);
+      }
+    });
+
+    container.find('.webhook-url-input').on('input', function () {
+      const service = $(this).data('service');
+      const val = $(this).val().trim();
+      const errorId = '#webhook-error-' + service.toLowerCase() + (s ? '-' + s : '');
+      const valid = val === '' || validateWebhookUrl(val, service);
+      $(errorId).toggle(!valid);
+    }).on('blur', function () {
+      const service = $(this).data('service');
+      const normalized = normalizeWebhookUrl($(this).val(), service);
+      $(this).val(normalized);
+      $(this).trigger('input');
+    });
   }
 
   function toggleNotificationRows(suffix) {
-    const s = suffix ? '_' + suffix : '';
-    const notifVal = $('#notifications' + s).val();
-    const serviceRowId = suffix ? '#notification-service-row-' + suffix : '#notification-service-row';
-    const webhookRowId = suffix ? '#webhook-url-row-' + suffix : '#webhook-url-row';
-    const pushoverRowId = suffix ? '#pushover-user-key-row-' + suffix : '#pushover-user-key-row';
-    const serviceSelectId = suffix ? '#notification_service_' + suffix : '#notification_service';
+    const s = suffix || '';
+    const notifSelectId = s ? '#notifications_' + s : '#notifications';
+    const serviceRowId = s ? '#notification-service-row-' + s : '#notification-service-row';
+    const webhookContainerId = s ? '#webhook-fields-container-' + s : '#webhook-fields-container';
 
-    if (notifVal === 'yes') {
+    if ($(notifSelectId).val() === 'yes') {
       $(serviceRowId).show();
-      const service = $(serviceSelectId).val();
-      if (service) {
-        $(webhookRowId).show();
-        applyServiceUI(service, suffix);
-      } else {
-        $(webhookRowId).hide();
-        $(pushoverRowId).hide();
-      }
+      rebuildWebhookFields(s);
     } else {
       $(serviceRowId).hide();
-      $(webhookRowId).hide();
-      $(pushoverRowId).hide();
+      $(webhookContainerId).empty();
     }
   }
 
-  function validateDiscordWebhook() {
-    const service = $('#notification_service').val();
-    const val = $('#webhook_url').val().trim();
-    const valid = val === '' || validateWebhookUrl(val, service);
-    $('#discord-webhook-error').toggle(!valid);
-    return valid;
-  }
+  // Multiselect open/close — backup
+  $('#notification_service').on('click', function (e) {
+    e.stopPropagation();
+    $('#notification-service-list').toggle();
+  });
 
-  function validateDiscordWebhookRestore() {
-    const service = $('#notification_service_restore').val();
-    const val = $('#webhook_url_restore').val().trim();
-    const valid = val === '' || validateWebhookUrl(val, service);
-    $('#discord-webhook-error-restore').toggle(!valid);
-    return valid;
-  }
+  // Multiselect open/close — restore
+  $('#notification_service_restore').on('click', function (e) {
+    e.stopPropagation();
+    $('#notification-service-list-restore').toggle();
+  });
 
-  // Backup section listeners
+  // Prevent clicks inside the lists from closing them
+  $('#notification-service-list').on('click', function (e) {
+    e.stopPropagation();
+  });
+
+  $('#notification-service-list-restore').on('click', function (e) {
+    e.stopPropagation();
+  });
+
+  // Close dropdowns when clicking outside
+  $(document).on('click', function (e) {
+    if (!$(e.target).closest('#notification_service').length) {
+      $('#notification-service-list').hide();
+    }
+    if (!$(e.target).closest('#notification_service_restore').length) {
+      $('#notification-service-list-restore').hide();
+    }
+  });
+
+  // Close dropdowns when clicking outside
+  $(document).on('click', function (e) {
+    if (!$(e.target).closest('#notification_service').length) {
+      $('#notification-service-list').hide();
+    }
+    if (!$(e.target).closest('#notification_service_restore').length) {
+      $('#notification-service-list-restore').hide();
+    }
+  });
+
+  // Checkbox changes — backup
+  $('#notification-service-list').on('change', 'input[type=checkbox]', function () {
+    updateServiceLabel('');
+    rebuildWebhookFields('');
+  });
+
+  // Checkbox changes — restore
+  $('#notification-service-list-restore').on('change', 'input[type=checkbox]', function () {
+    updateServiceLabel('restore');
+    rebuildWebhookFields('restore');
+  });
+
+  // Notifications yes/no toggle
   $('#notifications').on('change', function () { toggleNotificationRows(''); });
-  toggleNotificationRows('');
-
-  $('#notification_service').on('change', function () {
-    const service = $(this).val();
-    if (service) {
-      $('#webhook-url-row').show();
-      applyServiceUI(service, '');
-      validateDiscordWebhook();
-    } else {
-      $('#webhook-url-row').hide();
-      $('#pushover-user-key-row').hide();
-    }
-  });
-
-  $('#webhook_url').on('input', function () {
-    validateDiscordWebhook();
-  });
-
-  $('#webhook_url').on('blur', function () {
-    const service = $('#notification_service').val();
-    const normalized = normalizeWebhookUrl($(this).val(), service);
-    $(this).val(normalized);
-    validateDiscordWebhook();
-  });
-
-  // Restore section listeners
   $('#notifications_restore').on('change', function () { toggleNotificationRows('restore'); });
+
+  // Init on page load
+  toggleNotificationRows('');
   toggleNotificationRows('restore');
+  updateServiceLabel('');
+  updateServiceLabel('restore');
 
-  $('#notification_service_restore').on('change', function () {
-    const service = $(this).val();
-    if (service) {
-      $('#webhook-url-row-restore').show();
-      applyServiceUI(service, 'restore');
-      validateDiscordWebhookRestore();
-    } else {
-      $('#webhook-url-row-restore').hide();
-      $('#pushover-user-key-row-restore').hide();
-    }
-  });
-
-  $('#webhook_url_restore').on('input', function () {
-    validateDiscordWebhookRestore();
-  });
-
-  $('#webhook_url_restore').on('blur', function () {
-    const service = $('#notification_service_restore').val();
-    const normalized = normalizeWebhookUrl($(this).val(), service);
-    $(this).val(normalized);
-    validateDiscordWebhookRestore();
-  });
-
-  let scheduleUILocked = false;
-  let rebuildToken = 0;
+  var scheduleUILocked = false;
+  var rebuildToken = 0;
 
   function validateBackupPrereqs() {
     const vms = $('#vm-hidden-backup').val()?.trim();
@@ -1859,13 +1843,8 @@ if (is_file($plg)) {
       return false;
     }
 
-    if (!validateDiscordWebhook()) {
-      alert("Please enter a valid webhook URL or leave it blank");
-      return false;
-    }
-
-    const service = $('#notification_service').val();
-    if (service === 'Pushover' && $('#notifications').val() === 'yes') {
+    const services = getSelectedServices('');
+    if (services.includes('Pushover') && $('#notifications').val() === 'yes') {
       if (!$('#pushover_user_key').val().trim()) {
         alert('Please enter your Pushover user key');
         return false;
@@ -1926,7 +1905,6 @@ if (is_file($plg)) {
     function initSchedulingToggle() {
       const cronModeSelect = document.getElementById('cron_mode');
 
-      // Option rows
       const minutesOptions = document.getElementById('minutes-options');
       const hourlyOptions = document.getElementById('hourly-options');
       const dailyOptions = document.getElementById('daily-options');
@@ -1934,7 +1912,6 @@ if (is_file($plg)) {
       const monthlyOptions = document.getElementById('monthly-options');
       const customOptions = document.getElementById('custom-options');
 
-      // Inputs
       const minutesFreq = document.getElementById('minutes_frequency');
       const hourlyFreq = document.getElementById('hourly_frequency');
       const dailyTime = document.getElementById('daily_time');
@@ -1946,7 +1923,6 @@ if (is_file($plg)) {
 
       if (!cronModeSelect) return false;
 
-      // Toggle which sub-options are visible
       function toggleCronOptions(value) {
         minutesOptions.style.display = (value === 'minutes') ? 'block' : 'none';
         hourlyOptions.style.display = (value === 'hourly') ? 'block' : 'none';
@@ -1957,7 +1933,6 @@ if (is_file($plg)) {
         updateCronExpression();
       }
 
-      // Build cron string from dropdowns
       function updateCronExpression() {
         let cronString = "";
 
@@ -1990,7 +1965,6 @@ if (is_file($plg)) {
           cronString = customCron.value.trim();
         }
 
-        // Store cron string in hidden input
         let hidden = document.getElementById("cron_expression_hidden");
         if (!hidden) {
           hidden = document.createElement("input");
@@ -2002,10 +1976,8 @@ if (is_file($plg)) {
         hidden.value = cronString;
       }
 
-      // Initialize visibility
       toggleCronOptions(cronModeSelect.value);
 
-      // Event listeners
       cronModeSelect.addEventListener('change', (e) => toggleCronOptions(e.target.value));
       minutesFreq?.addEventListener('change', updateCronExpression);
       hourlyFreq?.addEventListener('change', updateCronExpression);
@@ -2067,10 +2039,7 @@ if (is_file($plg)) {
       const hasPath = locationInput.value.trim().length > 0;
     }
 
-    // Trigger on load
     updateVisibility();
-
-    // Trigger on user input
     locationInput.addEventListener("input", updateVisibility);
   });
 
@@ -2097,16 +2066,10 @@ if (is_file($plg)) {
   });
 
   $(document).ready(function () {
-    /* -----------------------------------------
-       ELEMENTS (BACKUP ONLY)
-       ----------------------------------------- */
     const dropdownBackup = $('#vm-dropdown');
     const labelBackup = dropdownBackup.find('.vm-dropdown-label');
     const listBackup = dropdownBackup.find('.vm-dropdown-list');
 
-    /* -----------------------------------------
-       OPEN / CLOSE BEHAVIOR
-       ----------------------------------------- */
     labelBackup.on('click', function (e) {
       if (dropdownBackup.hasClass('disabled')) return;
 
@@ -2122,9 +2085,6 @@ if (is_file($plg)) {
       }
     });
 
-    /* -----------------------------------------
-       UPDATE LABEL + HIDDEN FIELD
-       ----------------------------------------- */
     function updateBackupLabel() {
       const checked = listBackup.find('input:checked').map(function () {
         return $(this).val();
@@ -2144,12 +2104,7 @@ if (is_file($plg)) {
       hidden.val(checked.join(','));
     }
 
-    /* -----------------------------------------
-       LOAD BACKUP VM LIST
-       ----------------------------------------- */
     window.loadBackupVMs = function () {
-
-      // Reset state every time
       dropdownBackup.removeClass('disabled');
       listBackup.hide();
 
@@ -2193,9 +2148,6 @@ if (is_file($plg)) {
       });
     };
 
-    /* -----------------------------------------
-       INITIAL LOAD (EMPTY SELECTION)
-       ----------------------------------------- */
     loadBackupVMs();
 
     function ensureHiddenFieldBackup(value) {
@@ -2211,10 +2163,8 @@ if (is_file($plg)) {
     }
 
     listBackup.on('change', 'input[type=checkbox]', updateBackupLabel);
-
   });
 
-  // Force-close any Dynamix tooltip when dropdown opens
   function closeTooltips() {
     $('.vm-backup-and-restoretip').trigger('mouseleave');
   }
@@ -2225,9 +2175,6 @@ if (is_file($plg)) {
 
   const versionSelections = {};
 
-  /* =========================================
-     VERSION FIELDS (RESTORE)
-  ========================================= */
   function rebuildVersionFields() {
     const container = $('#version-fields-container');
     container.empty();
@@ -2240,7 +2187,6 @@ if (is_file($plg)) {
 
     if (selected.length === 0) return;
 
-    // Create a unique token for THIS rebuild
     const token = ++rebuildToken;
 
     selected.forEach(vm => {
@@ -2248,8 +2194,6 @@ if (is_file($plg)) {
         '/plugins/vm-backup-and-restore/helpers/get_vm_versions.php',
         { vm, restore_path: restorePath },
         function (versions) {
-
-          // If a newer rebuild started, ignore this callback
           if (token !== rebuildToken) return;
 
           if (!versions || versions.length === 0) return;
@@ -2282,12 +2226,7 @@ if (is_file($plg)) {
     });
   }
 
-  /* =========================================
-     LIVE REBUILD TRIGGERS
-  ========================================= */
-
   $(document).ready(function () {
-    // Initial load (if values already exist)
     rebuildVersionFields();
   });
 
@@ -2296,34 +2235,28 @@ if (is_file($plg)) {
     const list = dropdown.find('.vm-dropdown-list-restore');
     const label = dropdown.find('.vm-dropdown-label-restore');
 
-    // Saved selections (comma-separated)
     const selectedRaw = dropdown.data('selected') || '';
     const selected = selectedRaw.split(',').map(s => s.trim()).filter(s => s !== '');
 
-    // Toggle dropdown
     dropdown.on('click', function (e) {
       e.stopPropagation();
       list.toggle();
       dropdown.toggleClass('active', list.is(':visible'));
     });
 
-    // Close when clicking outside
     $(document).on('click', function () {
       list.hide();
       dropdown.removeClass('active');
     });
 
-    // Prevent checkbox clicks from closing the dropdown
     list.on('click', 'input[type=checkbox]', function (e) {
       e.stopPropagation();
     });
 
-    // Prevent label clicks from closing the dropdown
     list.on('click', 'label', function (e) {
       e.stopPropagation();
     });
 
-    // Load restore folders
     function loadRestoreFolders() {
       const restorePath = $('#location_of_backups').val();
       list.empty();
@@ -2331,37 +2264,27 @@ if (is_file($plg)) {
 
       if (!restorePath) {
         ensureHiddenFieldRestore('');
-
-        // Treat blank path like "no backups"
         dropdown.removeClass('active');
         list.hide();
         dropdown.addClass('disabled');
         label.text('No backups at this location');
-
         return;
       }
 
       $.getJSON('/plugins/vm-backup-and-restore/helpers/list_restore_folders.php',
         { restore_path: restorePath },
         function (data) {
-
           list.empty();
 
           if (!data.folders || data.folders.length === 0) {
             ensureHiddenFieldRestore('');
-
-            // Hide the list so it cannot open
             list.hide();
-
-            // Disable dropdown interaction
             dropdown.addClass('disabled');
-
             return;
           }
 
           dropdown.removeClass('disabled');
 
-          // We have folders — rebuild list
           data.folders.forEach(folder => {
             const id = 'vmrestore-' + folder.replace(/\s+/g, '_');
 
@@ -2374,7 +2297,6 @@ if (is_file($plg)) {
           </div>
         `);
 
-            // Re-check saved selections from settings_restore.cfg
             if (selected.includes(folder)) {
               item.find('input').prop('checked', true);
             }
@@ -2382,14 +2304,12 @@ if (is_file($plg)) {
             list.append(item);
           });
 
-          // Update label + hidden field based on actual checkboxes
           updateRestoreLabel();
           rebuildVersionFields();
         }
       );
     }
 
-    // Update label & hidden field
     function updateRestoreLabel() {
       const checked = list.find('input:checked').map(function () {
         return $(this).val();
@@ -2416,29 +2336,24 @@ if (is_file($plg)) {
       hidden.val(value);
     }
 
-    // Listen for checkbox changes
     list.on('change', 'input[type=checkbox]', function () {
       updateRestoreLabel();
       rebuildVersionFields();
     });
 
-    // Load folders on restore path change
     $('#location_of_backups').on('input blur change', function () {
       loadRestoreFolders();
       rebuildVersionFields();
     });
 
-    // Initial load if location_of_backups already has a value
     loadRestoreFolders();
   });
 </script>
 
 <script>
-  // --- State ---
   let cronValid = false;
   let backupRunning = false;
 
-  // --- Elements ---
   const cronInput = document.getElementById('custom_cron');
   const cronMode = document.getElementById('cron_mode');
   const backupbtn = document.getElementById('backupbtn');
@@ -2446,65 +2361,46 @@ if (is_file($plg)) {
   const warnFields = document.getElementById('cron-warning-fields');
   const warnSlash = document.getElementById('cron-warning-slash');
 
-  // --- Unified button state controller ---
   function updateBackupButtonState() {
     if (backupbtn.textContent === 'Stop') return;
     backupbtn.disabled = !(cronValid && !backupRunning);
   }
 
-  // --- Live Cron Validator ---
   function validateCronLive() {
-
-    // ---------------------------------------------------------
-    // If NOT in custom mode → cron is automatically valid
-    // ---------------------------------------------------------
     if (cronMode.value !== "custom") {
       cronValid = true;
-
-      // Hide all warnings
       [warnFields, warnSlash].forEach(w => w.style.display = 'none');
-
       updateBackupButtonState();
       return;
     }
 
-    // ---------------------------------------------------------
-    // Custom mode → strict cron validation
-    // ---------------------------------------------------------
     const cronExpression = cronInput.value.trim();
     const cronParts = cronExpression.split(/\s+/);
 
-    // Hide warnings at start
     [warnFields, warnSlash].forEach(w => w.style.display = 'none');
 
     cronValid = true;
 
-    // Blank → invalid
     if (cronExpression === "") {
       cronValid = false;
       updateBackupButtonState();
       return;
     }
 
-    // Must have exactly 5 parts
     if (cronParts.length !== 5) {
       cronValid = false;
       warnFields.style.display = 'block';
     }
 
-    // Only validate fields if count is correct
     if (cronParts.length === 5) {
-
       for (let i = 0; i < cronParts.length; i++) {
         const field = cronParts[i];
 
-        // Only digits, *, and / allowed
         if (!/^[\d*\/]+$/.test(field)) {
           cronValid = false;
           warnFields.style.display = 'block';
         }
 
-        // Slash must be exactly */N
         if (field.includes('/')) {
           const validStep = field.match(/^\*\/\d+$/);
           if (!validStep) {
@@ -2514,7 +2410,6 @@ if (is_file($plg)) {
         }
       }
 
-      // Minute field cannot be "*"
       const minuteField = cronParts[0];
       if (minuteField === "*") {
         cronValid = false;
@@ -2525,11 +2420,9 @@ if (is_file($plg)) {
     updateBackupButtonState();
   }
 
-  // --- Attach listeners ---
   cronInput.addEventListener('input', validateCronLive);
   cronMode.addEventListener('change', validateCronLive);
 
-  // --- Run once on page load ---
   validateCronLive();
 
   let backupStartTime = 0;
@@ -2541,27 +2434,21 @@ if (is_file($plg)) {
 
     if (btn.text() === 'Stop') return;
 
-    // --- Backup is running ---
     if (running) {
       if (!backupStartTime) {
         backupStartTime = Date.now();
       }
-
       btn.text('Backup Now');
       status.show();
-
       return;
     }
 
-    // --- Backup is NOT running ---
     if (!backupStartTime) {
-      // Never started or already reset
       btn.text('Backup Now');
       status.hide();
       return;
     }
 
-    // Enforce minimum visible duration
     const elapsed = Date.now() - backupStartTime;
 
     if (elapsed < MIN_DURATION) {
@@ -2569,7 +2456,6 @@ if (is_file($plg)) {
       return;
     }
 
-    // Reset state
     backupStartTime = 0;
     btn.text('Backup Now');
     status.hide();
@@ -2589,12 +2475,10 @@ if (is_file($plg)) {
     pollBackupStatus();
   });
 
-  // Force-close any Dynamix tooltip
   function closeTooltips() {
     $('.vm-backup-and-restoretip').trigger('mouseleave');
   }
 
-  // When your dropdown opens, close tooltips
   $('.vm-dropdown-label, .vm-dropdown-list, select, .custom-dropdown').on('click', function () {
     closeTooltips();
   });
@@ -2666,9 +2550,6 @@ if (is_file($plg)) {
       return;
     }
 
-    // -------------------------------
-    // UI-SIDE MOUNT-TYPE VALIDATION
-    // -------------------------------
     const vmList = vms.split(',').map(v => v.trim()).filter(Boolean);
     const resolvedDest = await resolvePathServer(dest);
     const destClass = backupclassifyPath(resolvedDest);
@@ -2703,23 +2584,21 @@ if (is_file($plg)) {
       return;
     }
 
-    if (!validateDiscordWebhook()) {
-      alert("Please enter a valid webhook URL or leave it blank");
-      return;
-    }
-
-    const service = $('#notification_service').val();
-    if (service === 'Pushover' && $('#notifications').val() === 'yes') {
+    const services = getSelectedServices('');
+    if (services.includes('Pushover') && $('#notifications').val() === 'yes') {
       if (!$('#pushover_user_key').val().trim()) {
         alert('Please enter your Pushover user key');
         return;
       }
     }
 
-    // If we reach here → UI validation passed
-    // -------------------------------
-
     backupRequestInProgress = true;
+
+    const webhookParams = {};
+    $('#webhook-fields-container .webhook-url-input').each(function () {
+      const service = $(this).data('service');
+      webhookParams['WEBHOOK_' + service.toUpperCase()] = $(this).val().trim();
+    });
 
     const params = $.param({
       VMS_TO_BACKUP: vms,
@@ -2728,21 +2607,23 @@ if (is_file($plg)) {
       BACKUP_OWNER: $('#backup_owner').val(),
       DRY_RUN: $('#dry_run').val(),
       NOTIFICATIONS: $('#notifications').val(),
-      NOTIFICATION_SERVICE: $('#notification_service').val(),
-      WEBHOOK_URL: $('#webhook_url').val().trim(),
-      PUSHOVER_USER_KEY: $('#pushover_user_key').val().trim(),
+      NOTIFICATION_SERVICE: getSelectedServices('').join(','),
+      WEBHOOK_DISCORD: webhookParams['WEBHOOK_DISCORD'] || '',
+      WEBHOOK_GOTIFY: webhookParams['WEBHOOK_GOTIFY'] || '',
+      WEBHOOK_NTFY: webhookParams['WEBHOOK_NTFY'] || '',
+      WEBHOOK_PUSHOVER: webhookParams['WEBHOOK_PUSHOVER'] || '',
+      WEBHOOK_SLACK: webhookParams['WEBHOOK_SLACK'] || '',
+      PUSHOVER_USER_KEY: $('#pushover_user_key').val() || '',
       csrf_token: csrfToken
     });
 
     $.get('/plugins/vm-backup-and-restore/helpers/save_settings.php?' + params)
       .done(function (res) {
-
         if (res && res.status === 'ok') {
           startBackup();
         } else {
           alert('Failed to save settings');
         }
-
       })
       .fail(function () {
         alert('Error saving settings');
@@ -2750,7 +2631,6 @@ if (is_file($plg)) {
       .always(function () {
         backupRequestInProgress = false;
       });
-
   });
 
   function startBackup() {
@@ -2770,17 +2650,13 @@ if (is_file($plg)) {
   }
 
   function cronToMinutesOfWeek(expr) {
-    // Returns array of [minuteOfWeek, ...] that a cron fires on
-    // Handles: */N, hourly, daily, weekly, monthly (best-effort for conflict detection)
     const parts = expr.trim().split(/\s+/);
     if (parts.length !== 5) return [];
 
     const [min, hour, dom, month, dow] = parts;
     const minutes = [];
-
     const MINS_IN_WEEK = 7 * 24 * 60;
 
-    // */N minutes
     const mInterval = min.match(/^\*\/(\d+)$/);
     if (mInterval && hour === '*' && dom === '*' && month === '*' && dow === '*') {
       const n = parseInt(mInterval[1], 10);
@@ -2788,7 +2664,6 @@ if (is_file($plg)) {
       return minutes;
     }
 
-    // Hourly: 0 */N * * *
     const hInterval = hour.match(/^\*\/(\d+)$/);
     if (min === '0' && hInterval && dom === '*' && month === '*' && dow === '*') {
       const n = parseInt(hInterval[1], 10);
@@ -2796,14 +2671,12 @@ if (is_file($plg)) {
       return minutes;
     }
 
-    // Daily: 0 H * * *
     if (min === '0' && /^\d+$/.test(hour) && dom === '*' && month === '*' && dow === '*') {
       const h = parseInt(hour, 10);
       for (let d = 0; d < 7; d++) minutes.push(d * 24 * 60 + h * 60);
       return minutes;
     }
 
-    // Weekly: 0 H * * D
     if (min === '0' && /^\d+$/.test(hour) && dom === '*' && month === '*' && /^\d+$/.test(dow)) {
       const h = parseInt(hour, 10);
       const d = parseInt(dow, 10);
@@ -2811,7 +2684,6 @@ if (is_file($plg)) {
       return minutes;
     }
 
-    // Monthly: 0 H D * * — treat as weekly on day-of-month mod 7 (best effort)
     if (min === '0' && /^\d+$/.test(hour) && /^\d+$/.test(dom) && month === '*' && dow === '*') {
       const h = parseInt(hour, 10);
       const d = (parseInt(dom, 10) - 1) % 7;
@@ -2835,7 +2707,6 @@ if (is_file($plg)) {
 
       for (const nt of newTimes) {
         for (const et of existingTimes) {
-          // Circular distance to handle week wrap-around
           const diff = Math.min(
             Math.abs(nt - et),
             MINS_IN_WEEK - Math.abs(nt - et)
@@ -2854,10 +2725,8 @@ if (is_file($plg)) {
     return $.getJSON('/plugins/vm-backup-and-restore/helpers/schedule_cron_check.php');
   }
 
-  // --- Global variable to track editing ---
   window.editingScheduleId = null;
 
-  // --- Load schedule list ---
   function loadSchedules(force = false) {
     if (scheduleUILocked && !force) return $.Deferred().resolve().promise();
 
@@ -2871,7 +2740,6 @@ if (is_file($plg)) {
     });
   }
 
-  // --- Build cron string from UI selections ---
   function validateCustomCron(expr) {
     expr = expr.trim();
     const parts = expr.split(/\s+/);
@@ -2918,11 +2786,9 @@ if (is_file($plg)) {
     }
   }
 
-  // --- Create or update schedule ---
   async function scheduleJob(type) {
-
     if (!validateBackupPrereqs()) {
-      return; // block saving schedule
+      return;
     }
 
     if (scheduleUILocked) return;
@@ -2935,9 +2801,6 @@ if (is_file($plg)) {
       return;
     }
 
-    // -------------------------------
-    // INLINE VDISK MOUNT-TYPE CHECK
-    // -------------------------------
     const vms = $('#vm-hidden-backup').val();
     const dest = $('#backup_destination').val().trim();
 
@@ -2986,10 +2849,6 @@ if (is_file($plg)) {
       return;
     }
 
-    // -------------------------------
-    // CONTINUE WITH NORMAL SAVE LOGIC
-    // -------------------------------
-
     const settings = {};
     $('input[name], select[name]').each(function () {
       settings[this.name] = $(this).val();
@@ -3026,20 +2885,17 @@ if (is_file($plg)) {
     });
   }
 
-  // --- Edit a schedule ---
   function editSchedule(id) {
-    if (scheduleUILocked) return;   // prevent double‑clicks during reload
-    lockScheduleUI();               // freeze all schedule action buttons
+    if (scheduleUILocked) return;
+    lockScheduleUI();
 
     $.getJSON('/plugins/vm-backup-and-restore/helpers/schedule_load.php', { id }, function (s) {
       const settings = s.SETTINGS || {};
 
-      // Apply schedule type first
       if (s.TYPE) {
         $('[name="type"]').val(s.TYPE).trigger('change');
       }
 
-      // Apply all settings to form fields
       for (const k in settings) {
         const el = $('[name="' + k + '"]');
         if (!el.length) continue;
@@ -3052,31 +2908,25 @@ if (is_file($plg)) {
           el.val(settings[k]).trigger('change');
         }
 
-        // VM dropdown special handling
         if (k === 'VMS_TO_BACKUP') {
           $('#vm-dropdown').attr('data-selected', settings[k]);
         }
       }
 
-      // Cron mode detection
       $('#cron_mode')
         .val(detectCronMode(s.CRON))
         .trigger('change');
 
-      // Store ID globally
       window.editingScheduleId = id;
 
-      // Rebuild VM dropdown with updated selected value
       $('#vm-dropdown').attr('data-selected', settings['VMS_TO_BACKUP'] || '');
       loadBackupVMs();
 
-      // Switch Schedule It → Edit
       $('#schedule-backup').text('Update');
       const $tip = $('#schedule-backup').closest('span');
       $tip.data('tooltip', 'Update the backup schedule using the settings shown in the fields above');
       if ($tip.hasClass('tooltipstered')) $tip.tooltipster('content', 'Update the backup schedule using the settings shown in the fields above');
 
-      // Show Cancel button
       $('#cancelEditBtn').show();
 
       unlockScheduleUI();
@@ -3089,9 +2939,7 @@ if (is_file($plg)) {
 
   function showPopup(message) {
     const popup = $('#popupMessage');
-
     popup.text(message).fadeIn(150);
-
     setTimeout(() => {
       popup.fadeOut(200, () => {
         popup.text('');
@@ -3102,9 +2950,7 @@ if (is_file($plg)) {
 
   function showPopuprestore(message) {
     const popup = $('#popupMessagerestore');
-
     popup.text(message).fadeIn(150);
-
     setTimeout(() => {
       popup.fadeOut(200, () => {
         popup.text('');
@@ -3114,26 +2960,21 @@ if (is_file($plg)) {
   }
 
   function resetScheduleUI() {
-    // Revert Edit → Schedule It
     $('#schedule-backup').text('Schedule It');
     const $tip = $('#schedule-backup').closest('span');
     $tip.data('tooltip', 'Create a backup schedule using the settings shown in the fields above');
     if ($tip.hasClass('tooltipstered')) $tip.tooltipster('content', 'Create a backup schedule using the settings shown in the fields above');
 
-    // Hide Cancel button
     $('#cancelEditBtn').hide();
-
-    // Remove any popup message immediately
     $('#popupMessage').stop(true, true).hide().text('');
   }
 
-  // --- Delete a schedule ---
   function deleteSchedule(id) {
-    if (scheduleUILocked) return;   // prevent double‑clicks during reload
+    if (scheduleUILocked) return;
 
     if (!confirm("Delete this schedule?")) return;
 
-    lockScheduleUI();               // freeze all schedule action buttons
+    lockScheduleUI();
 
     $.post(
       '/plugins/vm-backup-and-restore/helpers/schedule_delete.php',
@@ -3143,7 +2984,6 @@ if (is_file($plg)) {
     });
   }
 
-  // --- Run backup manually ---
   function runScheduleBackup(id, btn) {
     if (scheduleUILocked) return;
 
@@ -3191,7 +3031,6 @@ if (is_file($plg)) {
             });
         };
 
-        // Poll lock
         const poll = setInterval(function () {
           $.getJSON('/plugins/vm-backup-and-restore/helpers/check_lock.php', function (data) {
             if (!data.locked) {
@@ -3219,9 +3058,8 @@ if (is_file($plg)) {
       });
   }
 
-  // --- Toggle enable/disable ---
   function toggleSchedule(id, isEnabled) {
-    if (scheduleUILocked) return;   // prevent double‑clicks during reload
+    if (scheduleUILocked) return;
 
     const msg = isEnabled
       ? "Disable this schedule?"
@@ -3229,7 +3067,7 @@ if (is_file($plg)) {
 
     if (!confirm(msg)) return;
 
-    lockScheduleUI();               // freeze all schedule action buttons
+    lockScheduleUI();
 
     $.post(
       '/plugins/vm-backup-and-restore/helpers/schedule_toggle.php',
@@ -3239,7 +3077,6 @@ if (is_file($plg)) {
     });
   }
 
-  // --- Detect cron mode based on expression ---
   function detectCronMode(cron) {
     if (!cron) return 'minutes';
     if (/^\*\/\d+ \* \* \* \*$/.test(cron)) return 'minutes';
@@ -3250,7 +3087,6 @@ if (is_file($plg)) {
     return 'custom';
   }
 
-  // --- Initialize VM BACKUP multiselect ---
   function initVmBackupDropdown() {
     const selected = ($('#vm-hidden-backup').val() || '').split(',');
 
@@ -3275,7 +3111,6 @@ if (is_file($plg)) {
     );
   }
 
-  // --- Button click handlers ---
   $(document).ready(function () {
     loadSchedules();
 
@@ -3289,22 +3124,18 @@ if (is_file($plg)) {
   const MIN_RESTORE_DURATION = 5000;
 
   function updateRestoreUI(running) {
-
     const btn = $('#restorebtn');
     const status = $('#restore-status');
 
     if (btn.text() === 'Stop') return;
 
     if (running) {
-
       if (!restoreStartTime) {
         restoreStartTime = Date.now();
       }
-
       btn.prop('disabled', true);
       btn.text('Restore Now');
       status.show();
-
       return;
     }
 
@@ -3323,7 +3154,6 @@ if (is_file($plg)) {
     }
 
     restoreStartTime = 0;
-
     btn.prop('disabled', false);
     btn.text('Restore');
     status.hide();
@@ -3341,17 +3171,14 @@ if (is_file($plg)) {
     pollRestoreStatus();
   });
 
-  // Force-close any Dynamix tooltip
   function closeTooltips() {
     $('.vm-backup-and-restoretip').trigger('mouseleave');
   }
 
-  // When your dropdown opens, close tooltips
   $('.vm-dropdown-label, .vm-dropdown-list, select, .custom-dropdown').on('click', function () {
     closeTooltips();
   });
 
-  // Collect per-VM version selections
   function collectRestoreVersions() {
     const versions = {};
 
@@ -3391,7 +3218,6 @@ if (is_file($plg)) {
       return;
     }
 
-    // Basic validation
     const vms_restore = $('#vm-hidden-restore').val();
     const dest = $('#location_of_backups').val().trim();
     const restore_dest = $('#restore_destination').val().trim();
@@ -3411,13 +3237,11 @@ if (is_file($plg)) {
       return;
     }
 
-    // Classify both paths
     const resolvedSrc = await resolvePathServer(dest);
     const resolvedDst = await resolvePathServer(restore_dest);
     const srcClass = classifyPath(resolvedSrc);
     const dstClass = classifyPath(resolvedDst);
 
-    // If classes differ → alert
     if (srcClass !== dstClass) {
       alert(
         `Location of backups is using mount type (${srcClass}) and restore destination (${dstClass}). They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0`
@@ -3425,13 +3249,8 @@ if (is_file($plg)) {
       return;
     }
 
-    if (!validateDiscordWebhookRestore()) {
-      alert("Please enter a valid webhook URL or leave it blank");
-      return;
-    }
-
-    const serviceRestore = $('#notification_service_restore').val();
-    if (serviceRestore === 'Pushover' && $('#notifications_restore').val() === 'yes') {
+    const servicesRestore = getSelectedServices('restore');
+    if (servicesRestore.includes('Pushover') && $('#notifications_restore').val() === 'yes') {
       if (!$('#pushover_user_key_restore').val().trim()) {
         alert('Please enter your Pushover user key');
         return;
@@ -3442,11 +3261,16 @@ if (is_file($plg)) {
       return;
     }
 
-    // Build restore versions string
     const restoreVersions = collectRestoreVersions();
     const restoreVersionsStr = Object.entries(restoreVersions)
       .map(([vm, ver]) => `${vm}=${ver}`)
       .join(',');
+
+    const webhookParamsRestore = {};
+    $('#webhook-fields-container-restore .webhook-url-input').each(function () {
+      const service = $(this).data('service');
+      webhookParamsRestore['WEBHOOK_' + service.toUpperCase() + '_RESTORE'] = $(this).val().trim();
+    });
 
     const params = $.param({
       LOCATION_OF_BACKUPS: dest,
@@ -3455,21 +3279,22 @@ if (is_file($plg)) {
       RESTORE_DESTINATION: restore_dest,
       DRY_RUN_RESTORE: $('#dry_run_restore').val(),
       NOTIFICATIONS_RESTORE: $('#notifications_restore').val(),
-      NOTIFICATION_SERVICE_RESTORE: $('#notification_service_restore').val(),
-      WEBHOOK_URL_RESTORE: $('#webhook_url_restore').val().trim(),
-      PUSHOVER_USER_KEY_RESTORE: $('#pushover_user_key_restore').val().trim(),
+      NOTIFICATION_SERVICE_RESTORE: getSelectedServices('restore').join(','),
+      WEBHOOK_DISCORD_RESTORE: webhookParamsRestore['WEBHOOK_DISCORD_RESTORE'] || '',
+      WEBHOOK_GOTIFY_RESTORE: webhookParamsRestore['WEBHOOK_GOTIFY_RESTORE'] || '',
+      WEBHOOK_NTFY_RESTORE: webhookParamsRestore['WEBHOOK_NTFY_RESTORE'] || '',
+      WEBHOOK_PUSHOVER_RESTORE: webhookParamsRestore['WEBHOOK_PUSHOVER_RESTORE'] || '',
+      WEBHOOK_SLACK_RESTORE: webhookParamsRestore['WEBHOOK_SLACK_RESTORE'] || '',
+      PUSHOVER_USER_KEY_RESTORE: $('#pushover_user_key_restore').val() || '',
       csrf_token: csrfToken
     });
 
-    // Save settings first
     $.get(
       '/plugins/vm-backup-and-restore/helpers/save_settings_restore.php?' + params
     )
       .done(function (res) {
         if (res && res.status === 'ok') {
           console.log('Settings saved');
-
-          // Now trigger the actual restore
           startRestore();
         } else {
           alert('Failed to save settings');
@@ -3478,7 +3303,6 @@ if (is_file($plg)) {
       .fail(function () {
         alert('Error saving settings');
       });
-
   });
 
   function startRestore() {
@@ -3500,7 +3324,6 @@ if (is_file($plg)) {
   if (typeof caPluginUpdateCheck === "function") {
     caPluginUpdateCheck("vm-backup-and-restore.plg", { name: "vm-backup-and-restore" });
   }
-
 </script>
 
 <script>
@@ -3535,21 +3358,15 @@ if (is_file($plg)) {
   }
 
   function loadFolders(path) {
-
     $.getJSON('/plugins/vm-backup-and-restore/helpers/list_folders.php',
       {
         path: path,
         field: activeInputFieldId
       },
-
       function (data) {
-
         currentPath = data.current;
         selectedFolder = null;
 
-        /* -----------------------
-           Build Breadcrumb
-        ----------------------- */
         const parts = currentPath.split('/').filter(p => p !== '');
         let breadcrumbHTML = '';
         let buildPath = '';
@@ -3572,10 +3389,6 @@ if (is_file($plg)) {
 
         $('#folderBreadcrumb').html(breadcrumbHTML);
 
-
-        /* -----------------------
-           Build Folder List
-        ----------------------- */
         let html = '';
 
         if (data.parent) {
@@ -3589,9 +3402,8 @@ if (is_file($plg)) {
         }
 
         data.folders.forEach(folder => {
-
           const disabledAttr = folder.selectable ? '' : 'disabled';
-          const tooltip = folder.selectable ? '' : 'title="Cannott select. Browse deeper"';
+          const tooltip = folder.selectable ? '' : 'title="Cannot select. Browse deeper"';
           const disabledStyle = folder.selectable ? '' : 'style="opacity:0.4;"';
 
           html += `
@@ -3615,19 +3427,11 @@ if (is_file($plg)) {
 
         $('#folderList').html(html);
 
-
-        /* -----------------------
-           Breadcrumb Click
-        ----------------------- */
         $('.breadcrumb-part').off('click').on('click', function () {
           const newPath = $(this).data('path');
           loadFolders(newPath);
         });
 
-
-        /* -----------------------
-           Browse Row Click
-        ----------------------- */
         $('.browse-row').off('click').on('click', function (e) {
           if ($(e.target).closest('.folder-check-label').length) return;
           if ($(e.target).closest('.folder-name-label').length) return;
@@ -3644,16 +3448,12 @@ if (is_file($plg)) {
           e.stopPropagation();
         });
 
-        /* -----------------------
-           Single Checkbox Selection
-        ----------------------- */
         $('.folder-checkbox').off('change').on('change', function (e) {
           if (this.disabled) return;
           $('.folder-checkbox').not(this).prop('checked', false);
           selectedFolder = this.checked ? $(this).val() : null;
           e.stopPropagation();
         });
-
       });
   }
 
@@ -3810,10 +3610,7 @@ if (is_file($plg)) {
       }
     }
 
-    // Initial check
     pollLock();
-
-    // Poll continuously
     setInterval(pollLock, CHECK_INTERVAL);
   })();
 </script>
@@ -3833,10 +3630,8 @@ if (is_file($plg)) {
       });
   }
 
-  // Load log on page load
   document.addEventListener('DOMContentLoaded', loadLastRunLog);
 
-  // Copy button logic
   document.getElementById('copy-last-run-log').addEventListener('click', function () {
     const logEl = document.getElementById('last-run-log');
     const text = logEl.innerText || logEl.textContent;
@@ -3846,7 +3641,6 @@ if (is_file($plg)) {
       return;
     }
 
-    // Try Clipboard API first
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(() => {
         showCopiedFeedback(this);
@@ -3859,7 +3653,6 @@ if (is_file($plg)) {
     }
   });
 
-  // Fallback for older browsers or Clipboard API failure
   function fallbackCopyText(text, btn) {
     const textarea = document.createElement('textarea');
     textarea.value = text;
@@ -3875,7 +3668,6 @@ if (is_file($plg)) {
     document.body.removeChild(textarea);
   }
 
-  // Visual feedback
   function showCopiedFeedback(btn) {
     const original = btn.textContent;
     btn.textContent = 'Copied!';

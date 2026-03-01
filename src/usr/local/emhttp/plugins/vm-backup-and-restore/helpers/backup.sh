@@ -220,7 +220,11 @@ run_cmd() {
 # Notifications
 # ------------------------------------------------------------------------------
 
-WEBHOOK_URL="${WEBHOOK_URL//\"/}"
+WEBHOOK_DISCORD="${WEBHOOK_DISCORD//\"/}"
+WEBHOOK_GOTIFY="${WEBHOOK_GOTIFY//\"/}"
+WEBHOOK_NTFY="${WEBHOOK_NTFY//\"/}"
+WEBHOOK_PUSHOVER="${WEBHOOK_PUSHOVER//\"/}"
+WEBHOOK_SLACK="${WEBHOOK_SLACK//\"/}"
 PUSHOVER_USER_KEY="${PUSHOVER_USER_KEY//\"/}"
 
 notify_vm() {
@@ -232,65 +236,78 @@ notify_vm() {
 
     [[ "${NOTIFICATIONS:-no}" != "yes" ]] && { debug_log "Notifications disabled, skipping"; return 0; }
 
-    if [[ -n "$WEBHOOK_URL" ]]; then
-        local color
-        case "$level" in
-            alert)   color=15158332 ;;
-            warning) color=16776960 ;;
-            *)       color=3066993  ;;
+    local color
+    case "$level" in
+        alert)   color=15158332 ;;
+        warning) color=16776960 ;;
+        *)       color=3066993  ;;
+    esac
+
+    IFS=',' read -ra SERVICES <<< "$NOTIFICATION_SERVICE"
+
+    for service in "${SERVICES[@]}"; do
+        service="${service// /}"
+        case "$service" in
+            Discord)
+                if [[ -n "$WEBHOOK_DISCORD" ]]; then
+                    debug_log "Sending Discord notification"
+                    curl -sf -X POST "$WEBHOOK_DISCORD" \
+                        -H "Content-Type: application/json" \
+                        -d "{\"embeds\":[{\"title\":\"$title\",\"description\":\"$message\",\"color\":$color}]}" || true
+                fi
+                ;;
+            Gotify)
+                if [[ -n "$WEBHOOK_GOTIFY" ]]; then
+                    debug_log "Sending Gotify notification"
+                    curl -sf -X POST "$WEBHOOK_GOTIFY" \
+                        -H "Content-Type: application/json" \
+                        -d "{\"title\":\"$title\",\"message\":\"$message\",\"priority\":5}" || true
+                fi
+                ;;
+            Ntfy)
+                if [[ -n "$WEBHOOK_NTFY" ]]; then
+                    debug_log "Sending Ntfy notification"
+                    curl -sf -X POST "$WEBHOOK_NTFY" \
+                        -H "Title: $title" \
+                        -d "$message" > /dev/null || true
+                fi
+                ;;
+            Pushover)
+                if [[ -n "$WEBHOOK_PUSHOVER" && -n "$PUSHOVER_USER_KEY" ]]; then
+                    debug_log "Sending Pushover notification"
+                    local token="${WEBHOOK_PUSHOVER##*/}"
+                    curl -sf -X POST "https://api.pushover.net/1/messages.json" \
+                        -d "token=${token}" \
+                        -d "user=${PUSHOVER_USER_KEY}" \
+                        -d "title=${title}" \
+                        -d "message=${message}" > /dev/null || true
+                fi
+                ;;
+            Slack)
+                if [[ -n "$WEBHOOK_SLACK" ]]; then
+                    debug_log "Sending Slack notification"
+                    curl -sf -X POST "$WEBHOOK_SLACK" \
+                        -H "Content-Type: application/json" \
+                        -d "{\"text\":\"*$title*\n$message\"}" || true
+                fi
+                ;;
+            Unraid)
+                if [[ -x /usr/local/emhttp/webGui/scripts/notify ]]; then
+                    debug_log "Sending Unraid native notification"
+                    /usr/local/emhttp/webGui/scripts/notify \
+                        -e "VM Backup & Restore" \
+                        -s "$title" \
+                        -d "$message" \
+                        -i "$level"
+                else
+                    debug_log "Unraid notify script not found"
+                fi
+                ;;
+            *)
+                debug_log "Unknown notification service: $service"
+                ;;
         esac
-
-        if [[ "$WEBHOOK_URL" == *"discord.com/api/webhooks"* ]]; then
-            debug_log "Sending Discord webhook notification"
-            curl -sf -X POST "$WEBHOOK_URL" \
-                -H "Content-Type: application/json" \
-                -d "{\"embeds\":[{\"title\":\"$title\",\"description\":\"$message\",\"color\":$color}]}" || true
-
-        elif [[ "$WEBHOOK_URL" == *"hooks.slack.com"* ]]; then
-            debug_log "Sending Slack webhook notification"
-            curl -sf -X POST "$WEBHOOK_URL" \
-                -H "Content-Type: application/json" \
-                -d "{\"text\":\"*$title*\n$message\"}" || true
-
-        elif [[ "$WEBHOOK_URL" == *"outlook.office.com/webhook"* ]]; then
-            debug_log "Sending Teams webhook notification"
-            curl -sf -X POST "$WEBHOOK_URL" \
-                -H "Content-Type: application/json" \
-                -d "{\"title\":\"$title\",\"text\":\"$message\"}" || true
-
-        elif [[ "$WEBHOOK_URL" == *"/message"* ]]; then
-            debug_log "Sending Gotify notification"
-            curl -sf -X POST "$WEBHOOK_URL" \
-                -H "Content-Type: application/json" \
-                -d "{\"title\":\"$title\",\"message\":\"$message\",\"priority\":5}" || true
-
-        elif [[ "$WEBHOOK_URL" == *"ntfy.sh"* || "$WEBHOOK_URL" == *"/ntfy/"* ]]; then
-            debug_log "Sending ntfy notification"
-            curl -sf -X POST "$WEBHOOK_URL" \
-                -H "Title: $title" \
-                -d "$message" > /dev/null || true
-
-        elif [[ "$WEBHOOK_URL" == *"api.pushover.net"* ]]; then
-            debug_log "Sending Pushover notification"
-            local token="${WEBHOOK_URL##*/}"
-            curl -sf -X POST "https://api.pushover.net/1/messages.json" \
-                -d "token=${token}" \
-                -d "user=${PUSHOVER_USER_KEY}" \
-                -d "title=${title}" \
-                -d "message=${message}" > /dev/null || true
-        fi
-    else
-        if [[ -x /usr/local/emhttp/webGui/scripts/notify ]]; then
-            debug_log "Sending Unraid native notification"
-            /usr/local/emhttp/webGui/scripts/notify \
-                -e "VM Backup & Restore" \
-                -s "$title" \
-                -d "$message" \
-                -i "$level"
-        else
-            debug_log "No notification method available (notify script not found)"
-        fi
-    fi
+    done
 }
 
 error_count=0

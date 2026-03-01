@@ -1,21 +1,26 @@
 <?php
 header('Content-Type: application/json');
 
-// Path to your shell script
 $cmd = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/save_settings_restore.sh';
 
 // --- Grab raw values ---
-$location_of_backups            = $_GET['LOCATION_OF_BACKUPS'] ?? '';
-$vms_to_restore                 = $_GET['VMS_TO_RESTORE'] ?? '';
-$versions                       = $_GET['VERSIONS'] ?? '';
-$restore_destination            = $_GET['RESTORE_DESTINATION'] ?? '';
-$dry_run_restore                = $_GET['DRY_RUN_RESTORE'] ?? '';
-$notifications_restore          = $_GET['NOTIFICATIONS_RESTORE'] ?? '';
-$notifications_service_restore  = $_GET['NOTIFICATION_SERVICE_RESTORE'] ?? '';
-$webhook_url_restore            = $_GET['WEBHOOK_URL_RESTORE'] ?? '';
-$pushover_user_key_restore      = $_GET['PUSHOVER_USER_KEY_RESTORE'] ?? '';
+$location_of_backups           = $_GET['LOCATION_OF_BACKUPS'] ?? '';
+$vms_to_restore                = $_GET['VMS_TO_RESTORE'] ?? '';
+$versions                      = $_GET['VERSIONS'] ?? '';
+$restore_destination           = $_GET['RESTORE_DESTINATION'] ?? '';
+$dry_run_restore               = $_GET['DRY_RUN_RESTORE'] ?? '';
+$notifications_restore         = $_GET['NOTIFICATIONS_RESTORE'] ?? '';
+$notification_service_restore  = $_GET['NOTIFICATION_SERVICE_RESTORE'] ?? '';
+$pushover_user_key_restore     = $_GET['PUSHOVER_USER_KEY_RESTORE'] ?? '';
 
-// --- Normalize LOCATION_OF_BACKUPS ---
+// --- Collect per-service webhook URLs ---
+$services = ['DISCORD', 'GOTIFY', 'NTFY', 'PUSHOVER', 'SLACK'];
+$webhookUrls = [];
+foreach ($services as $svc) {
+    $webhookUrls[$svc] = $_GET['WEBHOOK_' . $svc . '_RESTORE'] ?? '';
+}
+
+// --- Normalize paths ---
 if ($location_of_backups !== '') {
     $resolved = realpath($location_of_backups);
     if ($resolved !== false) {
@@ -23,7 +28,6 @@ if ($location_of_backups !== '') {
     }
 }
 
-// --- (Optional) Normalize RESTORE_DESTINATION ---
 if ($restore_destination !== '') {
     $resolved = realpath($restore_destination);
     if ($resolved !== false) {
@@ -39,8 +43,12 @@ $args = [
     $restore_destination,
     $dry_run_restore,
     $notifications_restore,
-    $notifications_service_restore,
-    $webhook_url_restore,
+    $notification_service_restore,
+    $webhookUrls['DISCORD'],
+    $webhookUrls['GOTIFY'],
+    $webhookUrls['NTFY'],
+    $webhookUrls['PUSHOVER'],
+    $webhookUrls['SLACK'],
     $pushover_user_key_restore,
 ];
 

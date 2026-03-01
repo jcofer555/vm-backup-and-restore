@@ -175,7 +175,15 @@ CONFIG="/boot/config/plugins/vm-backup-and-restore/settings_restore.cfg"
 debug_log "Loading config: $CONFIG"
 source "$CONFIG" || { debug_log "ERROR: Failed to source config: $CONFIG"; exit 1; }
 
-WEBHOOK_URL_RESTORE="${WEBHOOK_URL_RESTORE//\"/}"
+# ------------------------------------------------------------------------------
+# Notifications
+# ------------------------------------------------------------------------------
+
+WEBHOOK_DISCORD_RESTORE="${WEBHOOK_DISCORD_RESTORE//\"/}"
+WEBHOOK_GOTIFY_RESTORE="${WEBHOOK_GOTIFY_RESTORE//\"/}"
+WEBHOOK_NTFY_RESTORE="${WEBHOOK_NTFY_RESTORE//\"/}"
+WEBHOOK_PUSHOVER_RESTORE="${WEBHOOK_PUSHOVER_RESTORE//\"/}"
+WEBHOOK_SLACK_RESTORE="${WEBHOOK_SLACK_RESTORE//\"/}"
 PUSHOVER_USER_KEY_RESTORE="${PUSHOVER_USER_KEY_RESTORE//\"/}"
 
 classify_path() {
@@ -213,65 +221,78 @@ notify_restore() {
 
     [[ "$NOTIFICATIONS_RESTORE" != "yes" ]] && { debug_log "Notifications disabled, skipping"; return 0; }
 
-    if [[ -n "$WEBHOOK_URL_RESTORE" ]]; then
-        local color
-        case "$level" in
-            alert)   color=15158332 ;;
-            warning) color=16776960 ;;
-            *)       color=3066993  ;;
+    local color
+    case "$level" in
+        alert)   color=15158332 ;;
+        warning) color=16776960 ;;
+        *)       color=3066993  ;;
+    esac
+
+    IFS=',' read -ra SERVICES <<< "$NOTIFICATION_SERVICE_RESTORE"
+
+    for service in "${SERVICES[@]}"; do
+        service="${service// /}"
+        case "$service" in
+            Discord)
+                if [[ -n "$WEBHOOK_DISCORD_RESTORE" ]]; then
+                    debug_log "Sending Discord notification"
+                    curl -sf -X POST "$WEBHOOK_DISCORD_RESTORE" \
+                        -H "Content-Type: application/json" \
+                        -d "{\"embeds\":[{\"title\":\"$title\",\"description\":\"$message\",\"color\":$color}]}" || true
+                fi
+                ;;
+            Gotify)
+                if [[ -n "$WEBHOOK_GOTIFY_RESTORE" ]]; then
+                    debug_log "Sending Gotify notification"
+                    curl -sf -X POST "$WEBHOOK_GOTIFY_RESTORE" \
+                        -H "Content-Type: application/json" \
+                        -d "{\"title\":\"$title\",\"message\":\"$message\",\"priority\":5}" || true
+                fi
+                ;;
+            Ntfy)
+                if [[ -n "$WEBHOOK_NTFY_RESTORE" ]]; then
+                    debug_log "Sending Ntfy notification"
+                    curl -sf -X POST "$WEBHOOK_NTFY_RESTORE" \
+                        -H "Title: $title" \
+                        -d "$message" > /dev/null || true
+                fi
+                ;;
+            Pushover)
+                if [[ -n "$WEBHOOK_PUSHOVER_RESTORE" && -n "$PUSHOVER_USER_KEY_RESTORE" ]]; then
+                    debug_log "Sending Pushover notification"
+                    local token="${WEBHOOK_PUSHOVER_RESTORE##*/}"
+                    curl -sf -X POST "https://api.pushover.net/1/messages.json" \
+                        -d "token=${token}" \
+                        -d "user=${PUSHOVER_USER_KEY_RESTORE}" \
+                        -d "title=${title}" \
+                        -d "message=${message}" > /dev/null || true
+                fi
+                ;;
+            Slack)
+                if [[ -n "$WEBHOOK_SLACK_RESTORE" ]]; then
+                    debug_log "Sending Slack notification"
+                    curl -sf -X POST "$WEBHOOK_SLACK_RESTORE" \
+                        -H "Content-Type: application/json" \
+                        -d "{\"text\":\"*$title*\n$message\"}" || true
+                fi
+                ;;
+            Unraid)
+                if [[ -x /usr/local/emhttp/webGui/scripts/notify ]]; then
+                    debug_log "Sending Unraid native notification"
+                    /usr/local/emhttp/webGui/scripts/notify \
+                        -e "VM Backup & Restore" \
+                        -s "$title" \
+                        -d "$message" \
+                        -i "$level"
+                else
+                    debug_log "Unraid notify script not found"
+                fi
+                ;;
+            *)
+                debug_log "Unknown notification service: $service"
+                ;;
         esac
-
-        if [[ "$WEBHOOK_URL_RESTORE" == *"discord.com/api/webhooks"* ]]; then
-            debug_log "Sending Discord webhook notification"
-            curl -sf -X POST "$WEBHOOK_URL_RESTORE" \
-                -H "Content-Type: application/json" \
-                -d "{\"embeds\":[{\"title\":\"$title\",\"description\":\"$message\",\"color\":$color}]}" || true
-
-        elif [[ "$WEBHOOK_URL_RESTORE" == *"hooks.slack.com"* ]]; then
-            debug_log "Sending Slack webhook notification"
-            curl -sf -X POST "$WEBHOOK_URL_RESTORE" \
-                -H "Content-Type: application/json" \
-                -d "{\"text\":\"*$title*\n$message\"}" || true
-
-        elif [[ "$WEBHOOK_URL_RESTORE" == *"outlook.office.com/webhook"* ]]; then
-            debug_log "Sending Teams webhook notification"
-            curl -sf -X POST "$WEBHOOK_URL_RESTORE" \
-                -H "Content-Type: application/json" \
-                -d "{\"title\":\"$title\",\"text\":\"$message\"}" || true
-
-        elif [[ "$WEBHOOK_URL_RESTORE" == *"/message"* ]]; then
-            debug_log "Sending Gotify notification"
-            curl -sf -X POST "$WEBHOOK_URL_RESTORE" \
-                -H "Content-Type: application/json" \
-                -d "{\"title\":\"$title\",\"message\":\"$message\",\"priority\":5}" || true
-
-        elif [[ "$WEBHOOK_URL_RESTORE" == *"ntfy.sh"* || "$WEBHOOK_URL_RESTORE" == *"/ntfy/"* ]]; then
-            debug_log "Sending ntfy notification"
-            curl -sf -X POST "$WEBHOOK_URL" \
-                -H "Title: $title" \
-                -d "$message" > /dev/null || true
-
-        elif [[ "$WEBHOOK_URL_RESTORE" == *"api.pushover.net"* ]]; then
-            debug_log "Sending Pushover notification"
-            local token="${WEBHOOK_URL_RESTORE##*/}"
-            curl -sf -X POST "https://api.pushover.net/1/messages.json" \
-                -d "token=${token}" \
-                -d "user=${PUSHOVER_USER_KEY_RESTORE}" \
-                -d "title=${title}" \
-                -d "message=${message}" > /dev/null || true
-        fi
-    else
-        if [[ -x /usr/local/emhttp/webGui/scripts/notify ]]; then
-            debug_log "Sending Unraid native notification"
-            /usr/local/emhttp/webGui/scripts/notify \
-                -e "VM Backup & Restore" \
-                -s "$title" \
-                -d "$message" \
-                -i "$level"
-        else
-            debug_log "No notification method available (notify script not found)"
-        fi
-    fi
+    done
 }
 
 error_count=0
