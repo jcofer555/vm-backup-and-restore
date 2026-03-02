@@ -1,6 +1,6 @@
 Menu="Utilities"
 Type="xmenu"
-Title="VM Backup & Restore Beta"
+Title="VM Backup & Restore"
 Icon="icon.png"
 Tag="icon.png"
 Markdown="false"
