@@ -189,8 +189,17 @@ fi
 
 exec > >(tee -a "$LAST_RUN_FILE") 2>&1
 
+    # --- Get plugin version from .plg ---
+PLG_FILE="/boot/config/plugins/vm-backup-and-restore.plg"
+if [[ -f "$PLG_FILE" ]]; then
+    version=$(grep -oP 'version="\K[^"]+' "$PLG_FILE" | head -n1)
+else
+    version="unknown"
+fi
+
 echo "--------------------------------------------------------------------------------------------------"
 echo "Backup session started - $(date '+%Y-%m-%d %H:%M:%S')"
+echo "Plugin version: $version"
 
 CONFIG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
 debug_log "Loading config: $CONFIG"

@@ -360,7 +360,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   .form-pair label {
-    width: 130px;
+    width: 150px;
     color: var(--primary-blue);
     font-weight: bold;
     text-align: left;
@@ -861,6 +861,24 @@ if (file_exists("/etc/unraid-version")) {
   .flash-backup-schedules-table td {
     padding-top: 2px !important;
     padding-bottom: 2px !important;
+  }
+
+  label.fbb-has-help,
+  span.fbb-has-help {
+    cursor: help;
+  }
+
+  .fbb-help-text {
+    background: #1f0d0d;
+    border-left: 3px solid var(--primary-blue);
+    border-radius: 4px;
+    color: #e8cdcd;
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    padding: 7px 10px;
+    max-width: 500px;
+    box-sizing: border-box;
   }
 </style>
 
@@ -1570,19 +1588,16 @@ if (is_file($plg)) {
 <script>
   $(document).on('mouseenter', '.vm-backup-and-restoretip', function () {
     const $el = $(this);
-
+    const isButtonWrapper = $el.is('span') && $el.children('button').length > 0;
+    const isCheckboxLabel = $el.is('label') && $el.find('input[type="checkbox"]').length > 0;
+    const isButton = $el.is('button');
+    const isInsideTable = $el.closest('table').length > 0;
+    if (!isButtonWrapper && !isCheckboxLabel && !isButton && !isInsideTable) return;
     if (!$el.hasClass('tooltipstered')) {
-      $el.tooltipster({
-        maxWidth: 300,
-        content: $el.data('tooltip')
-      });
+      const tipContent = $el.attr('title') || $el.data('tooltip') || '';
+      $el.tooltipster({ maxWidth: 300, content: tipContent });
       $el.removeAttr('title');
-
-      setTimeout(() => {
-        if ($el.is(':hover')) {
-          $el.tooltipster('open');
-        }
-      }, 500);
+      setTimeout(() => { if ($el.is(':hover')) $el.tooltipster('open'); }, 500);
     }
   });
 
@@ -1595,8 +1610,8 @@ if (is_file($plg)) {
   const SERVICE_CONFIG = {
     Discord: {
       label: 'Discord Webhook URL',
-      tooltip: 'Enter your Discord webhook URL e.g. https://discord.com/api/webhooks/ID/TOKEN or just ID/TOKEN',
-      placeholder: 'https://discord.com/api/webhooks/...',
+      tooltip: 'Enter your Discord webhook URL e.g. https://discord.com/api/webhooks/WEBHOOK or just WEBHOOK',
+      placeholder: 'https://discord.com/api/webhooks/WEBHOOK',
       prefix: 'https://discord.com/api/webhooks/',
       needsUserKey: false,
       needsUrl: true
@@ -1698,11 +1713,9 @@ if (is_file($plg)) {
             <span class="vm-backup-and-restoretip" title="${cfg.tooltip}">${cfg.label}:</span>
           </label>
           <div class="input-wrapper">
-            <span class="vm-backup-and-restoretip" title="${cfg.tooltip}">
               <input type="text" id="${urlFieldId}" class="short-input webhook-url-input"
                 data-service="${service}" data-suffix="${s}"
                 placeholder="${cfg.placeholder}" value="${savedVal}">
-            </span>
             <div id="${errorId}" style="color:yellow; font-size:1.00em; display:none;">* Invalid ${service} webhook URL</div>
           </div>
         </div>
@@ -1721,10 +1734,8 @@ if (is_file($plg)) {
             <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">Pushover User Key:</span>
           </label>
           <div class="input-wrapper">
-            <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">
               <input type="text" id="${pkFieldId}" name="PUSHOVER_USER_KEY${s ? '_RESTORE' : ''}"
                 class="short-input" placeholder="user key from pushover.net/dashboard" value="${savedPushoverKey}">
-            </span>
             <div id="${pkErrorId}" style="color:yellow; font-size:1.00em; display:none;">* Pushover user key is required</div>
           </div>
         </div>
@@ -1746,6 +1757,11 @@ if (is_file($plg)) {
       $(this).val(normalized);
       $(this).trigger('input');
     });
+
+    // Process any help labels just injected into this container
+    if (window._fbbProcessLabels) {
+      window._fbbProcessLabels(container);
+    }
   }
 
   function toggleNotificationRows(suffix) {
@@ -1756,6 +1772,9 @@ if (is_file($plg)) {
 
     if ($(notifSelectId).val() === 'yes') {
       $(serviceRowId).show();
+      if (window._fbbProcessLabels) {
+        window._fbbProcessLabels($(serviceRowId));
+      }
       rebuildWebhookFields(s);
     } else {
       $(serviceRowId).hide();
@@ -3691,4 +3710,114 @@ if (is_file($plg)) {
     const btn = document.getElementById(id);
     if (btn) debounceButton(btn);
   });
+</script>
+
+<script>
+  // ── Unraid-style inline help icons ──────────────────────────────────────
+  $(document).ready(function () {
+
+    let _fbbLastClick = 0;
+    let _fbbF1Open = false;
+
+    function attachHelp($trigger, helpText, $insertAfter) {
+      const helpId = 'fbb-help-' + Math.random().toString(36).substr(2, 9);
+
+      const $helpDiv = $(
+        '<div class="fbb-help-text" id="' + helpId + '" style="display:none;">' +
+        helpText + '</div>'
+      );
+
+      $insertAfter.after($helpDiv);
+      $helpDiv.data('fbb-guard', $insertAfter);
+      $trigger.addClass('fbb-has-help');
+
+      $trigger.on('click', function () {
+        _fbbLastClick = Date.now();
+        const $help = $('#' + helpId);
+        if ($help.is(':visible')) {
+          $help.slideUp(150);
+        } else {
+          $help.slideDown(150);
+        }
+      });
+    }
+
+    window._fbbAttachHelp = attachHelp;
+
+    function processHelpLabels($scope) {
+      $scope.find('label > span[class*="betatip"][title], label > span[class*="restoretip"][title]').each(function () {
+        const $span = $(this);
+        const helpText = $span.attr('title');
+        if (!helpText) return;
+
+        $span.removeAttr('title').attr('class', '');
+
+        const $label = $span.closest('label');
+        if ($label.hasClass('fbb-has-help')) return;
+
+        const $formPair = $label.closest('.form-pair');
+        const $insertAfter = $formPair.length ? $formPair : $label;
+
+        attachHelp($label, helpText, $insertAfter);
+      });
+    }
+
+    window._fbbProcessLabels = processHelpLabels;
+
+    // Process all labels on page load
+    processHelpLabels($(document));
+
+    // Status labels — covers both .status-label and .restore-status-label
+    $('span.status-label.vm-backup-and-restoretip[title], span.restore-status-label.vm-backup-and-restoretip[title]').each(function () {
+      const $span = $(this);
+      const helpText = $span.attr('title');
+      if (!helpText) return;
+
+      $span.removeAttr('title').removeClass('vm-backup-and-restoretip');
+
+      const $statusRow = $span.closest('.status-row, .restore-status-row');
+      const $insertAfter = $statusRow.length ? $statusRow : $span;
+
+      attachHelp($span, helpText, $insertAfter);
+    });
+
+    // Strip tooltipster class/title from remaining input and select wrapper spans
+    $('span.vm-backup-and-restoretip').each(function () {
+      if ($(this).children('button').length > 0) return;
+      $(this).removeAttr('title').removeClass('flash-backup_betatip');
+    });
+
+    // Strip tooltipster from multiselect divs (notification service widgets)
+    $('div.vm-backup-and-restoretip').each(function () {
+      if ($(this).closest('table').length > 0) return;
+      $(this).removeAttr('title').removeClass('flash-backup_betatip');
+    });
+
+    // F1 — open all / close all toggle
+    $(document).on('keydown', function (e) {
+      if (e.key !== 'F1') return;
+      e.preventDefault();
+
+      if (_fbbF1Open) {
+        $('.fbb-help-text').slideUp(150);
+        _fbbF1Open = false;
+      } else {
+        $('.fbb-help-text').each(function () {
+          const $guard = $(this).data('fbb-guard');
+          if ($guard && !$guard.is(':visible')) return;
+          $(this).slideDown(150);
+        });
+        _fbbF1Open = true;
+      }
+    });
+
+    // Close all help texts when clicking outside
+    $(document).on('click', function () {
+      if (Date.now() - _fbbLastClick < 150) return;
+      $('.fbb-help-text').slideUp(150);
+      _fbbF1Open = false;
+    });
+
+  });
+  // ── End inline help icons ────────────────────────────────────────────────
 </script>

@@ -306,8 +306,17 @@ fi
 
 exec > >(tee -a "$LAST_RUN_FILE") 2>&1
 
+    # --- Get plugin version from .plg ---
+PLG_FILE="/boot/config/plugins/vm-backup-and-restore.plg"
+if [[ -f "$PLG_FILE" ]]; then
+    version=$(grep -oP 'version="\K[^"]+' "$PLG_FILE" | head -n1)
+else
+    version="unknown"
+fi
+
 echo "--------------------------------------------------------------------------------------------------"
 echo "Scheduled backup session started - $(date '+%Y-%m-%d %H:%M:%S')"
+echo "Plugin version: $version"
 
 # DRY RUN
 is_dry_run() { [[ "$DRY_RUN" == "yes" ]]; }

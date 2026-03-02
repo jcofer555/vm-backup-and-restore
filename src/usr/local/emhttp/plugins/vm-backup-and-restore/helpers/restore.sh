@@ -85,8 +85,17 @@ fi
 
 exec > >(tee -a "$LAST_RUN_FILE") 2>&1
 
+    # --- Get plugin version from .plg ---
+PLG_FILE="/boot/config/plugins/vm-backup-and-restore.plg"
+if [[ -f "$PLG_FILE" ]]; then
+    version=$(grep -oP 'version="\K[^"]+' "$PLG_FILE" | head -n1)
+else
+    version="unknown"
+fi
+
 echo "--------------------------------------------------------------------------------------------------"
 echo "Restore session started - $(date '+%Y-%m-%d %H:%M:%S')"
+echo "Plugin version: $version"
 
 # ------------------------------------------------------------------------------
 # Cleanup trap
