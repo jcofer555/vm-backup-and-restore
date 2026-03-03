@@ -13,11 +13,11 @@ if (!is_dir($basePath)) {
 $files = scandir($basePath);
 $timestamps = [];
 
-// Extract timestamps ONLY from the start of filenames
+// Extract timestamps from filenames: YYYYMMDD_HHMMSS
 foreach ($files as $file) {
-    if (preg_match('/^(\d{8})_(\d{4})/', $file, $m)) {
-        $raw = $m[1] . '-' . $m[2];
-        $timestamps[$raw] = true; // dedupe
+    if (preg_match('/^(\d{8})_(\d{6})/', $file, $m)) {
+        $raw = $m[1] . '-' . $m[2]; // YYYYMMDD-HHMMSS
+        $timestamps[$raw] = true;   // dedupe
     }
 }
 
@@ -29,8 +29,8 @@ rsort($unique, SORT_STRING);
 $out = [];
 
 foreach ($unique as $raw) {
-    $dt = DateTime::createFromFormat("Ymd-Hi", $raw);
-    $display = $dt ? $dt->format("Y-m-d H:i") : $raw;
+    $dt = DateTime::createFromFormat("Ymd-His", $raw);
+    $display = $dt ? $dt->format("Y-m-d H:i:s") : $raw;
 
     $out[] = [
         "raw"     => $raw,

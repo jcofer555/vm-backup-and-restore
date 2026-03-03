@@ -882,18 +882,6 @@ if (file_exists("/etc/unraid-version")) {
   }
 </style>
 
-<?php
-$plg = "/boot/config/plugins/vm-backup-and-restore.plg";
-$version = "unknown";
-
-if (is_file($plg)) {
-    $xml = @simplexml_load_file($plg);
-    if ($xml && isset($xml['version'])) {
-        $version = (string)$xml['version'];
-    }
-}
-?>
-
 <div id="vm-backup-and-restore-layout">
   <div class="vm-backup-and-restore-wrapper">
     <form id="vm-backup-and-restore-settings">
@@ -1619,7 +1607,7 @@ if (is_file($plg)) {
     Gotify: {
       label: 'Gotify URL',
       tooltip: 'Enter your Gotify server message URL e.g. https://gotify.example.com/message?token=TOKEN or just TOKEN',
-      placeholder: 'https://gotify.example.com/message?token=...',
+      placeholder: 'https://gotify.example.com/message?token=TOKEN',
       prefix: 'https://gotify.example.com/message?token=',
       needsUserKey: false,
       needsUrl: true

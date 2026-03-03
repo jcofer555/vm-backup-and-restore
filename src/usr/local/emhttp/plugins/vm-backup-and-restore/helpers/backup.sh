@@ -4,6 +4,7 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 SCRIPT_START_EPOCH=$(date +%s)
 STOP_FLAG="/tmp/vm-backup-and-restore/stop_requested.txt"
 RSYNC_PID=""
+WATCHER_PID=""
 
 format_duration() {
     local total=$1
@@ -374,6 +375,7 @@ declare -a vms_stopped_by_script=()
 # ------------------------------------------------------------------------------
 
 cleanup() {
+    kill "$WATCHER_PID" 2>/dev/null
     LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
     rm -f "$LOCK_FILE"
     debug_log "Lock file removed"
@@ -391,9 +393,6 @@ cleanup() {
             done
             echo "Backup was stopped early. Cleaned up files created this run"
         fi
-
-            notify_vm "warning" "VM Backup & Restore" \
-            "Backup was stopped early - Duration: $SCRIPT_DURATION_HUMAN"
 
         if [[ "$DRY_RUN" != "yes" ]]; then
             if ((${#vms_stopped_by_script[@]} > 0)); then
@@ -414,6 +413,9 @@ cleanup() {
         SCRIPT_DURATION_HUMAN+="${s}s"
         echo "Backup duration: $SCRIPT_DURATION_HUMAN"
         echo "Backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
+
+        notify_vm "warning" "VM Backup & Restore" \
+            "Backup was stopped early - Duration: $SCRIPT_DURATION_HUMAN"
 
         debug_log "Session stopped early - duration=$SCRIPT_DURATION_HUMAN"
         set_status "Backup stopped and cleaned up"
@@ -472,16 +474,30 @@ cleanup() {
 
 trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT
 
+# Background stop flag watcher
+( trap '' SIGTERM; while true; do
+    sleep 1
+    if [[ -f "$STOP_FLAG" ]]; then
+        kill -TERM $$ 2>/dev/null
+        break
+    fi
+done ) &>/dev/null &
+WATCHER_PID=$!
+
 # ------------------------------------------------------------------------------
 # Backup loop
 # ------------------------------------------------------------------------------
 
-RUN_TS="$(date +%Y%m%d_%H%M)"
+RUN_TS="$(date +%Y%m%d_%H%M%S)"
 debug_log "RUN_TS=$RUN_TS"
 run_cmd mkdir -p "$backup_location"
 
 for vm in "${CLEAN_VMS[@]}"; do
     [[ -z "$vm" ]] && continue
+
+    if [[ -f "$STOP_FLAG" ]]; then
+        exit 1
+    fi
 
     echo "Started backup for $vm"
     set_status "Backing up $vm"
@@ -511,6 +527,9 @@ for vm in "${CLEAN_VMS[@]}"; do
         if ! is_dry_run; then
             timeout=60
             while [[ "$(virsh domstate "$vm" 2>/dev/null)" != "shut off" && $timeout -gt 0 ]]; do
+                if [[ -f "$STOP_FLAG" ]]; then
+                    exit 1
+                fi
                 sleep 2
                 ((timeout-=2))
             done
@@ -525,6 +544,10 @@ for vm in "${CLEAN_VMS[@]}"; do
         fi
     else
         debug_log "VM $vm was not running (state=$vm_state_before), no shutdown needed"
+    fi
+
+    if [[ -f "$STOP_FLAG" ]]; then
+        exit 1
     fi
 
     vm_backup_folder="$backup_location/$vm"
@@ -676,7 +699,7 @@ if [[ "$BACKUPS_TO_KEEP" =~ ^[0-9]+$ ]]; then
     else
         mapfile -t backup_sets < <(
             ls -1 "$vm_backup_folder" 2>/dev/null \
-            | sed -E 's/^([0-9]{8}_[0-9]{4}).*/\1/' \
+            | sed -E 's/^([0-9]{8}_[0-9]{6}).*/\1/' \
             | sort -u -r
         )
 

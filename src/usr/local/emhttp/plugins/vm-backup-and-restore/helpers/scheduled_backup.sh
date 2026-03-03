@@ -14,6 +14,7 @@ mkdir -p "$ROTATE_DIR"
 DRY_RUN="${DRY_RUN:-no}"
 SCRIPT_START_EPOCH=$(date +%s)
 RSYNC_PID=""
+WATCHER_PID=""
 
 format_duration() {
     local total=$1
@@ -145,6 +146,7 @@ set_status() {
 # Cleanup trap
 # ------------------------------------------------------------------------------
 cleanup() {
+    kill "$WATCHER_PID" 2>/dev/null
     LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
     rm -f "$LOCK_FILE"
     debug_log "Lock file removed"
@@ -163,7 +165,7 @@ cleanup() {
             echo "Backup was stopped early. Cleaned up files created this run"
         fi
 
-            notify_vm "warning" "VM Backup & Restore" \
+        notify_vm "warning" "VM Backup & Restore" \
             "Backup was stopped early - Duration: $SCRIPT_DURATION_HUMAN"
 
         if [[ "$DRY_RUN" != "yes" ]]; then
@@ -242,6 +244,16 @@ cleanup() {
 }
 
 trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT
+
+# Background stop flag watcher
+( trap '' SIGTERM; while true; do
+    sleep 1
+    if [[ -f "$STOP_FLAG" ]]; then
+        kill -TERM $$ 2>/dev/null
+        break
+    fi
+done ) &>/dev/null &
+WATCHER_PID=$!
 
 # ------------------------------------------------------------------------------
 # KEEP YOUR ORIGINAL LOCK UPDATE
@@ -481,7 +493,7 @@ declare -a vms_stopped_by_script=()
 # ------------------------------------------------------------------------------
 # Backup loop
 # ------------------------------------------------------------------------------
-RUN_TS="$(date +%Y%m%d_%H%M)"
+RUN_TS="$(date +%Y%m%d_%H%M%S)"
 debug_log "RUN_TS=$RUN_TS"
 run_cmd mkdir -p "$backup_location"
 
@@ -521,6 +533,9 @@ for vm in "${CLEAN_VMS[@]}"; do
         if ! is_dry_run; then
             timeout=60
             while [[ "$(virsh domstate "$vm" 2>/dev/null)" != "shut off" && $timeout -gt 0 ]]; do
+                if [[ -f "$STOP_FLAG" ]]; then
+                    exit 1
+                fi
                 sleep 2
                 ((timeout-=2))
             done
@@ -685,7 +700,7 @@ if [[ "$BACKUPS_TO_KEEP" =~ ^[0-9]+$ ]]; then
     else
         mapfile -t backup_sets < <(
             ls -1 "$vm_backup_folder" 2>/dev/null \
-            | sed -E 's/^([0-9]{8}_[0-9]{4}).*/\1/' \
+            | sed -E 's/^([0-9]{8}_[0-9]{6}).*/\1/' \
             | sort -u -r
         )
 
