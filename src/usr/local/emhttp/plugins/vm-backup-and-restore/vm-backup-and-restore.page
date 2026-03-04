@@ -323,48 +323,30 @@ if (file_exists("/etc/unraid-version")) {
     color: #fff;
   }
 
-  .tooltip {
-    display: inline-block;
-    position: relative;
-  }
-
-  .tooltip:hover::after {
-    background: #333;
-    border-radius: 4px;
-    bottom: 125%;
-    color: #fff;
-    content: attr(data-tooltip);
-    font-size: 12px;
-    left: 0;
-    opacity: .9;
-    padding: 6px 10px;
-    position: absolute;
-    text-transform: none;
-    white-space: nowrap;
-    z-index: 10;
-  }
-
-  .form-pair {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 10px;
-    margin-bottom: 15px;
-    margin-top: 8px;
-  }
-
   .input-wrapper {
     display: flex;
     flex-direction: column;
     flex: 1;
   }
 
+  .form-pair {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    margin-bottom: 15px;
+    margin-top: 8px;
+  }
+
   .form-pair label {
     width: 150px;
+    min-width: 120px;
+    flex-shrink: 0;
     color: var(--primary-blue);
     font-weight: bold;
     text-align: left;
     margin-right: 10px;
+    line-height: 2;
   }
 
   .form-pair input,
@@ -372,15 +354,35 @@ if (file_exists("/etc/unraid-version")) {
     background: #000;
     color: #fff;
     width: 220px;
-    min-width: fit-content;
+    min-width: 0;
     max-width: 100%;
+    flex: 1 1 180px;
     box-shadow: 0 0 6px rgba(179, 0, 0, 0.5);
   }
 
   .form-pair input[type="text"],
   .form-pair input[type="password"] {
-    min-width: fit-content;
+    min-width: 0;
     max-width: 100%;
+  }
+
+  @media (max-width: 500px) {
+    .form-pair {
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-pair label {
+      width: 100%;
+      margin-right: 0;
+      line-height: 1.4;
+    }
+
+    .form-pair input,
+    .form-pair select {
+      width: 100%;
+      flex: 1 1 auto;
+    }
   }
 
   .short-input {
