@@ -443,22 +443,36 @@ for vm in "${vm_names[@]}"; do
     debug_log "nvram_file=${nvram_file:-not found}"
     debug_log "disks: ${disks[*]}"
 
+    # --- Pre-flight: collect all missing files before touching anything ---
+    missing_files=()
+
     if [[ ! -d "$backup_dir" ]]; then
-        validation_fail "Backup folder missing: $backup_dir"
+        echo "[ERROR] Backup folder missing: $backup_dir — skipping $vm"
+        debug_log "Validation failed for $vm: backup folder missing"
+        ((error_count++))
         continue
     fi
-    if [[ ! -f "$xml_file" ]]; then
-        validation_fail "XML file missing for version prefix: $prefix"
+
+    [[ ! -f "$xml_file" ]]   && missing_files+=("XML (.xml)")
+    [[ ! -f "$nvram_file" ]] && missing_files+=("NVRAM (*VARS*.fd)")
+
+    has_vdisk=false
+    for d in "${disks[@]}"; do
+        [[ -f "$d" ]] && { has_vdisk=true; break; }
+    done
+    [[ "$has_vdisk" == false ]] && missing_files+=("vdisk (vdisk*.img or *.qcow2)")
+
+    if (( ${#missing_files[@]} > 0 )); then
+        echo "[ERROR] Backup for $vm (version: $version) is incomplete — the following required files are missing:"
+        for mf in "${missing_files[@]}"; do
+            echo "[ERROR]   - $mf"
+        done
+        echo "[ERROR] Skipping $vm — no files have been modified"
+        debug_log "Validation failed for $vm: missing files: ${missing_files[*]}"
+        ((error_count++))
         continue
     fi
-    if [[ ! -f "$nvram_file" ]]; then
-        validation_fail "NVRAM file missing for version prefix: $prefix"
-        continue
-    fi
-    if [[ ! -f "${disks[0]}" ]]; then
-        validation_fail "No versioned vdisk*.img or *.qcow2 files found for prefix: $prefix"
-        continue
-    fi
+    # --- End pre-flight ---
 
     WAS_RUNNING=false
     if printf '%s\n' "${RUNNING_BEFORE[@]}" | grep -Fxq "$vm"; then

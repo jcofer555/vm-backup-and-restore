@@ -11,6 +11,24 @@ DEBUG_LOG="$LOG_DIR/vm-scheduled-backup-debug.log"
 mkdir -p "$LOG_DIR"
 mkdir -p "$ROTATE_DIR"
 
+# ------------------------------------------------------------------------------
+# SHELL-SIDE LOCK — must be the very first thing after mkdir
+# This is the authoritative lock. PHP writes a placeholder before launching us,
+# but flock here is what actually prevents a second instance from running.
+# FD 200 stays open for the life of the process; the EXIT trap removes the file.
+# ------------------------------------------------------------------------------
+LOCK_FD=200
+exec 200>"$LOCK_FILE"
+if ! flock -n $LOCK_FD; then
+    echo "Another backup is already running. Exiting." >&2
+    exit 1
+fi
+
+# Write real PID and mode into the lock file now that we hold it
+printf "PID=%s\nMODE=schedule\nSCHEDULE_ID=%s\nSTART=%s\n" \
+    "$$" "${SCHEDULE_ID:-}" "$(date +%s)" > "$LOCK_FILE"
+# ------------------------------------------------------------------------------
+
 DRY_RUN="${DRY_RUN:-no}"
 SCRIPT_START_EPOCH=$(date +%s)
 RSYNC_PID=""
@@ -40,31 +58,20 @@ classify_path() {
     resolved=$(readlink -f "$p" 2>/dev/null || echo "$p")
 
     if [[ "$resolved" == /mnt/user || "$resolved" == /mnt/user/* ]]; then
-        echo "USER"
-        return
+        echo "USER"; return
     fi
-
     if [[ "$resolved" == /mnt/user0 || "$resolved" == /mnt/user0/* ]]; then
-        echo "USER0"
-        return
+        echo "USER0"; return
     fi
-
     if [[ "$resolved" == /mnt/remotes || "$resolved" == /mnt/remotes/* ]]; then
-        echo "EXEMPT"
-        return
+        echo "EXEMPT"; return
     fi
-
     if [[ "$resolved" == /mnt/addons || "$resolved" == /mnt/addons/* ]]; then
-        echo "EXEMPT"
-        return
+        echo "EXEMPT"; return
     fi
-
-    # Resolved pool path (e.g. /mnt/cache, /mnt/disk1) — treat as equivalent to USER
     if [[ "$resolved" == /mnt/* ]]; then
-        echo "USER"
-        return
+        echo "USER"; return
     fi
-
     echo "OTHER"
 }
 
@@ -129,11 +136,15 @@ run_rsync() {
     debug_log "run_rsync: rsync ${*}"
     rsync "$@" &
     RSYNC_PID=$!
-    echo "$RSYNC_PID" > "/tmp/vm-backup-and-restore/rsync.pid"
+    echo "$RSYNC_PID" > "$LOG_DIR/rsync.pid"
     wait $RSYNC_PID
     local exit_code=$?
     RSYNC_PID=""
-    rm -f "/tmp/vm-backup-and-restore/rsync.pid"
+    rm -f "$LOG_DIR/rsync.pid"
+    if [[ -f "$STOP_FLAG" ]] || (( exit_code > 128 )); then
+        debug_log "run_rsync: interrupted (exit_code=$exit_code stop_flag=$([ -f "$STOP_FLAG" ] && echo yes || echo no))"
+        exit 1
+    fi
     debug_log "rsync finished with exit_code=$exit_code"
     return $exit_code
 }
@@ -147,13 +158,21 @@ set_status() {
 # ------------------------------------------------------------------------------
 cleanup() {
     kill "$WATCHER_PID" 2>/dev/null
-    LOCK_FILE="/tmp/vm-backup-and-restore/lock.txt"
+
+    # Release flock and remove lock file
+    flock -u $LOCK_FD 2>/dev/null
     rm -f "$LOCK_FILE"
     debug_log "Lock file removed"
 
     if [[ -f "$STOP_FLAG" ]]; then
         rm -f "$STOP_FLAG"
         debug_log "Stop flag detected in cleanup"
+
+        local _end
+        _end=$(date +%s)
+        local _dur=$(( _end - SCRIPT_START_EPOCH ))
+        SCRIPT_DURATION_HUMAN="$(format_duration "$_dur")"
+
         if [[ "$DRY_RUN" == "yes" ]]; then
             echo "Backup was stopped early"
         else
@@ -165,12 +184,10 @@ cleanup() {
             echo "Backup was stopped early. Cleaned up files created this run"
         fi
 
-        notify_vm "warning" "VM Backup & Restore" \
-            "Backup was stopped early - Duration: $SCRIPT_DURATION_HUMAN"
-
         if [[ "$DRY_RUN" != "yes" ]]; then
             if ((${#vms_stopped_by_script[@]} > 0)); then
                 for vm in "${vms_stopped_by_script[@]}"; do
+                    [[ -z "$vm" ]] && continue
                     echo "Starting VM $vm"
                     debug_log "Restarting VM after stop: $vm"
                     virsh start "$vm" >/dev/null 2>&1 || echo "WARNING: Failed to start VM $vm"
@@ -178,20 +195,15 @@ cleanup() {
             fi
         fi
 
-        local h=$(( SCRIPT_DURATION / 3600 ))
-        local m=$(( (SCRIPT_DURATION % 3600) / 60 ))
-        local s=$(( SCRIPT_DURATION % 60 ))
-        SCRIPT_DURATION_HUMAN=""
-        (( h > 0 )) && SCRIPT_DURATION_HUMAN+="${h}h "
-        (( m > 0 )) && SCRIPT_DURATION_HUMAN+="${m}m "
-        SCRIPT_DURATION_HUMAN+="${s}s"
         echo "Backup duration: $SCRIPT_DURATION_HUMAN"
         echo "Scheduled backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
+
+        notify_vm "warning" "VM Backup & Restore" \
+            "Backup was stopped early - Duration: $SCRIPT_DURATION_HUMAN"
 
         debug_log "Session stopped early - duration=$SCRIPT_DURATION_HUMAN"
         set_status "Backup stopped and cleaned up"
         rm -f "$STATUS_FILE"
-        rm -f "$STOP_FLAG"
         debug_log "===== Session ended (stopped early) ====="
         return
     fi
@@ -205,7 +217,7 @@ cleanup() {
     if is_dry_run; then
         echo "Skipping VM restarts because dry run is enabled"
         echo "Backup duration: $SCRIPT_DURATION_HUMAN"
-        echo "Schedule backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "Scheduled backup session finished - $(date '+%Y-%m-%d %H:%M:%S')"
 
         notify_vm "normal" "VM Backup & Restore" \
             "Backup finished - Duration: $SCRIPT_DURATION_HUMAN"
@@ -218,9 +230,21 @@ cleanup() {
 
     if ((${#vms_stopped_by_script[@]} > 0)); then
         for vm in "${vms_stopped_by_script[@]}"; do
-            echo "Starting VM $vm"
-            debug_log "Restarting VM: $vm"
+            [[ -z "$vm" ]] && continue
+            debug_log "Safety-net restart for VM: $vm"
             virsh start "$vm" >/dev/null 2>&1 || echo "WARNING: Failed to start VM $vm"
+        done
+    fi
+
+    if ((${#vms_all_stopped[@]} > 0)); then
+        for vm in "${vms_all_stopped[@]}"; do
+            [[ -z "$vm" ]] && continue
+            local method="${vm_stop_method[$vm]:-normal}"
+            if [[ "$method" == "forced" ]]; then
+                :
+            else
+                :
+            fi
         done
     else
         echo "No VMs were stopped this session"
@@ -243,7 +267,16 @@ cleanup() {
     debug_log "===== Session ended ====="
 }
 
-trap cleanup EXIT SIGTERM SIGINT SIGHUP SIGQUIT
+_STOPPING=0
+handle_signal() {
+    if [[ "$_STOPPING" == "0" ]]; then
+        _STOPPING=1
+        exit 1
+    fi
+}
+
+trap cleanup EXIT
+trap handle_signal SIGTERM SIGINT SIGHUP SIGQUIT
 
 # Background stop flag watcher
 ( trap '' SIGTERM; while true; do
@@ -256,22 +289,14 @@ done ) &>/dev/null &
 WATCHER_PID=$!
 
 # ------------------------------------------------------------------------------
-# KEEP YOUR ORIGINAL LOCK UPDATE
-# ------------------------------------------------------------------------------
-
-sed -i "s/PID=.*/PID=$$/" "$LOCK_FILE"
-
-# ------------------------------------------------------------------------------
-# Everything else remains unchanged below
-# ------------------------------------------------------------------------------
-
 # Load schedule-specific variables
+# ------------------------------------------------------------------------------
 if [[ -n "${SCHEDULE_ID:-}" ]]; then
     echo "Running scheduled backup: $SCHEDULE_ID"
-    DRY_RUN="${DRY_RUN:-1}"
+    DRY_RUN="${DRY_RUN:-no}"
     VMS_TO_BACKUP="${VMS_TO_BACKUP:-}"
     BACKUPS_TO_KEEP="${BACKUPS_TO_KEEP:-0}"
-    BACKUP_DESTINATION="${BACKUP_DESTINATION:-/mnt/user/vm_backups}"
+    BACKUP_DESTINATION="${BACKUP_DESTINATION:-}"
     BACKUP_OWNER="${BACKUP_OWNER:-root}"
     NOTIFICATIONS="${NOTIFICATIONS:-no}"
 fi
@@ -318,7 +343,7 @@ fi
 
 exec > >(tee -a "$LAST_RUN_FILE") 2>&1
 
-    # --- Get plugin version from .plg ---
+# --- Get plugin version from .plg ---
 PLG_FILE="/boot/config/plugins/vm-backup-and-restore.plg"
 if [[ -f "$PLG_FILE" ]]; then
     version=$(grep -oP 'version="\K[^"]+' "$PLG_FILE" | head -n1)
@@ -453,7 +478,7 @@ fi
 # ------------------------------------------------------------------------------
 BACKUPS_TO_KEEP="${BACKUPS_TO_KEEP:-0}"
 backup_owner="${BACKUP_OWNER:-nobody}"
-backup_location="${BACKUP_DESTINATION:-/mnt/user/vm_backups}"
+backup_location="${BACKUP_DESTINATION:-}"
 export backup_location
 
 debug_log "===== Session started ====="
@@ -463,7 +488,6 @@ debug_log "BACKUPS_TO_KEEP=$BACKUPS_TO_KEEP"
 debug_log "backup_owner=$backup_owner"
 debug_log "backup_location=$backup_location"
 debug_log "NOTIFICATIONS=${NOTIFICATIONS:-no}"
-debug_log "WEBHOOK_URL=${WEBHOOK_URL:+(set)}"
 debug_log "PUSHOVER_USER_KEY=${PUSHOVER_USER_KEY:+(set)}"
 debug_log "SCRIPT_START_EPOCH=$SCRIPT_START_EPOCH"
 
@@ -483,12 +507,14 @@ debug_log "VMs to backup: ${CLEAN_VMS[*]:-none}"
 
 if ((${#CLEAN_VMS[@]} > 0)); then
     comma_list=$(IFS=', '; printf '%s' "${CLEAN_VMS[*]}")
-    echo "Backing up VM(s) - $comma_list"
+    echo "VM(s) to be backed up - $comma_list"
 else
     echo "No VMs configured for backup"
 fi
 
 declare -a vms_stopped_by_script=()
+declare -a vms_all_stopped=()
+declare -A vm_stop_method=()
 
 # ------------------------------------------------------------------------------
 # Backup loop
@@ -503,6 +529,13 @@ for vm in "${CLEAN_VMS[@]}"; do
     if [[ -f "$STOP_FLAG" ]]; then
         debug_log "Stop flag detected at start of loop for $vm — exiting"
         exit 1
+    fi
+
+    if ! virsh dominfo "$vm" >/dev/null 2>&1; then
+        echo "SKIPPED: '$vm' is no longer defined on this system — skipping backup"
+        debug_log "SKIP: '$vm' is no longer defined on this system — skipping backup"
+        ((error_count++))
+        continue
     fi
 
     echo "Started backup for $vm"
@@ -523,9 +556,9 @@ for vm in "${CLEAN_VMS[@]}"; do
     debug_log "VM state before backup: $vm_state_before"
 
     if [[ "$vm_state_before" == "running" ]]; then
-        echo "Stopping $vm"
         set_status "Stopping $vm"
         vms_stopped_by_script+=("$vm")
+        vms_all_stopped+=("$vm")
         debug_log "Sending shutdown to $vm"
 
         run_cmd virsh shutdown "$vm" >/dev/null 2>&1 || echo "WARNING: Failed to send shutdown to $vm"
@@ -541,10 +574,31 @@ for vm in "${CLEAN_VMS[@]}"; do
             done
 
             if [[ $timeout -le 0 ]]; then
-                debug_log "Shutdown timed out for $vm, forcing power off"
-                run_cmd virsh destroy "$vm" >/dev/null 2>&1 || echo "WARNING: Failed to force power off $vm"
+                debug_log "Shutdown timed out for $vm, attempting force power off"
+                if virsh destroy "$vm" >/dev/null 2>&1; then
+                    echo "Force stopped $vm"
+                    vm_stop_method[$vm]="forced"
+                    debug_log "$vm force stopped successfully"
+                else
+                    echo "ERROR: Unable to stop $vm - skipping backup"
+                    debug_log "ERROR: Failed to force stop $vm, skipping backup"
+                    ((error_count++))
+                    new_array=()
+                    for item in "${vms_stopped_by_script[@]}"; do
+                        [[ "$item" != "$vm" ]] && new_array+=("$item")
+                    done
+                    vms_stopped_by_script=("${new_array[@]}")
+                    new_array=()
+                    for item in "${vms_all_stopped[@]}"; do
+                        [[ "$item" != "$vm" ]] && new_array+=("$item")
+                    done
+                    vms_all_stopped=("${new_array[@]}")
+                    unset new_array
+                    continue
+                fi
             else
-                echo "$vm is now stopped"
+                echo "Stopped $vm"
+                vm_stop_method[$vm]="normal"
                 debug_log "$vm stopped cleanly"
             fi
         fi
@@ -570,7 +624,6 @@ for vm in "${CLEAN_VMS[@]}"; do
 
     debug_log "vdisks found for $vm: ${vdisks[*]:-none}"
 
-    # Validate each vdisk path against backup destination
     for vdisk in "${vdisks[@]}"; do
         if ! validate_mount_compatibility "$vdisk" "$backup_location"; then
             echo "[ERROR] Skipping $vm due to incompatible mount types"
@@ -581,14 +634,12 @@ for vm in "${CLEAN_VMS[@]}"; do
                 shopt -s nullglob
                 run_files=( "$vm_backup_folder/${RUN_TS}_"* )
                 shopt -u nullglob
-
                 if (( ${#run_files[@]} > 0 )); then
                     for f in "${run_files[@]}"; do
                         rm -f "$f"
                         debug_log "Removed partial file: $f"
                     done
                 fi
-
                 if [[ -z "$(ls -A "$vm_backup_folder")" ]]; then
                     rmdir "$vm_backup_folder"
                     debug_log "Removed empty folder: $vm_backup_folder"
@@ -626,7 +677,6 @@ for vm in "${CLEAN_VMS[@]}"; do
             fi
         done
 
-        # Backup any extra files in the same folder as the vdisks
         declare -A vdisk_dirs
         for vdisk in "${vdisks[@]}"; do
             resolved_vdisk="$(readlink -f "$vdisk" 2>/dev/null || echo "$vdisk")"
@@ -686,53 +736,70 @@ for vm in "${CLEAN_VMS[@]}"; do
     echo "Changed owner of $vm_backup_folder for $vm to $backup_owner:users"
     debug_log "chown $backup_owner:users applied to $vm_backup_folder"
 
+    if [[ "$vm_state_before" == "running" ]]; then
+        set_status "Starting $vm"
+        debug_log "Restarting VM after backup: $vm"
+        if run_cmd virsh start "$vm" >/dev/null 2>&1; then
+            echo "Started $vm"
+            debug_log "Started $vm successfully"
+        else
+            echo "WARNING: Failed to start $vm"
+            debug_log "WARNING: Failed to start $vm"
+        fi
+
+        new_array=()
+        for item in "${vms_stopped_by_script[@]}"; do
+            [[ "$item" != "$vm" ]] && new_array+=("$item")
+        done
+        vms_stopped_by_script=("${new_array[@]}")
+        unset new_array
+        debug_log "Removed $vm from vms_stopped_by_script after restart"
+    fi
+
     echo "Finished backup for $vm"
     set_status "Finished backup for $vm"
     debug_log "--- Finished backup for VM: $vm ---"
 
-# ------------------------------------------------------------------------------
-# Retention cleanup per VM
-# ------------------------------------------------------------------------------
-if [[ "$BACKUPS_TO_KEEP" =~ ^[0-9]+$ ]]; then
-
-    if (( BACKUPS_TO_KEEP == 0 )); then
-        debug_log "BACKUPS_TO_KEEP=0, skipping retention cleanup for $vm"
-    else
-        mapfile -t backup_sets < <(
-            ls -1 "$vm_backup_folder" 2>/dev/null \
-            | sed -E 's/^([0-9]{8}_[0-9]{6}).*/\1/' \
-            | sort -u -r
-        )
-
-        total_sets=${#backup_sets[@]}
-        debug_log "Retention check for $vm: found $total_sets backup set(s), keeping $BACKUPS_TO_KEEP"
-
-        if (( total_sets > BACKUPS_TO_KEEP )); then
-            echo "Removing old backups keeping $BACKUPS_TO_KEEP"
-            set_status "Removing old backups for $vm"
-
-            for (( i=BACKUPS_TO_KEEP; i<total_sets; i++ )); do
-                old_ts="${backup_sets[$i]}"
-
-                if is_dry_run; then
-                    echo "[DRY-RUN] Would remove files with timestamp $old_ts"
-                    debug_log "[DRY-RUN] Would remove files with timestamp $old_ts in $vm_backup_folder"
-                else
-                    debug_log "Removing old backup set: $old_ts from $vm_backup_folder"
-                    rm -f "$vm_backup_folder"/"${old_ts}"_*
-                    debug_log "Removed backup set: $old_ts"
-                fi
-            done
+    # ------------------------------------------------------------------------------
+    # Retention cleanup per VM
+    # ------------------------------------------------------------------------------
+    if [[ "$BACKUPS_TO_KEEP" =~ ^[0-9]+$ ]]; then
+        if (( BACKUPS_TO_KEEP == 0 )); then
+            debug_log "BACKUPS_TO_KEEP=0, skipping retention cleanup for $vm"
         else
-            echo "No old backups need removed"
-            debug_log "No old backups to remove for $vm ($total_sets sets, keeping $BACKUPS_TO_KEEP)"
-        fi
-    fi
+            mapfile -t backup_sets < <(
+                ls -1 "$vm_backup_folder" 2>/dev/null \
+                | sed -E 's/^([0-9]{8}_[0-9]{6}).*/\1/' \
+                | sort -u -r
+            )
 
-else
-    echo "WARNING: BACKUPS_TO_KEEP is invalid skipping retention"
-    debug_log "WARNING: BACKUPS_TO_KEEP is invalid ($BACKUPS_TO_KEEP), skipping retention for $vm"
-fi
+            total_sets=${#backup_sets[@]}
+            debug_log "Retention check for $vm: found $total_sets backup set(s), keeping $BACKUPS_TO_KEEP"
+
+            if (( total_sets > BACKUPS_TO_KEEP )); then
+                echo "Removing old backups keeping $BACKUPS_TO_KEEP"
+                set_status "Removing old backups for $vm"
+
+                for (( i=BACKUPS_TO_KEEP; i<total_sets; i++ )); do
+                    old_ts="${backup_sets[$i]}"
+                    if is_dry_run; then
+                        echo "[DRY-RUN] Would remove files with timestamp $old_ts"
+                        debug_log "[DRY-RUN] Would remove files with timestamp $old_ts in $vm_backup_folder"
+                    else
+                        debug_log "Removing old backup set: $old_ts from $vm_backup_folder"
+                        rm -f "$vm_backup_folder"/"${old_ts}"_*
+                        debug_log "Removed backup set: $old_ts"
+                    fi
+                done
+            else
+                echo "No old backups need removed"
+                debug_log "No old backups to remove for $vm ($total_sets sets, keeping $BACKUPS_TO_KEEP)"
+            fi
+        fi
+    else
+        echo "WARNING: BACKUPS_TO_KEEP is invalid skipping retention"
+        debug_log "WARNING: BACKUPS_TO_KEEP is invalid ($BACKUPS_TO_KEEP), skipping retention for $vm"
+    fi
 
 done
 

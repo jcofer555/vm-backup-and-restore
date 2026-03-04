@@ -146,7 +146,7 @@ if (file_exists("/etc/unraid-version")) {
 
 <style>
   :root {
-    --primary-blue: #e6231c;
+    --primary-blue: #ff0404;
   }
 
   .vm-backup-and-restore-wrapper {
@@ -159,7 +159,7 @@ if (file_exists("/etc/unraid-version")) {
   /* === Each Panel (auto-sizing) === */
   #vm-backup-and-restore-settings,
   #log-section {
-    background: #111;
+    background: #000;
     border-radius: 12px;
     box-shadow: 0 0 12px rgba(255, 0, 0, .3);
     color: #f0f8ff;
@@ -247,7 +247,7 @@ if (file_exists("/etc/unraid-version")) {
 
   input,
   select {
-    background: #111;
+    background: #000;
     border: 1px solid var(--primary-blue);
     border-radius: 5px;
     color: #fff;
@@ -369,11 +369,12 @@ if (file_exists("/etc/unraid-version")) {
 
   .form-pair input,
   .form-pair select {
-    background: #111;
+    background: #000;
     color: #fff;
-    width: 200px;
+    width: 220px;
     min-width: fit-content;
     max-width: 100%;
+    box-shadow: 0 0 6px rgba(179, 0, 0, 0.5);
   }
 
   .form-pair input[type="text"],
@@ -426,7 +427,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   #last-run-log {
-    background: #111;
+    background: #000;
     border: 1px solid var(--primary-blue);
     border-radius: 8px;
     color: white;
@@ -481,7 +482,6 @@ if (file_exists("/etc/unraid-version")) {
 
   button:hover,
   input[type="checkbox"]:hover,
-  select:hover,
   a:hover {
     filter: brightness(1.1);
   }
@@ -530,12 +530,12 @@ if (file_exists("/etc/unraid-version")) {
 
   .vm-multiselect {
     position: relative;
-    width: 200px;
-    border: 1px solid #b30000;
+    width: 220px;
+    border: 1px solid #ff0404;
+    box-shadow: 0 0 6px rgba(179, 0, 0, 0.5);
     padding: 6px;
-    background: #111;
+    background: #000;
     cursor: pointer;
-    color: #111;
     transition: width .2s;
     white-space: nowrap;
     border-radius: 4px;
@@ -543,7 +543,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   .vm-multiselect.active {
-    border-color: #b30000;
+    border-color: #ff0404;
   }
 
   .vm-dropdown-label-restore,
@@ -566,8 +566,8 @@ if (file_exists("/etc/unraid-version")) {
     max-width: 100%;
     max-height: 200px;
     overflow-y: auto;
-    border: 1px solid #b30000;
-    background: #111;
+    border: 1px solid #ff0404;
+    background: #000;
     color: #fff;
     z-index: 10;
     font-family: 'Segoe UI', sans-serif;
@@ -600,10 +600,10 @@ if (file_exists("/etc/unraid-version")) {
     width: 16px;
     height: 16px;
     border: 1px solid #ccc;
-    background: #222;
+    background: #000;
     cursor: pointer;
     position: relative;
-    accent-color: #ff4444;
+    accent-color: #ff0404;
   }
 
   .vm-dropdown-list-restore input[type="checkbox"]:checked::after,
@@ -618,7 +618,7 @@ if (file_exists("/etc/unraid-version")) {
 
   .vm-dropdown-list-restore div:hover,
   .vm-dropdown-list div:hover {
-    background: #111;
+    background: #000;
   }
 
   .checkbox-row label.vm-backup-and-restoretip {
@@ -655,9 +655,9 @@ if (file_exists("/etc/unraid-version")) {
     width: 600px;
     margin: 8% auto;
     background: #000;
-    border: 2px solid #b30000;
+    border: 2px solid #ff0404;
     border-radius: 8px;
-    color: red;
+    color: #ff0404;
     padding: 15px;
   }
 
@@ -671,7 +671,7 @@ if (file_exists("/etc/unraid-version")) {
   .vm-folder-list {
     max-height: 300px;
     overflow-y: auto;
-    border: 1px solid #b30000;
+    border: 1px solid #ff0404;
     padding: 5px;
   }
 
@@ -681,7 +681,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   .vm-folder-item:hover {
-    background: #111;
+    background: #000;
   }
 
   .vm-folder-item label {
@@ -691,7 +691,7 @@ if (file_exists("/etc/unraid-version")) {
   .vm-breadcrumb {
     margin-bottom: 10px;
     font-size: 13px;
-    color: #ff4444;
+    color: #ff0404;
   }
 
   .vm-modal-footer {
@@ -706,11 +706,12 @@ if (file_exists("/etc/unraid-version")) {
   #backup_destination,
   #location_of_backups,
   #restore_destination {
-    border: 1px solid #b30000 !important;
-    background-color: #111 !important;
+    border: 1px solid #ff0404 !important;
+    background-color: #000 !important;
     color: #fff !important;
     padding-left: 6px;
     border-radius: 3px;
+    box-shadow: 0 0 6px rgba(179, 0, 0, 0.5);
   }
 
   .log-header-row {
@@ -727,8 +728,8 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   input.invalid {
-    border-color: #b30000;
-    color: red;
+    border-color: #ff0404;
+    color: #ff0404;
   }
 
   #vm-backup-and-restore-layout {
@@ -740,12 +741,12 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   #vm-backup-and-restore-layout {
-    --plugin-bg: #1e1e1e;
-    --plugin-panel: #111;
-    --plugin-border: #b30000;
+    --plugin-bg: #000;
+    --plugin-panel: #000;
+    --plugin-border: #ff0404;
     --plugin-text: #e6e6e6;
     --plugin-muted: #b0b0b0;
-    --plugin-accent: #b30000;
+    --plugin-accent: #ff0404;
   }
 
   #vm-backup-and-restore-layout select,
@@ -778,15 +779,15 @@ if (file_exists("/etc/unraid-version")) {
 
   #vm-backup-and-restore-layout select option:hover,
   #vm-backup-and-restore-layout select option:focus {
-    background-color: #e6231c;
+    background-color: #ff0404;
     color: #ffffff;
   }
 
   #vm-backup-and-restore-layout select:disabled,
   #vm-backup-and-restore-layout input:disabled {
-    background-color: #111;
+    background-color: #000;
     color: var(--plugin-muted);
-    border-color: #b30000;
+    border-color: #ff0404;
     cursor: not-allowed;
   }
 
@@ -879,6 +880,16 @@ if (file_exists("/etc/unraid-version")) {
     padding: 7px 10px;
     max-width: 500px;
     box-sizing: border-box;
+  }
+
+  select.version-select:disabled {
+    pointer-events: none;
+    opacity: 0.5;
+    cursor: default;
+    background-color: #000 !important;
+    color: var(--plugin-text) !important;
+    border-color: var(--plugin-border) !important;
+    filter: none !important;
   }
 </style>
 
@@ -1025,7 +1036,7 @@ if (file_exists("/etc/unraid-version")) {
             </option>
             <?php endforeach; ?>
           </select>
-          <div id="notification_service" class="vm-multiselect" style="width:200px;">
+          <div id="notification_service" class="vm-multiselect" style="width:220px;">
             <div class="vm-dropdown-label" id="notification-service-label">Select service(s)</div>
             <div class="vm-dropdown-list" id="notification-service-list" style="display:none;">
               <?php foreach (['Discord','Gotify','Ntfy','Pushover','Slack','Unraid'] as $svc): ?>
@@ -1395,6 +1406,7 @@ if (file_exists("/etc/unraid-version")) {
       </div>
 
       <!-- VERSION FIELDS -->
+      <div id="malformed-warning-container"></div>
       <div id="version-fields-container"></div>
 
       <!-- RESTORE DESTINATION -->
@@ -1469,7 +1481,7 @@ if (file_exists("/etc/unraid-version")) {
             </option>
             <?php endforeach; ?>
           </select>
-          <div id="notification_service_restore" class="vm-multiselect" style="width:200px;">
+          <div id="notification_service_restore" class="vm-multiselect" style="width:220px;">
             <div class="vm-dropdown-label" id="notification-service-label-restore">Select service(s)</div>
             <div class="vm-dropdown-list" id="notification-service-list-restore" style="display:none;">
               <?php foreach (['Discord','Gotify','Ntfy','Pushover','Slack','Unraid'] as $svc): ?>
@@ -2157,6 +2169,21 @@ if (file_exists("/etc/unraid-version")) {
 
     loadBackupVMs();
 
+    setInterval(function () {
+      if (listBackup.is(':visible')) return;
+      const currentSelected = $('#vm-hidden-backup').val() || '';
+      $.getJSON('/plugins/vm-backup-and-restore/helpers/list_vms.php', function (data) {
+        if (!data.vms) return;
+        const newVms = data.vms.slice().sort().join(',');
+        const oldVms = listBackup.find('input[type=checkbox]')
+          .map(function () { return $(this).val(); }).get().sort().join(',');
+        if (newVms === oldVms) return;
+        // List changed — reload but preserve current selections
+        dropdownBackup.attr('data-selected', currentSelected);
+        loadBackupVMs();
+      });
+    }, 5000);
+
     function ensureHiddenFieldBackup(value) {
       let hidden = $('#vm-hidden-backup');
       if (!hidden.length) {
@@ -2182,60 +2209,187 @@ if (file_exists("/etc/unraid-version")) {
 
   const versionSelections = {};
 
+  function formatMissingList(arr) {
+    if (arr.length === 1) return arr[0];
+    if (arr.length === 2) return arr[0] + ' and ' + arr[1];
+    return arr.slice(0, -1).join(', ') + ', and ' + arr[arr.length - 1];
+  }
+
+  function scanMalformedBackups() {
+
+    const restorePath = $('#location_of_backups').val();
+    if (!restorePath) return;
+
+    $.getJSON(
+      '/plugins/vm-backup-and-restore/helpers/scan_malformed_backups.php',
+      { restore_path: restorePath },
+      function (data) {
+
+        if (!data || data.length === 0) {
+          $('#malformed-warning-container').empty();
+          return;
+        }
+
+        let message = '';
+
+        if (data.length === 1) {
+
+          const b = data[0];
+          message =
+            `⚠ ${b.vm} - Backup with timestamp ${b.backup} is missing ${formatMissingList(b.missing)}<br>` +
+            `This backup will not be included to be restored`;
+
+        } else {
+
+          message = '⚠ Missing files:<br>';
+
+          data.forEach(b => {
+            message += `${b.vm} - ${b.backup} - ${formatMissingList(b.missing)}<br>`;
+          });
+
+          message += 'These backups will not be included to be restored';
+        }
+
+        $('#malformed-warning-container').html(`
+        <div style="
+          background:#7f1d1d;
+          color:#fff;
+          padding:10px;
+          border-radius:4px;
+          margin-bottom:12px;
+          font-weight:600;
+          max-width:391px;
+          white-space:normal;
+        ">
+          ${message}
+        </div>
+      `);
+      }
+    );
+  }
+
   function rebuildVersionFields() {
+
     const container = $('#version-fields-container');
     container.empty();
+    $('#malformed-warning-container').empty();
 
     const restorePath = $('#location_of_backups').val();
     if (!restorePath) return;
 
     const raw = $('#vm-hidden-restore').val() || '';
     const selected = raw.split(',').map(s => s.trim()).filter(Boolean);
-
     if (selected.length === 0) return;
 
     const token = ++rebuildToken;
 
     selected.forEach(vm => {
+
       $.getJSON(
         '/plugins/vm-backup-and-restore/helpers/get_vm_versions.php',
         { vm, restore_path: restorePath },
         function (versions) {
-          if (token !== rebuildToken) return;
-
-          if (!versions || versions.length === 0) return;
 
           const wrapper = $(`
           <div class="form-pair version-field">
-            <label>
-              <span class="vm-backup-and-restoretip" title="Choose which version of ${vm} to restore">
-                Version for ${vm}:
-              </span>
+            <label class="version-label-${vm.replace(/\s+/g, '_')}">
+              Version for ${vm}:
             </label>
-            <span class="vm-backup-and-restoretip" title="Choose which version of ${vm} to restore">
-              <select name="VERSION_${vm}" class="version-select" data-vm="${vm}"></select>
+            <span>
+              <select name="VERSION_${vm}" data-vm="${vm}" class="version-select"></select>
             </span>
           </div>
         `);
 
           const select = wrapper.find('select');
 
-          versions.forEach((v, idx) => {
-            let label = v.display;
-            if (idx === 0) label += ' (LATEST)';
-            if (versions.length > 1 && idx === versions.length - 1) label += ' (OLDEST)';
-            select.append(`<option value="${v.raw}">${label}</option>`);
-          });
+          if (!versions || versions.length === 0) {
 
-          container.append(wrapper);
+            select.prop('disabled', true);
+            select.append(`
+            <option selected style="color:#999;">
+              No backups found
+            </option>
+          `);
+
+            container.append(wrapper);
+
+            pendingRequests--;
+            if (pendingRequests === 0) buildMalformedBanner();
+            return;
+          }
+
+          const validVersions = versions.filter(v => !v.malformed);
+
+          // CASE 1: NO VALID BACKUPS
+          if (validVersions.length === 0) {
+
+            select.prop('disabled', true);
+            select.append(`
+            <option selected style="color:#999;">
+              No backups with all 3 files exist
+            </option>
+          `);
+
+            container.append(wrapper);
+
+          } else {
+
+            // CASE 2: VALID BACKUPS EXIST
+            validVersions.forEach((v, idx) => {
+
+              let label = v.display;
+
+              if (idx === 0) {
+                label += ' (LATEST)';
+              }
+
+              if (validVersions.length > 1 && idx === validVersions.length - 1) {
+                label += ' (OLDEST)';
+              }
+
+              select.append(`<option value="${v.raw}">${label}</option>`);
+            });
+
+            // Auto-select newest
+            select.val(validVersions[0].raw);
+
+            container.append(wrapper);
+          }
+
+          if (window._fbbAttachHelp) {
+            const $lbl = wrapper.find('label');
+            window._fbbAttachHelp(
+              $lbl,
+              `Select which backup version to restore for ${vm}`,
+              wrapper
+            );
+          }
+
+          pendingRequests--;
+          if (pendingRequests === 0) buildMalformedBanner();
         }
       );
     });
   }
 
-  $(document).ready(function () {
-    rebuildVersionFields();
-  });
+  let malformedPoller = null;
+
+  function startMalformedPolling() {
+
+    if (malformedPoller) return; // prevent duplicate intervals
+
+    malformedPoller = setInterval(function () {
+      scanMalformedBackups();
+    }, 1000); // 1 second
+  }
+
+  function stopMalformedPolling() {
+    if (malformedPoller) {
+      clearInterval(malformedPoller);
+      malformedPoller = null;
+    }
+  }
 
   $(document).ready(function () {
     const dropdown = $('#vm-dropdown-restore');
@@ -2287,6 +2441,8 @@ if (file_exists("/etc/unraid-version")) {
             ensureHiddenFieldRestore('');
             list.hide();
             dropdown.addClass('disabled');
+            label.text('No backups at this location');
+            rebuildVersionFields();
             return;
           }
 
@@ -2354,6 +2510,28 @@ if (file_exists("/etc/unraid-version")) {
     });
 
     loadRestoreFolders();
+
+    setInterval(function () {
+      if (list.is(':visible')) return;
+      const restorePath = $('#location_of_backups').val().trim();
+      if (!restorePath) return;
+      const currentSelected = $('#vm-hidden-restore').val() || '';
+      $.getJSON('/plugins/vm-backup-and-restore/helpers/list_restore_folders.php',
+        { restore_path: restorePath },
+        function (data) {
+          const newFolders = (data.folders || []).slice().sort().join(',');
+          const oldFolders = list.find('input[type=checkbox]')
+            .map(function () { return $(this).val(); }).get().sort().join(',');
+          if (newFolders === oldFolders) return;
+          // List changed — reload but preserve current selections
+          selected.length = 0;
+          currentSelected.split(',').map(s => s.trim()).filter(Boolean)
+            .forEach(s => selected.push(s));
+          loadRestoreFolders();
+        }
+      );
+    }, 1000);
+
   });
 </script>
 
@@ -2528,12 +2706,16 @@ if (file_exists("/etc/unraid-version")) {
   $('#backupbtn').on('click', async function () {
 
     if ($('#backupbtn').text() === 'Stop') {
+      // backupbtn stop branch
+      const $btn = $('#backupbtn');
+      $btn.prop('disabled', true);
       $.post('/plugins/vm-backup-and-restore/helpers/stop_backup.php')
         .done(function () {
           console.log('Stop signal sent.');
           showPopup('Stop requested. Backup stopping');
         })
         .fail(function () {
+          $btn.prop('disabled', false);
           alert('Failed to send stop signal');
         });
       return;
@@ -3214,12 +3396,16 @@ if (file_exists("/etc/unraid-version")) {
   $('#restorebtn').on('click', async function () {
 
     if ($('#restorebtn').text() === 'Stop') {
+      // restorebtn stop branch
+      const $btn = $('#restorebtn');
+      $btn.prop('disabled', true);
       $.post('/plugins/vm-backup-and-restore/helpers/stop_restore.php')
         .done(function () {
           console.log('Stop restore signal sent');
           showPopuprestore('Stop requested. Restore stopping');
         })
         .fail(function () {
+          $btn.prop('disabled', false);
           alert('Failed to send stop signal');
         });
       return;
@@ -3541,19 +3727,53 @@ if (file_exists("/etc/unraid-version")) {
     function updateRunButtons(locked, anyLocked = false, scheduleLocked = false) {
       document.querySelectorAll('.run-schedule-btn').forEach(btn => {
         const currentText = btn.textContent.trim();
-        if (scheduleLocked && currentText === 'Stop') {
-          btn.disabled = false;
-          btn.setAttribute('title', 'Stop backup');
-          if ($(btn).hasClass('tooltipstered')) {
-            $(btn).tooltipster('content', 'Stop backup');
+
+        if (scheduleLocked) {
+          // Cron-fired run is active: flip whichever "Run" btn exists to "Stop"
+          if (currentText !== 'Stop') {
+            btn.textContent = 'Stop';
+            btn.disabled = false;
+            btn.classList.remove('disabled');
+            btn.setAttribute('title', 'Stop backup');
+            if ($(btn).hasClass('tooltipstered')) {
+              $(btn).tooltipster('content', 'Stop backup');
+            }
+            btn.removeAttribute('title');
+            // Wire stop — guard against double-binding with a flag
+            if (!btn._stopBound) {
+              btn._stopBound = true;
+              // Remove the inline onclick so runScheduleBackup doesn't fire
+              btn.onclick = null;
+              btn.addEventListener('click', function () {
+                if (btn.disabled) return;
+                btn.disabled = true;
+                $.post('/plugins/vm-backup-and-restore/helpers/stop_backup.php')
+                  .done(function () { showPopup('Stop requested. Backup stopping'); })
+                  .fail(function () {
+                    btn.disabled = false;
+                    alert('Failed to send stop signal');
+                  });
+              });
+            }
+          } else {
+            // Already showing Stop — keep enabled
+            btn.disabled = false;
           }
-          btn.removeAttribute('title');
         } else if (!scheduleLocked && currentText === 'Stop') {
+          // Job finished — reset back to Run
           btn.textContent = 'Run';
           btn.disabled = false;
+          btn._stopBound = false;
+          btn.classList.remove('disabled');
           btn.setAttribute('title', 'Run schedule');
           if ($(btn).hasClass('tooltipstered')) {
             $(btn).tooltipster('content', 'Run schedule');
+          }
+          btn.removeAttribute('title');
+          // Restore original onclick (runScheduleBackup)
+          const id = btn.getAttribute('data-schedule-id') || btn.closest('[data-schedule-id]')?.getAttribute('data-schedule-id');
+          if (id) {
+            btn.onclick = function () { runScheduleBackup(id, btn); };
           }
         } else if (currentText !== 'Stop') {
           btn.disabled = anyLocked;
@@ -3733,6 +3953,7 @@ if (file_exists("/etc/unraid-version")) {
     window._fbbAttachHelp = attachHelp;
 
     function processHelpLabels($scope) {
+      // Pass 1: label > span with betatip/restoretip class and title (existing static fields)
       $scope.find('label > span[class*="betatip"][title], label > span[class*="restoretip"][title]').each(function () {
         const $span = $(this);
         const helpText = $span.attr('title');
@@ -3742,6 +3963,21 @@ if (file_exists("/etc/unraid-version")) {
 
         const $label = $span.closest('label');
         if ($label.hasClass('fbb-has-help')) return;
+
+        const $formPair = $label.closest('.form-pair');
+        const $insertAfter = $formPair.length ? $formPair : $label;
+
+        attachHelp($label, helpText, $insertAfter);
+      });
+
+      // Pass 2: label[title] directly — used by dynamically injected fields like version selects
+      $scope.find('label[title]').each(function () {
+        const $label = $(this);
+        const helpText = $label.attr('title');
+        if (!helpText) return;
+        if ($label.hasClass('fbb-has-help')) return;
+
+        $label.removeAttr('title');
 
         const $formPair = $label.closest('.form-pair');
         const $insertAfter = $formPair.length ? $formPair : $label;
@@ -3772,13 +4008,13 @@ if (file_exists("/etc/unraid-version")) {
     // Strip tooltipster class/title from remaining input and select wrapper spans
     $('span.vm-backup-and-restoretip').each(function () {
       if ($(this).children('button').length > 0) return;
-      $(this).removeAttr('title').removeClass('flash-backup_betatip');
+      $(this).removeAttr('title').removeClass('vm-backup-and-restoretip');
     });
 
     // Strip tooltipster from multiselect divs (notification service widgets)
     $('div.vm-backup-and-restoretip').each(function () {
       if ($(this).closest('table').length > 0) return;
-      $(this).removeAttr('title').removeClass('flash-backup_betatip');
+      $(this).removeAttr('title').removeClass('vm-backup-and-restoretip');
     });
 
     // F1 — open all / close all toggle
@@ -3808,4 +4044,27 @@ if (file_exists("/etc/unraid-version")) {
 
   });
   // ── End inline help icons ────────────────────────────────────────────────
+
+  $(document).ready(function () {
+    setTimeout(function () {
+      rebuildVersionFields();
+    }, 50);
+  });
+
+  $(document).ready(function () {
+
+    setTimeout(function () {
+      scanMalformedBackups();
+    }, 100);
+
+    $('#location_of_backups').on('change', function () {
+      scanMalformedBackups();
+    });
+
+  });
+
+  $(document).ready(function () {
+    scanMalformedBackups();     // initial scan
+    startMalformedPolling();    // begin polling
+  });
 </script>
