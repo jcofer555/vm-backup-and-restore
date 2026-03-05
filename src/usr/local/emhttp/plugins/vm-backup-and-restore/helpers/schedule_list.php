@@ -66,10 +66,10 @@ function humanCron($cron) {
            width:100%;
            border-collapse: collapse;
            margin-top:20px;
-           border-top:3px solid #ff0404;
-           border-bottom:3px solid #ff0404;
-           border-left:3px solid #ff0404;
-           border-right:3px solid #ff0404;
+           border-top:3px solid #ad57df;
+           border-bottom:3px solid #ad57df;
+           border-left:3px solid #ad57df;
+           border-right:3px solid #ad57df;
            table-layout:fixed;
            background:#000;
        ">
@@ -77,9 +77,9 @@ function humanCron($cron) {
 <thead>
 <tr style="
     background:#000;
-    color:#ff0404;
+    color:#ad57df;
     text-align:center;
-    border-bottom:3px solid #ff0404;
+    border-bottom:3px solid #ad57df;
 ">
     <th style="padding:8px; width:16%;">Scheduling</th>
     <th style="padding:8px; width:10%;">VM(s) To Backup</th>
@@ -104,7 +104,7 @@ if ($enabledBool) {
     $sideBorder = '#2e7d32';  // green
     $statusDot  = '🟢';
 } else {
-    $sideBorder = '#ff0404';  // red
+    $sideBorder = '#ad57df';  // red
     $statusDot  = '🔴';
 }
 

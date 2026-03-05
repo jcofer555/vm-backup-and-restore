@@ -128,7 +128,7 @@ if (file_exists("/etc/unraid-version")) {
 
 <style>
   :root {
-    --primary-blue: #ff0404;
+    --primary-blue: #ad57df;
   }
 
   .vm-backup-and-restore-wrapper {
@@ -147,7 +147,7 @@ if (file_exists("/etc/unraid-version")) {
   #log-section {
     background: #000;
     border-radius: 12px;
-    border: 3px solid #ff0404; /* solid bright green */
+    border: 3px solid #ad57df; /* solid bright green */
     color: #f0f8ff;
     padding: 20px;
     flex: 1 1 auto;
@@ -589,7 +589,7 @@ if (file_exists("/etc/unraid-version")) {
   .vm-multiselect {
     position: relative;
     width: 220px;
-    border: 1px solid #ff0404;
+    border: 1px solid #ad57df;
     box-shadow: 0 0 6px rgba(179, 0, 0, 0.5);
     padding: 6px;
     background: #000;
@@ -600,7 +600,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   .vm-multiselect.active {
-    border-color: #ff0404;
+    border-color: #ad57df;
   }
 
   .vm-dropdown-label-restore,
@@ -623,7 +623,7 @@ if (file_exists("/etc/unraid-version")) {
     max-width: 100%;
     max-height: 200px;
     overflow-y: auto;
-    border: 1px solid #ff0404;
+    border: 1px solid #ad57df;
     background: #000;
     color: #fff;
     z-index: 10;
@@ -660,7 +660,7 @@ if (file_exists("/etc/unraid-version")) {
     background: #000;
     cursor: pointer;
     position: relative;
-    accent-color: #ff0404;
+    accent-color: #ad57df;
   }
 
   .vm-dropdown-list-restore input[type="checkbox"]:checked::after,
@@ -712,9 +712,9 @@ if (file_exists("/etc/unraid-version")) {
     width: 600px;
     margin: 8% auto;
     background: #000;
-    border: 2px solid #ff0404;
+    border: 2px solid #ad57df;
     border-radius: 8px;
-    color: #ff0404;
+    color: #ad57df;
     padding: 15px;
   }
 
@@ -728,7 +728,7 @@ if (file_exists("/etc/unraid-version")) {
   .vm-folder-list {
     max-height: 300px;
     overflow-y: auto;
-    border: 1px solid #ff0404;
+    border: 1px solid #ad57df;
     padding: 5px;
   }
 
@@ -748,7 +748,7 @@ if (file_exists("/etc/unraid-version")) {
   .vm-breadcrumb {
     margin-bottom: 10px;
     font-size: 13px;
-    color: #ff0404;
+    color: #ad57df;
   }
 
   .vm-modal-footer {
@@ -763,7 +763,7 @@ if (file_exists("/etc/unraid-version")) {
   #backup_destination,
   #location_of_backups,
   #restore_destination {
-    border: 1px solid #ff0404 !important;
+    border: 1px solid #ad57df !important;
     background-color: #000 !important;
     color: #fff !important;
     padding-left: 6px;
@@ -785,8 +785,8 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   input.invalid {
-    border-color: #ff0404;
-    color: #ff0404;
+    border-color: #ad57df;
+    color: #ad57df;
   }
 
   #vm-backup-and-restore-layout {
@@ -804,10 +804,10 @@ if (file_exists("/etc/unraid-version")) {
   #vm-backup-and-restore-layout {
     --plugin-bg: #000;
     --plugin-panel: #000;
-    --plugin-border: #ff0404;
+    --plugin-border: #ad57df;
     --plugin-text: #e6e6e6;
     --plugin-muted: #b0b0b0;
-    --plugin-accent: #ff0404;
+    --plugin-accent: #ad57df;
   }
 
   #vm-backup-and-restore-layout select,
@@ -840,7 +840,7 @@ if (file_exists("/etc/unraid-version")) {
 
   #vm-backup-and-restore-layout select option:hover,
   #vm-backup-and-restore-layout select option:focus {
-    background-color: #ff0404;
+    background-color: #ad57df;
     color: #ffffff;
   }
 
@@ -848,7 +848,7 @@ if (file_exists("/etc/unraid-version")) {
   #vm-backup-and-restore-layout input:disabled {
     background-color: #000;
     color: var(--plugin-muted);
-    border-color: #ff0404;
+    border-color: #ad57df;
     cursor: not-allowed;
   }
 
@@ -956,7 +956,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   .vm-schedules-table tbody tr+tr td {
-    border-top: 3px solid #b30000;
+    border-top: 3px solid #ad57df;
   }
 
   .vm-schedules-table {
