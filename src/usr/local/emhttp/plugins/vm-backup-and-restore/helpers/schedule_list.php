@@ -61,13 +61,26 @@ function humanCron($cron) {
 
 <?php if (!empty($schedules)): ?>
 
-<h3>📅 Scheduled Backup Jobs</h3>
-
 <table class="vm-schedules-table"
-       style="width:100%; border-collapse: collapse; margin-top:20px; border:1px solid #ccc; table-layout:fixed;">
+       style="
+           width:100%;
+           border-collapse: collapse;
+           margin-top:20px;
+           border-top:3px solid #ff0404;
+           border-bottom:3px solid #ff0404;
+           border-left:3px solid #ff0404;
+           border-right:3px solid #ff0404;
+           table-layout:fixed;
+           background:#000;
+       ">
 
 <thead>
-<tr style="background:#f9f9f9; color:#b30000; text-align:center; border-bottom:2px solid #b30000;">
+<tr style="
+    background:#000;
+    color:#ff0404;
+    text-align:center;
+    border-bottom:3px solid #ff0404;
+">
     <th style="padding:8px; width:16%;">Scheduling</th>
     <th style="padding:8px; width:10%;">VM(s) To Backup</th>
     <th style="padding:8px; width:18%;">Backup Destination</th>
@@ -87,8 +100,13 @@ function humanCron($cron) {
         $enabledBool = ($s['ENABLED'] ?? 'yes') === 'yes';
         $btnText     = $enabledBool ? 'Disable' : 'Enable';
 
-        $rowColor  = $enabledBool ? '#eaf7ea' : '#fdeaea';
-        $textColor = $enabledBool ? '#2e7d32' : '#b30000';
+if ($enabledBool) {
+    $sideBorder = '#2e7d32';  // green
+    $statusDot  = '🟢';
+} else {
+    $sideBorder = '#ff0404';  // red
+    $statusDot  = '🔴';
+}
 
         $cron = $s['CRON'] ?? '';
 
@@ -124,14 +142,20 @@ function humanCron($cron) {
         $notify      = !isset($settings['NOTIFICATIONS']) ? '—' : yesNo($settings['NOTIFICATIONS']);
         ?>
 
-        <tr style="border-bottom:1px solid #ccc; background:<?php echo $rowColor; ?>; color:<?php echo $textColor; ?>;">
+        <tr style="
+    background:#000;
+    color:#dddddd;
+    border-left:3px solid <?php echo $sideBorder; ?>;
+    border-right:3px solid <?php echo $sideBorder; ?>;
+">
 
             <!-- Scheduling -->
             <td style="padding:8px; text-align:center;">
-                <span class="vm-backup-and-restoretip" title="<?php echo htmlspecialchars(humanCron($cron)); ?> - <?php echo htmlspecialchars($cron); ?>">
-                    <?php echo htmlspecialchars(humanCron($cron)); ?>
-                </span>
-            </td>
+    <span style="margin-right:6px;">
+        <?php echo $statusDot; ?>
+    </span>
+    <?php echo htmlspecialchars(humanCron($cron)); ?>
+</td>
 
             <!-- VM(s) -->
             <td style="padding:8px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"

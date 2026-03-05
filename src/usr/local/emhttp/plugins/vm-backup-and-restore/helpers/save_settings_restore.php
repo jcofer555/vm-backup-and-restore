@@ -1,23 +1,23 @@
 <?php
 header('Content-Type: application/json');
 
-$cmd = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/save_settings_restore.sh';
+$config = '/boot/config/plugins/vm-backup-and-restore/settings_restore.cfg';
+$tmp    = $config . '.tmp';
 
-// --- Grab raw values ---
-$location_of_backups           = $_GET['LOCATION_OF_BACKUPS'] ?? '';
-$vms_to_restore                = $_GET['VMS_TO_RESTORE'] ?? '';
-$versions                      = $_GET['VERSIONS'] ?? '';
-$restore_destination           = $_GET['RESTORE_DESTINATION'] ?? '';
-$dry_run_restore               = $_GET['DRY_RUN_RESTORE'] ?? '';
-$notifications_restore         = $_GET['NOTIFICATIONS_RESTORE'] ?? '';
-$notification_service_restore  = $_GET['NOTIFICATION_SERVICE_RESTORE'] ?? '';
-$pushover_user_key_restore     = $_GET['PUSHOVER_USER_KEY_RESTORE'] ?? '';
+// --- Read from POST ---
+$location_of_backups          = $_POST['LOCATION_OF_BACKUPS']          ?? '';
+$vms_to_restore               = $_POST['VMS_TO_RESTORE']               ?? '';
+$versions                     = $_POST['VERSIONS']                     ?? '';
+$restore_destination          = $_POST['RESTORE_DESTINATION']          ?? '/mnt/user/domains';
+$dry_run_restore              = $_POST['DRY_RUN_RESTORE']              ?? 'no';
+$notifications_restore        = $_POST['NOTIFICATIONS_RESTORE']        ?? 'no';
+$notification_service_restore = $_POST['NOTIFICATION_SERVICE_RESTORE'] ?? '';
+$pushover_user_key_restore    = $_POST['PUSHOVER_USER_KEY_RESTORE']    ?? '';
 
-// --- Collect per-service webhook URLs ---
-$services = ['DISCORD', 'GOTIFY', 'NTFY', 'PUSHOVER', 'SLACK'];
+$services    = ['DISCORD', 'GOTIFY', 'NTFY', 'PUSHOVER', 'SLACK'];
 $webhookUrls = [];
 foreach ($services as $svc) {
-    $webhookUrls[$svc] = $_GET['WEBHOOK_' . $svc . '_RESTORE'] ?? '';
+    $webhookUrls[$svc] = $_POST['WEBHOOK_' . $svc . '_RESTORE'] ?? '';
 }
 
 // --- Normalize paths ---
@@ -35,45 +35,45 @@ if ($restore_destination !== '') {
     }
 }
 
-// --- Build args array ---
-$args = [
-    $location_of_backups,
-    $vms_to_restore,
-    $versions,
-    $restore_destination,
-    $dry_run_restore,
-    $notifications_restore,
-    $notification_service_restore,
-    $webhookUrls['DISCORD'],
-    $webhookUrls['GOTIFY'],
-    $webhookUrls['NTFY'],
-    $webhookUrls['PUSHOVER'],
-    $webhookUrls['SLACK'],
-    $pushover_user_key_restore,
+// --- Sanitize helper: strip quotes and newlines ---
+function sanitize(string $val): string {
+    return str_replace(['"', "'", "\n", "\r"], '', $val);
+}
+
+// --- Build config lines ---
+$lines = [
+    'LOCATION_OF_BACKUPS'          => $location_of_backups,
+    'VMS_TO_RESTORE'               => $vms_to_restore,
+    'VERSIONS'                     => $versions,
+    'RESTORE_DESTINATION'          => $restore_destination,
+    'DRY_RUN_RESTORE'              => $dry_run_restore,
+    'NOTIFICATIONS_RESTORE'        => $notifications_restore,
+    'NOTIFICATION_SERVICE_RESTORE' => $notification_service_restore,
+    'WEBHOOK_DISCORD_RESTORE'      => $webhookUrls['DISCORD'],
+    'WEBHOOK_GOTIFY_RESTORE'       => $webhookUrls['GOTIFY'],
+    'WEBHOOK_NTFY_RESTORE'         => $webhookUrls['NTFY'],
+    'WEBHOOK_PUSHOVER_RESTORE'     => $webhookUrls['PUSHOVER'],
+    'WEBHOOK_SLACK_RESTORE'        => $webhookUrls['SLACK'],
+    'PUSHOVER_USER_KEY_RESTORE'    => $pushover_user_key_restore,
 ];
 
-// Escape each argument for safety
-$escapedArgs = array_map('escapeshellarg', $args);
-
-// Build command string
-$fullCmd = $cmd . ' ' . implode(' ', $escapedArgs);
-
-// Execute
-$process = proc_open($fullCmd, [
-    1 => ['pipe', 'w'],
-    2 => ['pipe', 'w']
-], $pipes);
-
-if (is_resource($process)) {
-    $output = stream_get_contents($pipes[1]);
-    $error  = stream_get_contents($pipes[2]);
-    fclose($pipes[1]);
-    fclose($pipes[2]);
-    proc_close($process);
-
-    echo trim($output)
-        ? $output
-        : json_encode(['status' => 'error', 'message' => trim($error) ?: 'No response from shell script']);
-} else {
-    echo json_encode(['status' => 'error', 'message' => 'Failed to start process']);
+$content = '';
+foreach ($lines as $key => $val) {
+    $content .= $key . '="' . sanitize($val) . '"' . "\n";
 }
+
+// --- Write atomically ---
+@mkdir(dirname($config), 0755, true);
+
+if (file_put_contents($tmp, $content) === false) {
+    echo json_encode(['status' => 'error', 'message' => 'Failed to write temp config']);
+    exit;
+}
+
+if (!rename($tmp, $config)) {
+    @unlink($tmp);
+    echo json_encode(['status' => 'error', 'message' => 'Failed to move config into place']);
+    exit;
+}
+
+echo json_encode(['status' => 'ok']);

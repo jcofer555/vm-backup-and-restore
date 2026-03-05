@@ -24,18 +24,15 @@ $defaults = [
     'PUSHOVER_USER_KEY'    => ''
 ];
 
-// Load existing config if present
 $existing = [];
 if (file_exists($cfgPath)) {
     $existing = parse_ini_file($cfgPath) ?: [];
 }
-// Merge without overwriting existing keys
 foreach ($defaults as $key => $value) {
     if (!array_key_exists($key, $existing)) {
         $existing[$key] = $value;
     }
 }
-// Rebuild config text in the correct order
 $configText = '';
 foreach ($defaults as $key => $defaultValue) {
     $val = $existing[$key];
@@ -64,43 +61,36 @@ $restoreDefaults = [
     'PUSHOVER_USER_KEY_RESTORE'    => ''
 ];
 
-// Load existing restore config if present
 $existingRestore = [];
 if (file_exists($restoreCfgPath)) {
     $existingRestore = parse_ini_file($restoreCfgPath) ?: [];
 }
 
-// Merge defaults without overwriting existing keys
 foreach ($restoreDefaults as $key => $value) {
     if (!array_key_exists($key, $existingRestore)) {
         $existingRestore[$key] = $value;
     }
 }
 
-// Rebuild restore config text in the correct order
 $restoreConfigText = '';
 foreach ($restoreDefaults as $key => $defaultValue) {
     $val = $existingRestore[$key];
     $restoreConfigText .= "$key=\"$val\"\n";
 }
 
-// Save the restore config
 @file_put_contents($restoreCfgPath, $restoreConfigText);
 
-// Make it available to your page
 $restoreSettings = $existingRestore;
 
-// Load saved VM list (string or array)
 $saved_vm_list = $vm_list_settings['VMS_TO_RESTORE'] ?? '';
 
-// Normalize into array
 if (!is_array($saved_vm_list)) {
     $saved_vm_list = array_filter(array_map('trim', explode(',', $saved_vm_list)));
 }
 ?>
 
 <?php
-$unraid_version = "7.2"; // fallback
+$unraid_version = "7.2";
 if (file_exists("/etc/unraid-version")) {
     $data = parse_ini_file("/etc/unraid-version");
     if (!empty($data["version"])) {
@@ -113,26 +103,18 @@ if (file_exists("/etc/unraid-version")) {
   // UNIVERSAL CSRF TOKEN DISCOVERY for Unraid plugin pages
   let csrfToken = "<?= $_GET['csrf_token'] ?? ($_COOKIE['csrf_token'] ?? '') ?>";
 
-  // Try dynamic lookup from global scope, cookie, or meta
   if (!csrfToken || csrfToken === "undefined" || csrfToken === "") {
     try {
-      // Try the global variable used by Unraid's WebGUI JS
       if (typeof window.csrf_token !== "undefined" && window.csrf_token) {
         csrfToken = window.csrf_token;
       }
-
-      // Try any embedded meta tag
       if ((!csrfToken || csrfToken === "") && document.querySelector("meta[name='csrf_token']")) {
         csrfToken = document.querySelector("meta[name='csrf_token']").getAttribute("content");
       }
-
-      // Try cookie
       if ((!csrfToken || csrfToken === "") && document.cookie.includes("csrf_token=")) {
         const m = document.cookie.match(/csrf_token=([^;]+)/);
         if (m) csrfToken = decodeURIComponent(m[1]);
       }
-
-      // Fallback: try to extract from any script tag in the parent frame
       if ((!csrfToken || csrfToken === "") && window.parent) {
         try {
           if (window.parent.csrf_token) csrfToken = window.parent.csrf_token;
@@ -154,23 +136,35 @@ if (file_exists("/etc/unraid-version")) {
     flex-direction: column;
     width: 100%;
     min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
   }
 
   /* === Each Panel (auto-sizing) === */
   #vm-backup-and-restore-settings,
+  #vm-backup-and-restore-settings-restore,
   #log-section {
     background: #000;
     border-radius: 12px;
-    box-shadow: 0 0 12px rgba(255, 0, 0, .3);
+    border: 3px solid #ff0404; /* solid bright green */
     color: #f0f8ff;
     padding: 20px;
     flex: 1 1 auto;
     height: auto;
     max-height: none;
-    overflow: visible;
+    overflow: hidden;
     min-width: 0;
     width: 100%;
     box-sizing: border-box;
+  }
+
+  /* Container queries on the panels themselves so @container fires
+     based on the panel's own rendered width, not the viewport        */
+  #vm-backup-and-restore-settings,
+  #vm-backup-and-restore-settings-restore {
+    container-type: inline-size;
+    container-name: plugin-panel;
   }
 
   #log-section {
@@ -181,7 +175,8 @@ if (file_exists("/etc/unraid-version")) {
     padding-top: 0;
   }
 
-  #vm-backup-and-restore-settings {
+  #vm-backup-and-restore-settings,
+  #vm-backup-and-restore-settings-restore {
     padding-top: 0px !important;
   }
 
@@ -194,7 +189,8 @@ if (file_exists("/etc/unraid-version")) {
     margin-bottom: 10px;
   }
 
-  #vm-backup-and-restore-settings {
+  #vm-backup-and-restore-settings,
+  #vm-backup-and-restore-settings-restore {
     flex-basis: 25%;
   }
 
@@ -202,7 +198,8 @@ if (file_exists("/etc/unraid-version")) {
     flex-basis: 22%;
   }
 
-  .unraid-71 #vm-backup-and-restore-settings {
+  .unraid-71 #vm-backup-and-restore-settings,
+  .unraid-71 #vm-backup-and-restore-settings-restore {
     min-height: 77vh;
     max-height: 77vh;
     overflow-y: auto;
@@ -215,7 +212,8 @@ if (file_exists("/etc/unraid-version")) {
     margin: 0;
   }
 
-  .unraid-72 #vm-backup-and-restore-settings {
+  .unraid-72 #vm-backup-and-restore-settings,
+  .unraid-72 #vm-backup-and-restore-settings-restore {
     min-height: 76vh;
     max-height: 76vh;
     overflow-y: auto;
@@ -229,6 +227,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   #vm-backup-and-restore-settings,
+  #vm-backup-and-restore-settings-restore,
   #last-run-container {
     flex: 1 1 100%;
   }
@@ -327,70 +326,127 @@ if (file_exists("/etc/unraid-version")) {
     display: flex;
     flex-direction: column;
     flex: 1;
+    min-width: 0;
   }
 
+  /* ── form-pair: label + field on one row ── */
   .form-pair {
-    display: flex;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 6px 10px;
-    margin-bottom: 15px;
-    margin-top: 8px;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 0 10px !important;
+    margin-bottom: 15px !important;
+    margin-top: 8px !important;
   }
 
-  .form-pair label {
-    width: 150px;
-    min-width: 120px;
-    flex-shrink: 0;
-    color: var(--primary-blue);
-    font-weight: bold;
-    text-align: left;
-    margin-right: 10px;
-    line-height: 2;
+  /* ── Label: fixed 160px width; flex:none so basis never sets height ── */
+  .form-pair>label {
+    width: 160px !important;
+    min-width: 160px !important;
+    flex: none !important;
   }
 
-  .form-pair input,
-  .form-pair select {
-    background: #000;
-    color: #fff;
-    width: 220px;
-    min-width: 0;
-    max-width: 100%;
-    flex: 1 1 180px;
-    box-shadow: 0 0 6px rgba(179, 0, 0, 0.5);
+  /* ── Tooltip wrapper spans become layout-transparent ── */
+  .form-pair>span {
+    display: contents !important;
   }
 
+  /* ── Every input/select: explicit width only, flex:none so
+     flex-basis can never be reinterpreted as height when the
+     parent switches to flex-direction:column                  ── */
   .form-pair input[type="text"],
-  .form-pair input[type="password"] {
-    min-width: 0;
-    max-width: 100%;
+  .form-pair input[type="password"],
+  .form-pair input[type="number"],
+  .form-pair select {
+    width: 220px !important;
+    max-width: 220px !important;
+    height: auto !important;
+    flex: none !important;
+    box-sizing: border-box !important;
   }
 
+  /* ── Checkboxes: untouched ── */
+  .form-pair input[type="checkbox"] {
+    width: 16px !important;
+    height: 16px !important;
+    flex: none !important;
+  }
+
+  /* ── Custom multiselect dropdowns: same fixed width ── */
+  #vm-dropdown,
+  #vm-dropdown-restore,
+  #notification_service,
+  #notification_service_restore {
+    width: 220px !important;
+    max-width: 220px !important;
+    height: auto !important;
+    min-height: unset !important;
+    flex: none !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ── Webhook / dynamically injected fields ── */
+  #webhook-fields-container input,
+  #webhook-fields-container select,
+  #webhook-fields-container-restore input,
+  #webhook-fields-container-restore select {
+    width: 220px !important;
+    max-width: 220px !important;
+    height: auto !important;
+    flex: none !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ── input-wrapper (used in scheduling rows) ── */
+  .form-pair>.input-wrapper {
+    display: contents !important;
+  }
+
+  /* ── Webhook error divs must stack below their input, not float beside it ── */
+  #webhook-fields-container .input-wrapper,
+  #webhook-fields-container-restore .input-wrapper {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    width: 220px !important;
+  }
+
+  /* ── short-input: inherits fixed width from form-pair rules ── */
+  .short-input {
+    box-sizing: border-box !important;
+  }
+
+  /* ── Container query: stack label above field when panel < 430px ──
+     flex:none on fields means no flex-basis to misinterpret as height. ── */
+  @container plugin-panel (max-width: 430px) {
+    .form-pair {
+      flex-direction: column !important;
+      flex-wrap: nowrap !important;
+      align-items: flex-start !important;
+      gap: 4px 0 !important;
+    }
+
+    .form-pair>label {
+      width: auto !important;
+      min-width: unset !important;
+    }
+  }
+
+  /* ── Viewport fallback for browsers without container query support ── */
   @media (max-width: 500px) {
     .form-pair {
-      flex-direction: column;
-      gap: 4px;
+      flex-direction: column !important;
+      flex-wrap: nowrap !important;
+      align-items: flex-start !important;
+      gap: 4px 0 !important;
     }
 
-    .form-pair label {
-      width: 100%;
-      margin-right: 0;
-      line-height: 1.4;
+    .form-pair>label {
+      width: auto !important;
+      min-width: unset !important;
     }
-
-    .form-pair input,
-    .form-pair select {
-      width: 100%;
-      flex: 1 1 auto;
-    }
-  }
-
-  .short-input {
-    flex: 0 0 auto;
-  }
-
-  #pool.short-input {
-    flex: 0 0 auto;
   }
 
   @keyframes shake {
@@ -493,7 +549,7 @@ if (file_exists("/etc/unraid-version")) {
   select:focus-visible,
   a:focus-visible {
     outline: none;
-    box-shadow: none
+    box-shadow: none;
   }
 
   ::-webkit-scrollbar {
@@ -538,7 +594,6 @@ if (file_exists("/etc/unraid-version")) {
     padding: 6px;
     background: #000;
     cursor: pointer;
-    transition: width .2s;
     white-space: nowrap;
     border-radius: 4px;
     transition: border-color .15s, box-shadow .15s;
@@ -736,10 +791,14 @@ if (file_exists("/etc/unraid-version")) {
 
   #vm-backup-and-restore-layout {
     display: grid;
-    grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr) minmax(420px, 1.6fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr);
     gap: 20px;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
     align-items: stretch;
+    box-sizing: border-box;
   }
 
   #vm-backup-and-restore-layout {
@@ -799,25 +858,22 @@ if (file_exists("/etc/unraid-version")) {
     }
   }
 
-  @media (max-width: 800px) {
-    #vm-backup-and-restore-layout {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  @media (max-width: 1100px) {
+  @media (max-width: 900px) {
     #vm-backup-and-restore-layout {
       grid-template-columns: 1fr;
     }
   }
 
   #vm-backup-and-restore-settings h2,
-  #vm-backup-and-restore-settings h3 {
+  #vm-backup-and-restore-settings h3,
+  #vm-backup-and-restore-settings-restore h2,
+  #vm-backup-and-restore-settings-restore h3 {
     margin-top: 0;
     margin-bottom: 12px;
   }
 
-  #vm-backup-and-restore-settings {
+  #vm-backup-and-restore-settings,
+  #vm-backup-and-restore-settings-restore {
     padding-top: 16px !important;
   }
 
@@ -892,6 +948,19 @@ if (file_exists("/etc/unraid-version")) {
     color: var(--plugin-text) !important;
     border-color: var(--plugin-border) !important;
     filter: none !important;
+  }
+
+  .vm-schedules-table tbody tr:hover {
+    background: #000 !important;
+    transition: background 0.15s ease-in-out;
+  }
+
+  .vm-schedules-table tbody tr+tr td {
+    border-top: 3px solid #b30000;
+  }
+
+  .vm-schedules-table {
+    border-collapse: collapse;
   }
 </style>
 
@@ -1021,37 +1090,39 @@ if (file_exists("/etc/unraid-version")) {
       </div>
 
       <!-- NOTIFICATION SERVICE -->
-      <div class="form-pair" id="notification-service-row" style="display:none;">
-        <label>
-          <span class="vm-backup-and-restoretip" title="Choose which notification service(s) to use">
-            Service:
-          </span>
-        </label>
-        <span>
-          <select id="notification_service_hidden" name="NOTIFICATION_SERVICE" multiple style="display:none;">
-            <?php
+      <div id="notification-service-row" style="display:none;">
+        <div class="form-pair">
+          <label>
+            <span class="vm-backup-and-restoretip" title="Choose which notification service(s) to use">
+              Service:
+            </span>
+          </label>
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <select id="notification_service_hidden" name="NOTIFICATION_SERVICE" multiple style="display:none;">
+              <?php
             $selectedServices = array_filter(explode(',', $settings['NOTIFICATION_SERVICE'] ?? ''));
             foreach (['Discord','Gotify','Ntfy','Pushover','Slack','Unraid'] as $svc):
             ?>
-            <option value="<?= $svc ?>" <?=in_array($svc, $selectedServices) ? 'selected' : '' ?>>
-              <?= $svc ?>
-            </option>
-            <?php endforeach; ?>
-          </select>
-          <div id="notification_service" class="vm-multiselect" style="width:220px;">
-            <div class="vm-dropdown-label" id="notification-service-label">Select service(s)</div>
-            <div class="vm-dropdown-list" id="notification-service-list" style="display:none;">
-              <?php foreach (['Discord','Gotify','Ntfy','Pushover','Slack','Unraid'] as $svc): ?>
-              <div>
-                <label>
-                  <input type="checkbox" value="<?= $svc ?>" <?=in_array($svc, $selectedServices) ? 'checked' : '' ?>>
-                  <?= $svc ?>
-                </label>
-              </div>
+              <option value="<?= $svc ?>" <?=in_array($svc, $selectedServices) ? 'selected' : '' ?>>
+                <?= $svc ?>
+              </option>
               <?php endforeach; ?>
+            </select>
+            <div id="notification_service" class="vm-multiselect" style="width:220px;">
+              <div class="vm-dropdown-label" id="notification-service-label">Select service(s)</div>
+              <div class="vm-dropdown-list" id="notification-service-list" style="display:none;">
+                <?php foreach (['Discord','Gotify','Ntfy','Pushover','Slack','Unraid'] as $svc): ?>
+                <div>
+                  <label>
+                    <input type="checkbox" value="<?= $svc ?>" <?=in_array($svc, $selectedServices) ? 'checked' : '' ?>>
+                    <?= $svc ?>
+                  </label>
+                </div>
+                <?php endforeach; ?>
+              </div>
             </div>
           </div>
-        </span>
+        </div>
       </div>
 
       <!-- WEBHOOK FIELDS CONTAINER (dynamically populated) -->
@@ -1365,7 +1436,7 @@ if (file_exists("/etc/unraid-version")) {
   </div>
 
   <div class="vm-backup-and-restore-wrapper">
-    <form id="vm-backup-and-restore-settings">
+    <form id="vm-backup-and-restore-settings-restore">
 
       <div class="restore-status-row"><span title="Shows which part of the restore process is currently running"
           class="vm-backup-and-restoretip restore-status-label">Status:</span><span id="restore-status-text">No
@@ -1409,7 +1480,9 @@ if (file_exists("/etc/unraid-version")) {
 
       <!-- VERSION FIELDS -->
       <div id="malformed-warning-container"></div>
-      <div id="version-fields-container"></div>
+      <div id="version-fields-wrapper">
+        <div id="version-fields-container"></div>
+      </div>
 
       <!-- RESTORE DESTINATION -->
       <div class="form-pair">
@@ -1465,39 +1538,41 @@ if (file_exists("/etc/unraid-version")) {
       </div>
 
       <!-- NOTIFICATION SERVICE RESTORE -->
-      <div class="form-pair" id="notification-service-row-restore" style="display:none;">
-        <label>
-          <span class="vm-backup-and-restoretip" title="Choose which notification service(s) to use">
-            Service:
-          </span>
-        </label>
-        <span>
-          <select id="notification_service_restore_hidden" name="NOTIFICATION_SERVICE_RESTORE" multiple
-            style="display:none;">
-            <?php
+      <div id="notification-service-row-restore" style="display:none;">
+        <div class="form-pair">
+          <label>
+            <span class="vm-backup-and-restoretip" title="Choose which notification service(s) to use">
+              Service:
+            </span>
+          </label>
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <select id="notification_service_restore_hidden" name="NOTIFICATION_SERVICE_RESTORE" multiple
+              style="display:none;">
+              <?php
             $selectedServicesRestore = array_filter(explode(',', $restoreSettings['NOTIFICATION_SERVICE_RESTORE'] ?? ''));
             foreach (['Discord','Gotify','Ntfy','Pushover','Slack','Unraid'] as $svc):
             ?>
-            <option value="<?= $svc ?>" <?=in_array($svc, $selectedServicesRestore) ? 'selected' : '' ?>>
-              <?= $svc ?>
-            </option>
-            <?php endforeach; ?>
-          </select>
-          <div id="notification_service_restore" class="vm-multiselect" style="width:220px;">
-            <div class="vm-dropdown-label" id="notification-service-label-restore">Select service(s)</div>
-            <div class="vm-dropdown-list" id="notification-service-list-restore" style="display:none;">
-              <?php foreach (['Discord','Gotify','Ntfy','Pushover','Slack','Unraid'] as $svc): ?>
-              <div>
-                <label>
-                  <input type="checkbox" value="<?= $svc ?>" <?=in_array($svc, $selectedServicesRestore) ? 'checked'
-                    : '' ?>>
-                  <?= $svc ?>
-                </label>
-              </div>
+              <option value="<?= $svc ?>" <?=in_array($svc, $selectedServicesRestore) ? 'selected' : '' ?>>
+                <?= $svc ?>
+              </option>
               <?php endforeach; ?>
+            </select>
+            <div id="notification_service_restore" class="vm-multiselect" style="width:220px;">
+              <div class="vm-dropdown-label" id="notification-service-label-restore">Select service(s)</div>
+              <div class="vm-dropdown-list" id="notification-service-list-restore" style="display:none;">
+                <?php foreach (['Discord','Gotify','Ntfy','Pushover','Slack','Unraid'] as $svc): ?>
+                <div>
+                  <label>
+                    <input type="checkbox" value="<?= $svc ?>" <?=in_array($svc, $selectedServicesRestore) ? 'checked'
+                      : '' ?>>
+                    <?= $svc ?>
+                  </label>
+                </div>
+                <?php endforeach; ?>
+              </div>
             </div>
           </div>
-        </span>
+        </div>
       </div>
 
       <!-- WEBHOOK FIELDS CONTAINER RESTORE (dynamically populated) -->
@@ -1603,61 +1678,36 @@ if (file_exists("/etc/unraid-version")) {
     }
   });
 
+  // ── Shared state ──────────────────────────────────────────────────────────
+  let lastLoadedRestorePath = '';
+  let versionRebuildInProgress = false;
+  let rebuildTimer = null;
+  let loadRestoreFoldersInProgress = false;
+  let scheduleUILocked = false;
+  let backupRunning = false;
+  let backupRequestInProgress = false;
+  let lastStatus = null;
+  let lastRestoreStatus = null;
+  let backupStartTime = 0;
+  let restoreStartTime = 0;
+  const MIN_DURATION = 5000;
+  const MIN_RESTORE_DURATION = 5000;
+
+  // ── Log copy toast ────────────────────────────────────────────────────────
   document.getElementById('copy-last-run-log').addEventListener('click', () => {
     const toast = document.getElementById('logtoast');
     toast.style.display = 'block';
     setTimeout(() => toast.style.display = 'none', 2000);
   });
 
+  // ── Notification / Webhook config ─────────────────────────────────────────
   const SERVICE_CONFIG = {
-    Discord: {
-      label: 'Discord Webhook URL',
-      tooltip: 'Enter your Discord webhook URL e.g. https://discord.com/api/webhooks/WEBHOOK or just WEBHOOK',
-      placeholder: 'https://discord.com/api/webhooks/WEBHOOK',
-      prefix: 'https://discord.com/api/webhooks/',
-      needsUserKey: false,
-      needsUrl: true
-    },
-    Gotify: {
-      label: 'Gotify URL',
-      tooltip: 'Enter your Gotify server message URL e.g. https://gotify.example.com/message?token=TOKEN or just TOKEN',
-      placeholder: 'https://gotify.example.com/message?token=TOKEN',
-      prefix: 'https://gotify.example.com/message?token=',
-      needsUserKey: false,
-      needsUrl: true
-    },
-    Ntfy: {
-      label: 'Ntfy URL',
-      tooltip: 'Enter your Ntfy topic URL e.g. https://ntfy.sh/yourtopic or just yourtopic',
-      placeholder: 'https://ntfy.sh/yourtopic',
-      prefix: 'https://ntfy.sh/',
-      needsUserKey: false,
-      needsUrl: true
-    },
-    Pushover: {
-      label: 'Pushover App Token URL',
-      tooltip: 'Enter your Pushover app token e.g. https://api.pushover.net/APPTOKEN or just APPTOKEN',
-      placeholder: 'https://api.pushover.net/YOURAPPTOKEN',
-      prefix: 'https://api.pushover.net/',
-      needsUserKey: true,
-      needsUrl: true
-    },
-    Slack: {
-      label: 'Slack Webhook URL',
-      tooltip: 'Enter your Slack webhook URL e.g. https://hooks.slack.com/services/ID or just ID',
-      placeholder: 'https://hooks.slack.com/services/ID',
-      prefix: 'https://hooks.slack.com/services/',
-      needsUserKey: false,
-      needsUrl: true
-    },
-    Unraid: {
-      label: null,
-      tooltip: "Uses Unraid's built-in notification system",
-      placeholder: null,
-      prefix: null,
-      needsUserKey: false,
-      needsUrl: false
-    }
+    Discord: { label: 'Discord Webhook URL', tooltip: 'Enter your Discord webhook URL e.g. https://discord.com/api/webhooks/WEBHOOK or just WEBHOOK', placeholder: 'https://discord.com/api/webhooks/WEBHOOK', prefix: 'https://discord.com/api/webhooks/', needsUserKey: false, needsUrl: true },
+    Gotify: { label: 'Gotify URL', tooltip: 'Enter your Gotify server message URL e.g. https://gotify.example.com/message?token=TOKEN or just TOKEN', placeholder: 'https://gotify.example.com/message?token=TOKEN', prefix: 'https://gotify.example.com/message?token=', needsUserKey: false, needsUrl: true },
+    Ntfy: { label: 'Ntfy URL', tooltip: 'Enter your Ntfy topic URL e.g. https://ntfy.sh/yourtopic or just yourtopic', placeholder: 'https://ntfy.sh/yourtopic', prefix: 'https://ntfy.sh/', needsUserKey: false, needsUrl: true },
+    Pushover: { label: 'Pushover App Token URL', tooltip: 'Enter your Pushover app token e.g. https://api.pushover.net/APPTOKEN or just APPTOKEN', placeholder: 'https://api.pushover.net/YOURAPPTOKEN', prefix: 'https://api.pushover.net/', needsUserKey: true, needsUrl: true },
+    Slack: { label: 'Slack Webhook URL', tooltip: 'Enter your Slack webhook URL e.g. https://hooks.slack.com/services/ID or just ID', placeholder: 'https://hooks.slack.com/services/ID', prefix: 'https://hooks.slack.com/services/', needsUserKey: false, needsUrl: true },
+    Unraid: { label: null, tooltip: "Uses Unraid's built-in notification system", placeholder: null, prefix: null, needsUserKey: false, needsUrl: false }
   };
 
   function normalizeWebhookUrl(val, service) {
@@ -1710,19 +1760,18 @@ if (file_exists("/etc/unraid-version")) {
         const savedVal = savedWebhooks[service.toUpperCase()] || '';
 
         const urlRow = $(`
-        <div class="form-pair" id="webhook-row-${service.toLowerCase()}${s_dash}">
-          <label>
-            <span class="vm-backup-and-restoretip" title="${cfg.tooltip}">${cfg.label}:</span>
-          </label>
-          <div class="input-wrapper">
+          <div class="form-pair" id="webhook-row-${service.toLowerCase()}${s_dash}">
+            <label>
+              <span class="vm-backup-and-restoretip" title="${cfg.tooltip}">${cfg.label}:</span>
+            </label>
+            <div class="input-wrapper">
               <input type="text" id="${urlFieldId}" class="short-input webhook-url-input"
                 data-service="${service}" data-suffix="${s}"
                 placeholder="${cfg.placeholder}" value="${savedVal}">
-            <div id="${errorId}" style="color:yellow; font-size:1.00em; display:none;">* Invalid ${service} webhook URL</div>
+              <div id="${errorId}" style="color:yellow; font-size:1.00em; display:none;">* Invalid ${service} webhook URL</div>
+            </div>
           </div>
-        </div>
-      `);
-
+        `);
         container.append(urlRow);
       }
 
@@ -1731,18 +1780,17 @@ if (file_exists("/etc/unraid-version")) {
         const pkErrorId = 'pushover-user-key-error' + s_dash;
 
         const pkRow = $(`
-        <div class="form-pair" id="pushover-user-key-row${s_dash}">
-          <label>
-            <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">Pushover User Key:</span>
-          </label>
-          <div class="input-wrapper">
+          <div class="form-pair" id="pushover-user-key-row${s_dash}">
+            <label>
+              <span class="vm-backup-and-restoretip" title="Your Pushover user key from pushover.net/dashboard">Pushover User Key:</span>
+            </label>
+            <div class="input-wrapper">
               <input type="text" id="${pkFieldId}" name="PUSHOVER_USER_KEY${s ? '_RESTORE' : ''}"
                 class="short-input" placeholder="user key from pushover.net/dashboard" value="${savedPushoverKey}">
-            <div id="${pkErrorId}" style="color:yellow; font-size:1.00em; display:none;">* Pushover user key is required</div>
+              <div id="${pkErrorId}" style="color:yellow; font-size:1.00em; display:none;">* Pushover user key is required</div>
+            </div>
           </div>
-        </div>
-      `);
-
+        `);
         container.append(pkRow);
       }
     });
@@ -1760,28 +1808,32 @@ if (file_exists("/etc/unraid-version")) {
       $(this).trigger('input');
     });
 
-    // Process any help labels just injected into this container
     if (window._fbbProcessLabels) {
       window._fbbProcessLabels(container);
     }
   }
 
-  function toggleNotificationRows(suffix) {
-    const s = suffix || '';
-    const notifSelectId = s ? '#notifications_' + s : '#notifications';
-    const serviceRowId = s ? '#notification-service-row-' + s : '#notification-service-row';
-    const webhookContainerId = s ? '#webhook-fields-container-' + s : '#webhook-fields-container';
+  // ── Notification row visibility — deterministic, uses getElementById to
+  //    avoid jQuery duplicate-ID ambiguity from the two forms on the page ──
+  function _applyNotifToggle(selectEl, serviceRowId, webhookContainerId) {
+    const isYes = selectEl && selectEl.value === 'yes';
+    const $row = $(serviceRowId);
+    const $wh = $(webhookContainerId);
 
-    if ($(notifSelectId).val() === 'yes') {
-      $(serviceRowId).show();
-      if (window._fbbProcessLabels) {
-        window._fbbProcessLabels($(serviceRowId));
-      }
-      rebuildWebhookFields(s);
+    if (isYes) {
+      $row.show();
+      if (window._fbbProcessLabels) window._fbbProcessLabels($row);
+      // Derive suffix from container id: '#webhook-fields-container-restore' → 'restore', '' → ''
+      const suffix = webhookContainerId.replace('#webhook-fields-container', '').replace(/^-/, '');
+      rebuildWebhookFields(suffix);
     } else {
-      $(serviceRowId).hide();
-      $(webhookContainerId).empty();
+      $row.hide();
+      $wh.empty();
     }
+
+    // Sync label for the visible multiselect
+    const suffix = webhookContainerId.replace('#webhook-fields-container', '').replace(/^-/, '');
+    updateServiceLabel(suffix);
   }
 
   // Multiselect open/close — backup
@@ -1797,11 +1849,7 @@ if (file_exists("/etc/unraid-version")) {
   });
 
   // Prevent clicks inside the lists from closing them
-  $('#notification-service-list').on('click', function (e) {
-    e.stopPropagation();
-  });
-
-  $('#notification-service-list-restore').on('click', function (e) {
+  $('#notification-service-list, #notification-service-list-restore').on('click', function (e) {
     e.stopPropagation();
   });
 
@@ -1815,116 +1863,112 @@ if (file_exists("/etc/unraid-version")) {
     }
   });
 
-  // Close dropdowns when clicking outside
-  $(document).on('click', function (e) {
-    if (!$(e.target).closest('#notification_service').length) {
-      $('#notification-service-list').hide();
-    }
-    if (!$(e.target).closest('#notification_service_restore').length) {
-      $('#notification-service-list-restore').hide();
-    }
-  });
-
-  // Checkbox changes — backup
+  // Checkbox changes
   $('#notification-service-list').on('change', 'input[type=checkbox]', function () {
     updateServiceLabel('');
     rebuildWebhookFields('');
   });
 
-  // Checkbox changes — restore
   $('#notification-service-list-restore').on('change', 'input[type=checkbox]', function () {
     updateServiceLabel('restore');
     rebuildWebhookFields('restore');
   });
 
-  // Notifications yes/no toggle
-  $('#notifications').on('change', function () { toggleNotificationRows(''); });
-  $('#notifications_restore').on('change', function () { toggleNotificationRows('restore'); });
+  // ── Init and change binding — runs after DOM ready ────────────────────────
+  $(document).ready(function () {
+    // Use getElementById for deterministic element resolution — avoids
+    // duplicate-ID ambiguity when jQuery would match the wrong form element.
+    const notifBackup = document.getElementById('notifications');
+    const notifRestore = document.getElementById('notifications_restore');
 
-  // Init on page load
-  toggleNotificationRows('');
-  toggleNotificationRows('restore');
-  updateServiceLabel('');
-  updateServiceLabel('restore');
+    function toggleBackup() { _applyNotifToggle(notifBackup, '#notification-service-row', '#webhook-fields-container'); }
+    function toggleRestore() { _applyNotifToggle(notifRestore, '#notification-service-row-restore', '#webhook-fields-container-restore'); }
 
-  var scheduleUILocked = false;
-  var rebuildToken = 0;
+    // Apply initial state from saved PHP values
+    toggleBackup();
+    toggleRestore();
 
-  function validateBackupPrereqs() {
-    const vms = $('#vm-hidden-backup').val()?.trim();
-    const dest = $('#backup_destination').val()?.trim();
+    // Bind change events via native addEventListener to bypass jQuery ID ambiguity
+    if (notifBackup) notifBackup.addEventListener('change', toggleBackup);
+    if (notifRestore) notifRestore.addEventListener('change', toggleRestore);
+  });
 
-    if (!vms) {
-      alert("Please select at least one VM for the schedule");
-      return false;
-    }
-
-    if (!dest) {
-      alert("Please select a backup destination for the schedule");
-      return false;
-    }
-
-    const services = getSelectedServices('');
-    if (services.includes('Pushover') && $('#notifications').val() === 'yes') {
-      if (!$('#pushover_user_key').val().trim()) {
-        alert('Please enter your Pushover user key');
-        return false;
-      }
-    }
-
-    return true;
-  }
-
+  // ── Schedule UI lock/unlock ───────────────────────────────────────────────
   function lockScheduleUI() {
     scheduleUILocked = true;
     $(".schedule-action-btn").each(function () {
-      if ($(this).text() !== 'Stop') {
-        $(this).prop("disabled", true);
-      }
+      if ($(this).text() !== 'Stop') $(this).prop("disabled", true);
     });
   }
 
   function unlockScheduleUI() {
     scheduleUILocked = false;
     $(".schedule-action-btn").each(function () {
-      if ($(this).text() !== 'Stop') {
-        $(this).prop("disabled", false);
-      }
+      if ($(this).text() !== 'Stop') $(this).prop("disabled", false);
     });
   }
 
-  function updateBackupStatus() {
-    fetch('/plugins/vm-backup-and-restore/helpers/backup_status_check.php')
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById('status-text').textContent = data.status;
-      })
-      .catch(() => {
-        document.getElementById('status-text').textContent = 'No Backup Running';
-      });
+  // ── Backup prereq validation ──────────────────────────────────────────────
+  function validateBackupPrereqs() {
+    const vms = $('#vm-hidden-backup').val()?.trim();
+    const dest = $('#backup_destination').val()?.trim();
+
+    if (!vms) { alert("Please select at least one VM for the schedule"); return false; }
+    if (!dest) { alert("Please select a backup destination for the schedule"); return false; }
+
+    const services = getSelectedServices('');
+    if (services.includes('Pushover') && document.getElementById('notifications')?.value === 'yes') {
+      if (!$('#pushover_user_key').val().trim()) { alert('Please enter your Pushover user key'); return false; }
+    }
+
+    return true;
   }
 
-  updateBackupStatus();
-  setInterval(updateBackupStatus, 1000);
-
-  function updateRestoreStatus() {
-    fetch('/plugins/vm-backup-and-restore/helpers/restore_status_check.php')
+  // ── Backup status poller ──────────────────────────────────────────────────
+  (function backupStatusPoller() {
+    fetch('/plugins/vm-backup-and-restore/helpers/backup_status_check.php', { credentials: 'same-origin' })
       .then(res => res.json())
       .then(data => {
-        document.getElementById('restore-status-text').textContent = data.status;
+        const el = document.getElementById('status-text');
+        if (el) el.textContent = data.status;
+        lastStatus = data.status;
       })
       .catch(() => {
-        document.getElementById('restore-status-text').textContent = 'No Restore Running';
+        const el = document.getElementById('status-text');
+        if (el) el.textContent = 'No Backup Running';
+        lastStatus = 'No Backup Running';
+      })
+      .finally(() => {
+        const delay = (lastStatus && lastStatus.includes('Running')) ? 1000 : 4000;
+        setTimeout(backupStatusPoller, delay);
       });
-  }
+  })();
 
-  updateRestoreStatus();
-  setInterval(updateRestoreStatus, 1000);
+  // ── Restore status poller ─────────────────────────────────────────────────
+  (function restoreStatusPoller() {
+    fetch('/plugins/vm-backup-and-restore/helpers/restore_status_check.php', { credentials: 'same-origin' })
+      .then(res => res.json())
+      .then(data => {
+        const el = document.getElementById('restore-status-text');
+        if (el) el.textContent = data.status;
+        lastRestoreStatus = data.status;
+      })
+      .catch(() => {
+        const el = document.getElementById('restore-status-text');
+        if (el) el.textContent = 'No Restore Running';
+        lastRestoreStatus = 'No Restore Running';
+      })
+      .finally(() => {
+        const delay = (lastRestoreStatus && lastRestoreStatus.includes('Running')) ? 1000 : 4000;
+        setTimeout(restoreStatusPoller, delay);
+      });
+  })();
 
-  // --- Scheduling Dropdown Toggle ---
+  // ── Scheduling dropdown toggle ────────────────────────────────────────────
   (function waitForSchedulingToggle() {
     function initSchedulingToggle() {
       const cronModeSelect = document.getElementById('cron_mode');
+      if (!cronModeSelect) return false;
 
       const minutesOptions = document.getElementById('minutes-options');
       const hourlyOptions = document.getElementById('hourly-options');
@@ -1936,13 +1980,14 @@ if (file_exists("/etc/unraid-version")) {
       const minutesFreq = document.getElementById('minutes_frequency');
       const hourlyFreq = document.getElementById('hourly_frequency');
       const dailyTime = document.getElementById('daily_time');
+      const dailyMinute = document.getElementById('daily_minute');
       const weeklyDay = document.getElementById('weekly_day');
       const weeklyTime = document.getElementById('weekly_time');
+      const weeklyMinute = document.getElementById('weekly_minute');
       const monthlyDay = document.getElementById('monthly_day');
       const monthlyTime = document.getElementById('monthly_time');
+      const monthlyMinute = document.getElementById('monthly_minute');
       const customCron = document.getElementById('custom_cron');
-
-      if (!cronModeSelect) return false;
 
       function toggleCronOptions(value) {
         minutesOptions.style.display = (value === 'minutes') ? 'block' : 'none';
@@ -1955,44 +2000,29 @@ if (file_exists("/etc/unraid-version")) {
       }
 
       function updateCronExpression() {
-        let cronString = "";
-
-        if (cronModeSelect.value === "minutes" && minutesFreq) {
-          const freq = parseInt(minutesFreq.value, 10);
-          cronString = `*/${freq} * * * *`;
-        }
-        else if (cronModeSelect.value === "hourly" && hourlyFreq) {
-          const freq = parseInt(hourlyFreq.value, 10);
-          cronString = `0 */${freq} * * *`;
-        }
-        else if (cronModeSelect.value === "daily" && dailyTime) {
-          const [hour, minute] = dailyTime.value.split(":");
-          cronString = `0 ${parseInt(hour, 10)} * * *`;
-        }
-        else if (cronModeSelect.value === "weekly" && weeklyDay && weeklyTime) {
-          const [hour, minute] = weeklyTime.value.split(":");
-          const dayMap = {
-            Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3,
-            Thursday: 4, Friday: 5, Saturday: 6
-          };
-          cronString = `0 ${parseInt(hour, 10)} * * ${dayMap[weeklyDay.value]}`;
-        }
-        else if (cronModeSelect.value === "monthly" && monthlyDay && monthlyTime) {
-          const [hour, minute] = monthlyTime.value.split(":");
-          const day = parseInt(monthlyDay.value, 10);
-          cronString = `0 ${parseInt(hour, 10)} ${day} * *`;
-        }
-        else if (cronModeSelect.value === "custom" && customCron) {
+        let cronString = '';
+        if (cronModeSelect.value === 'minutes' && minutesFreq) {
+          cronString = `*/${parseInt(minutesFreq.value, 10)} * * * *`;
+        } else if (cronModeSelect.value === 'hourly' && hourlyFreq) {
+          cronString = `0 */${parseInt(hourlyFreq.value, 10)} * * *`;
+        } else if (cronModeSelect.value === 'daily' && dailyTime && dailyMinute) {
+          cronString = `${parseInt(dailyMinute.value, 10)} ${parseInt(dailyTime.value, 10)} * * *`;
+        } else if (cronModeSelect.value === 'weekly' && weeklyDay && weeklyTime && weeklyMinute) {
+          const dayMap = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+          cronString = `${parseInt(weeklyMinute.value, 10)} ${parseInt(weeklyTime.value, 10)} * * ${dayMap[weeklyDay.value]}`;
+        } else if (cronModeSelect.value === 'monthly' && monthlyDay && monthlyTime && monthlyMinute) {
+          cronString = `${parseInt(monthlyMinute.value, 10)} ${parseInt(monthlyTime.value, 10)} ${parseInt(monthlyDay.value, 10)} * *`;
+        } else if (cronModeSelect.value === 'custom' && customCron) {
           cronString = customCron.value.trim();
         }
 
-        let hidden = document.getElementById("cron_expression_hidden");
+        let hidden = document.getElementById('cron_expression_hidden');
         if (!hidden) {
-          hidden = document.createElement("input");
-          hidden.type = "hidden";
-          hidden.id = "cron_expression_hidden";
-          hidden.name = "CRON_EXPRESSION";
-          cronModeSelect.closest(".form-pair").appendChild(hidden);
+          hidden = document.createElement('input');
+          hidden.type = 'hidden';
+          hidden.id = 'cron_expression_hidden';
+          hidden.name = 'CRON_EXPRESSION';
+          cronModeSelect.closest('.form-pair').appendChild(hidden);
         }
         hidden.value = cronString;
       }
@@ -2003,10 +2033,13 @@ if (file_exists("/etc/unraid-version")) {
       minutesFreq?.addEventListener('change', updateCronExpression);
       hourlyFreq?.addEventListener('change', updateCronExpression);
       dailyTime?.addEventListener('change', updateCronExpression);
+      dailyMinute?.addEventListener('change', updateCronExpression);
       weeklyDay?.addEventListener('change', updateCronExpression);
       weeklyTime?.addEventListener('change', updateCronExpression);
+      weeklyMinute?.addEventListener('change', updateCronExpression);
       monthlyDay?.addEventListener('change', updateCronExpression);
       monthlyTime?.addEventListener('change', updateCronExpression);
+      monthlyMinute?.addEventListener('change', updateCronExpression);
       customCron?.addEventListener('input', updateCronExpression);
 
       return true;
@@ -2020,72 +2053,67 @@ if (file_exists("/etc/unraid-version")) {
     }
   })();
 
-  function loadLastRunLog() {
-    fetch('/plugins/vm-backup-and-restore/helpers/fetch_last_run_log.php')
+  // ── Last run log poller ───────────────────────────────────────────────────
+  (function lastRunLogPoller() {
+    fetch('/plugins/vm-backup-and-restore/helpers/fetch_last_run_log.php', { credentials: 'same-origin' })
       .then(res => res.text())
-      .then(data => { document.getElementById('last-run-log').textContent = data || 'Backup & restore log not found'; })
-      .catch(() => { document.getElementById('last-run-log').textContent = 'Error loading backup & restore log.'; });
-  }
-  loadLastRunLog();
-  setInterval(loadLastRunLog, 1000);
+      .then(data => {
+        const el = document.getElementById('last-run-log');
+        if (el) el.textContent = data || 'Backup & restore log not found';
+      })
+      .catch(() => {
+        const el = document.getElementById('last-run-log');
+        if (el) el.textContent = 'Error loading backup & restore log.';
+      })
+      .finally(() => { setTimeout(lastRunLogPoller, 1000); });
+  })();
 
-  // === Clear Log Button ===
-  const clearLastRunBtn = document.getElementById("clear-last-run-log");
-
+  // ── Clear log button ──────────────────────────────────────────────────────
+  const clearLastRunBtn = document.getElementById('clear-last-run-log');
   if (clearLastRunBtn) {
-    clearLastRunBtn.addEventListener("click", function () {
-      if (confirm("Are you sure you want to clear the backup & restore Log?")) {
-        fetch("/plugins/vm-backup-and-restore/helpers/clear_log.php", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-CSRF-TOKEN": csrfToken
-          },
-          body: "log=last&csrf_token=" + encodeURIComponent(csrfToken)
+    clearLastRunBtn.addEventListener('click', function () {
+      if (confirm('Are you sure you want to clear the backup & restore Log?')) {
+        fetch('/plugins/vm-backup-and-restore/helpers/clear_log.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': csrfToken },
+          body: 'log=last&csrf_token=' + encodeURIComponent(csrfToken)
         })
           .then(r => r.json())
           .then(data => {
-            showToast(toastLast, data.message, data.ok ? "ok" : "err");
-            if (data.ok) document.getElementById("last-run-log").textContent = "";
+            showToast(toastLast, data.message, data.ok ? 'ok' : 'err');
+            if (data.ok) document.getElementById('last-run-log').textContent = '';
           })
-          .catch(() => showToast(toastLast, "Failed to clear log", "err"));
+          .catch(() => showToast(toastLast, 'Failed to clear log', 'err'));
       }
     });
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    const locationInput = document.getElementById("location_of_backups");
-
-    function updateVisibility() {
-      const hasPath = locationInput.value.trim().length > 0;
+  // ── Location input visibility ─────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function () {
+    const locationInput = document.getElementById('location_of_backups');
+    if (locationInput) {
+      locationInput.addEventListener('input', function () {
+        // placeholder for any future visibility logic
+      });
     }
-
-    updateVisibility();
-    locationInput.addEventListener("input", updateVisibility);
   });
 
+  // ── Backup owner dropdown ─────────────────────────────────────────────────
   $(document).ready(function () {
     const select = $('#backup_owner');
     const selected = select.data('selected') || 'nobody';
 
     $.getJSON('/plugins/vm-backup-and-restore/helpers/list_users_group100.php', function (data) {
       select.empty();
-
       data.users.forEach(user => {
-        const opt = $('<option>', {
-          value: user,
-          text: user
-        });
-
-        if (user === selected) {
-          opt.prop('selected', true);
-        }
-
+        const opt = $('<option>', { value: user, text: user });
+        if (user === selected) opt.prop('selected', true);
         select.append(opt);
       });
     });
   });
 
+  // ── Backup VM dropdown ────────────────────────────────────────────────────
   $(document).ready(function () {
     const dropdownBackup = $('#vm-dropdown');
     const labelBackup = dropdownBackup.find('.vm-dropdown-label');
@@ -2093,7 +2121,6 @@ if (file_exists("/etc/unraid-version")) {
 
     labelBackup.on('click', function (e) {
       if (dropdownBackup.hasClass('disabled')) return;
-
       e.stopPropagation();
       listBackup.toggle();
       dropdownBackup.toggleClass('active', listBackup.is(':visible'));
@@ -2106,34 +2133,27 @@ if (file_exists("/etc/unraid-version")) {
       }
     });
 
-    function updateBackupLabel() {
-      const checked = listBackup.find('input:checked').map(function () {
-        return $(this).val();
-      }).get();
-
-      labelBackup.text(checked.length ? checked.join(', ') : 'Select VM(s)');
-
+    function ensureHiddenFieldBackup(value) {
       let hidden = $('#vm-hidden-backup');
       if (!hidden.length) {
-        hidden = $('<input>', {
-          type: 'hidden',
-          id: 'vm-hidden-backup',
-          name: 'VMS_TO_BACKUP'
-        }).appendTo(dropdownBackup.parent());
+        hidden = $('<input>', { type: 'hidden', id: 'vm-hidden-backup', name: 'VMS_TO_BACKUP' })
+          .appendTo(dropdownBackup.parent());
       }
+      hidden.val(value);
+    }
 
-      hidden.val(checked.join(','));
+    function updateBackupLabel() {
+      const checked = listBackup.find('input:checked').map(function () { return $(this).val(); }).get();
+      labelBackup.text(checked.length ? checked.join(', ') : 'Select VM(s)');
+      ensureHiddenFieldBackup(checked.join(','));
     }
 
     window.loadBackupVMs = function () {
       dropdownBackup.removeClass('disabled');
       listBackup.hide();
 
-      const selectedBackup =
-        (dropdownBackup.attr('data-selected') || '')
-          .split(',')
-          .map(s => s.trim())
-          .filter(Boolean);
+      const selectedBackup = (dropdownBackup.attr('data-selected') || '')
+        .split(',').map(s => s.trim()).filter(Boolean);
 
       $.getJSON('/plugins/vm-backup-and-restore/helpers/list_vms.php', function (data) {
         listBackup.empty();
@@ -2148,20 +2168,15 @@ if (file_exists("/etc/unraid-version")) {
 
         data.vms.forEach(vm => {
           const id = 'vmchk-' + vm.replace(/\s+/g, '_');
-
           const item = $(`
-        <div>
-          <label>
-            <input type="checkbox" value="${vm}" id="${id}">
-            ${vm}
-          </label>
-        </div>
-      `);
-
-          if (selectedBackup.includes(vm)) {
-            item.find('input').prop('checked', true);
-          }
-
+            <div>
+              <label>
+                <input type="checkbox" value="${vm}" id="${id}">
+                ${vm}
+              </label>
+            </div>
+          `);
+          if (selectedBackup.includes(vm)) item.find('input').prop('checked', true);
           listBackup.append(item);
         });
 
@@ -2171,36 +2186,29 @@ if (file_exists("/etc/unraid-version")) {
 
     loadBackupVMs();
 
-    setInterval(function () {
-      if (listBackup.is(':visible')) return;
+    listBackup.on('change', 'input[type=checkbox]', updateBackupLabel);
+
+    // VM list refresh poller
+    (function vmListRefreshPoller() {
+      const MIN_DELAY = 5000;
+      if (listBackup.is(':visible')) return setTimeout(vmListRefreshPoller, MIN_DELAY);
+
       const currentSelected = $('#vm-hidden-backup').val() || '';
+
       $.getJSON('/plugins/vm-backup-and-restore/helpers/list_vms.php', function (data) {
         if (!data.vms) return;
         const newVms = data.vms.slice().sort().join(',');
         const oldVms = listBackup.find('input[type=checkbox]')
           .map(function () { return $(this).val(); }).get().sort().join(',');
-        if (newVms === oldVms) return;
-        // List changed — reload but preserve current selections
-        dropdownBackup.attr('data-selected', currentSelected);
-        loadBackupVMs();
-      });
-    }, 5000);
-
-    function ensureHiddenFieldBackup(value) {
-      let hidden = $('#vm-hidden-backup');
-      if (!hidden.length) {
-        hidden = $('<input>', {
-          type: 'hidden',
-          id: 'vm-hidden-backup',
-          name: 'VMS_TO_BACKUP'
-        }).appendTo(dropdownBackup.parent());
-      }
-      hidden.val(value);
-    }
-
-    listBackup.on('change', 'input[type=checkbox]', updateBackupLabel);
+        if (newVms !== oldVms) {
+          dropdownBackup.attr('data-selected', currentSelected);
+          loadBackupVMs();
+        }
+      }).always(() => setTimeout(vmListRefreshPoller, MIN_DELAY));
+    })();
   });
 
+  // ── Tooltip close helper ──────────────────────────────────────────────────
   function closeTooltips() {
     $('.vm-backup-and-restoretip').trigger('mouseleave');
   }
@@ -2209,8 +2217,7 @@ if (file_exists("/etc/unraid-version")) {
     closeTooltips();
   });
 
-  const versionSelections = {};
-
+  // ── Malformed backup scanner ──────────────────────────────────────────────
   function formatMissingList(arr) {
     if (arr.length === 1) return arr[0];
     if (arr.length === 2) return arr[0] + ' and ' + arr[1];
@@ -2218,7 +2225,6 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   function scanMalformedBackups() {
-
     const restorePath = $('#location_of_backups').val();
     if (!restorePath) return;
 
@@ -2226,211 +2232,216 @@ if (file_exists("/etc/unraid-version")) {
       '/plugins/vm-backup-and-restore/helpers/scan_malformed_backups.php',
       { restore_path: restorePath },
       function (data) {
-
-        if (!data || data.length === 0) {
-          $('#malformed-warning-container').empty();
-          return;
-        }
+        if (!data || data.length === 0) { $('#malformed-warning-container').empty(); return; }
 
         let message = '';
-
         if (data.length === 1) {
-
           const b = data[0];
-          message =
-            `⚠ ${b.vm} - Backup with timestamp ${b.backup} is missing ${formatMissingList(b.missing)}<br>` +
-            `This backup will not be included to be restored`;
-
+          message = `⚠ ${b.vm} - Backup with timestamp ${b.backup} is missing ${formatMissingList(b.missing)}<br>This backup will not be included to be restored`;
         } else {
-
           message = '⚠ Missing files:<br>';
-
-          data.forEach(b => {
-            message += `${b.vm} - ${b.backup} - ${formatMissingList(b.missing)}<br>`;
-          });
-
+          data.forEach(b => { message += `${b.vm} - ${b.backup} - ${formatMissingList(b.missing)}<br>`; });
           message += 'These backups will not be included to be restored';
         }
 
         $('#malformed-warning-container').html(`
-        <div style="
-          background:#7f1d1d;
-          color:#fff;
-          padding:10px;
-          border-radius:4px;
-          margin-bottom:12px;
-          font-weight:600;
-          max-width:391px;
-          white-space:normal;
-        ">
-          ${message}
-        </div>
-      `);
+          <div style="background:#7f1d1d;color:#fff;padding:10px;border-radius:4px;margin-bottom:12px;font-weight:600;max-width:391px;white-space:normal;">
+            ${message}
+          </div>
+        `);
       }
     );
   }
 
-  function rebuildVersionFields() {
-
-    const container = $('#version-fields-container');
-    container.empty();
-    $('#malformed-warning-container').empty();
-
-    const restorePath = $('#location_of_backups').val();
-    if (!restorePath) return;
-
-    const raw = $('#vm-hidden-restore').val() || '';
-    const selected = raw.split(',').map(s => s.trim()).filter(Boolean);
-    if (selected.length === 0) return;
-
-    const token = ++rebuildToken;
-
-    selected.forEach(vm => {
-
-      $.getJSON(
-        '/plugins/vm-backup-and-restore/helpers/get_vm_versions.php',
-        { vm, restore_path: restorePath },
-        function (versions) {
-
-          const wrapper = $(`
-          <div class="form-pair version-field">
-            <label class="version-label-${vm.replace(/\s+/g, '_')}">
-              Version for ${vm}:
-            </label>
-            <span>
-              <select name="VERSION_${vm}" data-vm="${vm}" class="version-select"></select>
-            </span>
-          </div>
-        `);
-
-          const select = wrapper.find('select');
-
-          if (!versions || versions.length === 0) {
-
-            select.prop('disabled', true);
-            select.append(`
-            <option selected style="color:#999;">
-              No backups found
-            </option>
-          `);
-
-            container.append(wrapper);
-
-            pendingRequests--;
-            if (pendingRequests === 0) buildMalformedBanner();
-            return;
-          }
-
-          const validVersions = versions.filter(v => !v.malformed);
-
-          // CASE 1: NO VALID BACKUPS
-          if (validVersions.length === 0) {
-
-            select.prop('disabled', true);
-            select.append(`
-            <option selected style="color:#999;">
-              No backups with all 3 files exist
-            </option>
-          `);
-
-            container.append(wrapper);
-
-          } else {
-
-            // CASE 2: VALID BACKUPS EXIST
-            validVersions.forEach((v, idx) => {
-
-              let label = v.display;
-
-              if (idx === 0) {
-                label += ' (LATEST)';
-              }
-
-              if (validVersions.length > 1 && idx === validVersions.length - 1) {
-                label += ' (OLDEST)';
-              }
-
-              select.append(`<option value="${v.raw}">${label}</option>`);
-            });
-
-            // Auto-select newest
-            select.val(validVersions[0].raw);
-
-            container.append(wrapper);
-          }
-
-          if (window._fbbAttachHelp) {
-            const $lbl = wrapper.find('label');
-            window._fbbAttachHelp(
-              $lbl,
-              `Select which backup version to restore for ${vm}`,
-              wrapper
-            );
-          }
-
-          pendingRequests--;
-          if (pendingRequests === 0) buildMalformedBanner();
-        }
-      );
-    });
-  }
-
-  let malformedPoller = null;
+  let malformedPollerRunning = false;
 
   function startMalformedPolling() {
-
-    if (malformedPoller) return; // prevent duplicate intervals
-
-    malformedPoller = setInterval(function () {
-      scanMalformedBackups();
-    }, 1000); // 1 second
+    if (malformedPollerRunning) return;
+    malformedPollerRunning = true;
+    malformedLoop();
   }
 
   function stopMalformedPolling() {
-    if (malformedPoller) {
-      clearInterval(malformedPoller);
-      malformedPoller = null;
-    }
+    malformedPollerRunning = false;
   }
 
+  function malformedLoop() {
+    if (!malformedPollerRunning) return;
+    Promise.resolve()
+      .then(() => scanMalformedBackups())
+      .finally(() => { if (malformedPollerRunning) setTimeout(malformedLoop, 1000); });
+  }
+
+  // ── Version fields ────────────────────────────────────────────────────────
+  function scheduleRebuildVersionFields() {
+    clearTimeout(rebuildTimer);
+    rebuildTimer = setTimeout(_doRebuildVersionFields, 150);
+  }
+
+  function _doRebuildVersionFields() {
+    if (versionRebuildInProgress) { rebuildTimer = setTimeout(_doRebuildVersionFields, 150); return; }
+
+    const container = $('#version-fields-container');
+    const wrapper = $('#version-fields-wrapper');
+
+    container.empty();
+    $('#malformed-warning-container').empty();
+
+    const restorePath = $('#location_of_backups').val().trim();
+    if (!restorePath) { wrapper.hide(); return; }
+
+    const rawSelected = $('#vm-hidden-restore').val() || '';
+    const selectedVMs = rawSelected.split(',').map(s => s.trim()).filter(Boolean);
+    if (selectedVMs.length === 0) { wrapper.hide(); return; }
+
+    wrapper.show();
+    versionRebuildInProgress = true;
+
+    let pendingRequests = selectedVMs.length;
+    const vmVersionData = {};
+
+    selectedVMs.forEach(vm => {
+      $.getJSON('/plugins/vm-backup-and-restore/helpers/get_vm_versions.php',
+        { vm, restore_path: restorePath },
+        function (versions) {
+          vmVersionData[vm] = versions;
+          pendingRequests--;
+
+          if (pendingRequests === 0) {
+            selectedVMs.forEach(vm => {
+              const versions = vmVersionData[vm] || [];
+              const fieldWrapper = $(`
+                <div class="form-pair version-field">
+                  <label class="version-label-${vm.replace(/\s+/g, '_')}">
+                    Version for ${vm}:
+                  </label>
+                  <span>
+                    <select name="VERSION_${vm}" data-vm="${vm}" class="version-select"></select>
+                  </span>
+                </div>
+              `);
+
+              const select = fieldWrapper.find('select');
+
+              if (!versions || versions.length === 0) {
+                select.prop('disabled', true).append('<option selected style="color:#999;">No backups found</option>');
+              } else {
+                const validVersions = versions.filter(v => !v.malformed);
+                if (validVersions.length === 0) {
+                  select.prop('disabled', true).append('<option selected style="color:#999;">No backups with all 3 files exist</option>');
+                } else {
+                  validVersions.forEach((v, idx) => {
+                    let label = v.display;
+                    if (idx === 0) label += ' (LATEST)';
+                    if (validVersions.length > 1 && idx === validVersions.length - 1) label += ' (OLDEST)';
+                    select.append(`<option value="${v.raw}">${label}</option>`);
+                  });
+                  select.val(validVersions[0].raw).prop('disabled', false);
+                }
+              }
+
+              fieldWrapper.find('label').attr('title', `Select which backup version to restore for ${vm}`);
+              container.append(fieldWrapper);
+            });
+
+            if (window._fbbProcessLabels) window._fbbProcessLabels(container);
+            versionRebuildInProgress = false;
+          }
+        }
+      ).fail(function () {
+        pendingRequests--;
+        if (pendingRequests === 0) versionRebuildInProgress = false;
+      });
+    });
+  }
+
+  // Refresh versions on focus
+  $(document).on('focus', '.version-select', function () {
+    const select = $(this);
+    const vm = select.data('vm');
+    const restorePath = $('#location_of_backups').val().trim();
+    if (!vm || !restorePath) return;
+
+    const currentValue = select.val();
+
+    $.getJSON('/plugins/vm-backup-and-restore/helpers/get_vm_versions.php',
+      { vm, restore_path: restorePath },
+      function (versions) {
+        select.empty();
+        if (!versions || versions.length === 0) {
+          select.prop('disabled', true).append('<option selected style="color:#999;">No backups found</option>');
+          return;
+        }
+        const validVersions = versions.filter(v => !v.malformed);
+        if (validVersions.length === 0) {
+          select.prop('disabled', true).append('<option selected style="color:#999;">No backups with all 3 files exist</option>');
+        } else {
+          validVersions.forEach((v, idx) => {
+            let label = v.display;
+            if (idx === 0) label += ' (LATEST)';
+            if (validVersions.length > 1 && idx === validVersions.length - 1) label += ' (OLDEST)';
+            select.append(`<option value="${v.raw}">${label}</option>`);
+          });
+          select.val(validVersions.some(v => v.raw === currentValue) ? currentValue : validVersions[0].raw);
+          select.prop('disabled', false);
+        }
+      }
+    );
+  });
+
+  // ── Restore VM dropdown + folder loading ──────────────────────────────────
   $(document).ready(function () {
     const dropdown = $('#vm-dropdown-restore');
     const list = dropdown.find('.vm-dropdown-list-restore');
     const label = dropdown.find('.vm-dropdown-label-restore');
 
-    const selectedRaw = dropdown.data('selected') || '';
-    const selected = selectedRaw.split(',').map(s => s.trim()).filter(s => s !== '');
+    let originalConfigRestoreSelection = ($('#vm-hidden-restore').val() || '')
+      .split(',').map(s => s.trim()).filter(Boolean);
 
-    dropdown.on('click', function (e) {
-      e.stopPropagation();
-      list.toggle();
-      dropdown.toggleClass('active', list.is(':visible'));
-    });
+    function ensureHiddenFieldRestore(value) {
+      let hidden = $('#vm-hidden-restore');
+      if (!hidden.length) {
+        hidden = $('<input>', { type: 'hidden', id: 'vm-hidden-restore', name: 'VMS_TO_RESTORE' })
+          .appendTo(dropdown.parent());
+      }
+      hidden.val(value);
+    }
 
-    $(document).on('click', function () {
-      list.hide();
-      dropdown.removeClass('active');
-    });
+    function enforceVersionVisibility() {
+      const hasPath = $('#location_of_backups').val().trim() !== '';
+      const hasSelection = ($('#vm-hidden-restore').val() || '').trim() !== '';
+      if (!hasPath || !hasSelection) { $('#version-fields-wrapper').hide(); return false; }
+      $('#version-fields-wrapper').show();
+      return true;
+    }
 
-    list.on('click', 'input[type=checkbox]', function (e) {
-      e.stopPropagation();
-    });
-
-    list.on('click', 'label', function (e) {
-      e.stopPropagation();
-    });
+    function updateRestoreLabel() {
+      const checked = list.find('input:checked').map(function () { return $(this).val(); }).get();
+      if (checked.length === 0) {
+        label.text('Select VM(s)');
+        ensureHiddenFieldRestore('');
+      } else {
+        label.text(checked.join(', '));
+        ensureHiddenFieldRestore(checked.join(','));
+      }
+      enforceVersionVisibility();
+    }
 
     function loadRestoreFolders() {
-      const restorePath = $('#location_of_backups').val();
+      if (loadRestoreFoldersInProgress) return;
+      loadRestoreFoldersInProgress = true;
+
+      const restorePath = $('#location_of_backups').val().trim();
       list.empty();
-      label.text('No backups at this location');
 
       if (!restorePath) {
-        ensureHiddenFieldRestore('');
-        dropdown.removeClass('active');
+        dropdown.addClass('disabled').removeClass('active');
         list.hide();
-        dropdown.addClass('disabled');
-        label.text('No backups at this location');
+        label.text('No backups at this location').css('color', '');
+        loadRestoreFoldersInProgress = false;
+        ensureHiddenFieldRestore('');
+        $('#version-fields-wrapper').hide();
+        $('#version-fields-container').empty();
         return;
       }
 
@@ -2440,111 +2451,132 @@ if (file_exists("/etc/unraid-version")) {
           list.empty();
 
           if (!data.folders || data.folders.length === 0) {
-            ensureHiddenFieldRestore('');
+            dropdown.addClass('disabled').removeClass('active');
             list.hide();
-            dropdown.addClass('disabled');
-            label.text('No backups at this location');
-            rebuildVersionFields();
+            label.text('No backups at this location').css('color', '');
+            ensureHiddenFieldRestore('');
+            $('#version-fields-wrapper').hide();
+            $('#version-fields-container').empty();
             return;
           }
 
-          dropdown.removeClass('disabled');
+          dropdown.removeClass('disabled active');
+          list.hide();
+          label.css('color', '');
+
+          const savedSelection = originalConfigRestoreSelection;
+          const stillValidSelections = [];
 
           data.folders.forEach(folder => {
             const id = 'vmrestore-' + folder.replace(/\s+/g, '_');
-
             const item = $(`
-          <div>
-            <label>
-              <input type="checkbox" value="${folder}" id="${id}">
-              ${folder}
-            </label>
-          </div>
-        `);
-
-            if (selected.includes(folder)) {
+              <div>
+                <label>
+                  <input type="checkbox" value="${folder}" id="${id}">
+                  ${folder}
+                </label>
+              </div>
+            `);
+            if (savedSelection.includes(folder)) {
               item.find('input').prop('checked', true);
+              stillValidSelections.push(folder);
             }
-
             list.append(item);
           });
 
-          updateRestoreLabel();
-          rebuildVersionFields();
+          if (stillValidSelections.length > 0) {
+            label.text(stillValidSelections.join(', '));
+            ensureHiddenFieldRestore(stillValidSelections.join(','));
+          } else {
+            label.text('Select VM(s)');
+            ensureHiddenFieldRestore('');
+          }
+
+          scheduleRebuildVersionFields();
         }
-      );
+      ).fail(function () {
+        dropdown.addClass('disabled').removeClass('active');
+        list.hide();
+        label.text('Error loading backups').css('color', '');
+        ensureHiddenFieldRestore('');
+        $('#version-fields-wrapper').hide();
+        $('#version-fields-container').empty();
+      }).always(function () {
+        loadRestoreFoldersInProgress = false;
+      });
     }
 
-    function updateRestoreLabel() {
-      const checked = list.find('input:checked').map(function () {
-        return $(this).val();
-      }).get();
+    // Dropdown open/close
+    dropdown.on('click', function (e) {
+      if (dropdown.hasClass('disabled')) return;
+      e.stopPropagation();
+      list.toggle();
+      dropdown.toggleClass('active', list.is(':visible'));
+    });
 
-      if (checked.length === 0) {
-        label.text('Select VM(s)');
-      } else {
-        label.text(checked.join(', '));
+    $(document).on('click', function (e) {
+      if (!$(e.target).closest('#vm-dropdown-restore').length) {
+        list.hide();
+        dropdown.removeClass('active');
       }
+    });
 
-      ensureHiddenFieldRestore(checked.join(','));
-    }
-
-    function ensureHiddenFieldRestore(value) {
-      let hidden = $('#vm-hidden-restore');
-      if (!hidden.length) {
-        hidden = $('<input>', {
-          type: 'hidden',
-          id: 'vm-hidden-restore',
-          name: 'VMS_TO_RESTORE'
-        }).appendTo(dropdown.parent());
-      }
-      hidden.val(value);
-    }
+    list.on('click', 'input, label', function (e) { e.stopPropagation(); });
 
     list.on('change', 'input[type=checkbox]', function () {
       updateRestoreLabel();
-      rebuildVersionFields();
+      scheduleRebuildVersionFields();
     });
 
+    // Location input changes — debounced
+    let locationChangeTimer = null;
     $('#location_of_backups').on('input blur change', function () {
-      loadRestoreFolders();
-      rebuildVersionFields();
+      const currentPath = $(this).val().trim();
+      if (currentPath === lastLoadedRestorePath) return;
+      lastLoadedRestorePath = currentPath;
+      clearTimeout(locationChangeTimer);
+      locationChangeTimer = setTimeout(function () {
+        loadRestoreFolders();
+        scanMalformedBackups();
+      }, 300);
     });
 
-    loadRestoreFolders();
+    // Restore folder poller
+    (function restoreFolderPoller() {
+      const MIN_DELAY = 1000;
+      if (list.is(':visible')) return setTimeout(restoreFolderPoller, MIN_DELAY);
 
-    setInterval(function () {
-      if (list.is(':visible')) return;
       const restorePath = $('#location_of_backups').val().trim();
-      if (!restorePath) return;
+      if (!restorePath) return setTimeout(restoreFolderPoller, MIN_DELAY);
+
       const currentSelected = $('#vm-hidden-restore').val() || '';
+
       $.getJSON('/plugins/vm-backup-and-restore/helpers/list_restore_folders.php',
         { restore_path: restorePath },
         function (data) {
           const newFolders = (data.folders || []).slice().sort().join(',');
           const oldFolders = list.find('input[type=checkbox]')
             .map(function () { return $(this).val(); }).get().sort().join(',');
-          if (newFolders === oldFolders) return;
-          // List changed — reload but preserve current selections
-          selected.length = 0;
-          currentSelected.split(',').map(s => s.trim()).filter(Boolean)
-            .forEach(s => selected.push(s));
-          loadRestoreFolders();
+          if (newFolders !== oldFolders) {
+            originalConfigRestoreSelection = currentSelected.split(',').map(s => s.trim()).filter(Boolean);
+            loadRestoreFolders();
+          }
         }
-      );
-    }, 1000);
+      ).always(function () { setTimeout(restoreFolderPoller, MIN_DELAY); });
+    })();
 
+    loadRestoreFolders();
+    enforceVersionVisibility();
+    window.loadRestoreFolders = loadRestoreFolders;
   });
 </script>
 
 <script>
   let cronValid = false;
-  let backupRunning = false;
 
   const cronInput = document.getElementById('custom_cron');
   const cronMode = document.getElementById('cron_mode');
   const backupbtn = document.getElementById('backupbtn');
-
   const warnFields = document.getElementById('cron-warning-fields');
   const warnSlash = document.getElementById('cron-warning-slash');
 
@@ -2554,7 +2586,7 @@ if (file_exists("/etc/unraid-version")) {
   }
 
   function validateCronLive() {
-    if (cronMode.value !== "custom") {
+    if (cronMode.value !== 'custom') {
       cronValid = true;
       [warnFields, warnSlash].forEach(w => w.style.display = 'none');
       updateBackupButtonState();
@@ -2565,14 +2597,9 @@ if (file_exists("/etc/unraid-version")) {
     const cronParts = cronExpression.split(/\s+/);
 
     [warnFields, warnSlash].forEach(w => w.style.display = 'none');
-
     cronValid = true;
 
-    if (cronExpression === "") {
-      cronValid = false;
-      updateBackupButtonState();
-      return;
-    }
+    if (cronExpression === '') { cronValid = false; updateBackupButtonState(); return; }
 
     if (cronParts.length !== 5) {
       cronValid = false;
@@ -2582,25 +2609,15 @@ if (file_exists("/etc/unraid-version")) {
     if (cronParts.length === 5) {
       for (let i = 0; i < cronParts.length; i++) {
         const field = cronParts[i];
-
-        if (!/^[\d*\/]+$/.test(field)) {
-          cronValid = false;
-          warnFields.style.display = 'block';
-        }
-
+        if (!/^[\d*\/]+$/.test(field)) { cronValid = false; warnFields.style.display = 'block'; }
         if (field.includes('/')) {
-          const validStep = field.match(/^\*\/\d+$/);
-          if (!validStep) {
-            cronValid = false;
-            warnSlash.style.display = 'block';
-          }
+          if (!field.match(/^\*\/\d+$/)) { cronValid = false; warnSlash.style.display = 'block'; }
         }
       }
-
-      const minuteField = cronParts[0];
-      if (minuteField === "*") {
+      if (cronParts[0] === '*') {
         cronValid = false;
-        warnMinute.style.display = 'block';
+        const warnMinute = document.getElementById('cron-warning-minute');
+        if (warnMinute) warnMinute.style.display = 'block';
       }
     }
 
@@ -2609,69 +2626,36 @@ if (file_exists("/etc/unraid-version")) {
 
   cronInput.addEventListener('input', validateCronLive);
   cronMode.addEventListener('change', validateCronLive);
-
   validateCronLive();
 
-  let backupStartTime = 0;
-  const MIN_DURATION = 5000;
-
+  // ── Backup UI state ───────────────────────────────────────────────────────
   function updateBackupUI(running) {
     const status = $('#backup-status');
     const btn = $('#backupbtn');
-
     if (btn.text() === 'Stop') return;
-
     if (running) {
-      if (!backupStartTime) {
-        backupStartTime = Date.now();
-      }
+      if (!backupStartTime) backupStartTime = Date.now();
       btn.text('Backup Now');
       status.show();
       return;
     }
-
-    if (!backupStartTime) {
-      btn.text('Backup Now');
-      status.hide();
-      return;
-    }
-
+    if (!backupStartTime) { btn.text('Backup Now'); status.hide(); return; }
     const elapsed = Date.now() - backupStartTime;
-
-    if (elapsed < MIN_DURATION) {
-      setTimeout(() => updateBackupUI(false), MIN_DURATION - elapsed);
-      return;
-    }
-
+    if (elapsed < MIN_DURATION) { setTimeout(() => updateBackupUI(false), MIN_DURATION - elapsed); return; }
     backupStartTime = 0;
     btn.text('Backup Now');
     status.hide();
   }
 
-  function pollBackupStatus() {
+  (function backupRunningPoller() {
     $.getJSON('/plugins/vm-backup-and-restore/helpers/backup_status.php', function (res) {
       backupRunning = res.running === true;
       updateBackupButtonState();
       updateBackupUI(res.running);
-    });
-  }
+    }).always(() => setTimeout(backupRunningPoller, 1000));
+  })();
 
-  setInterval(pollBackupStatus, 1000);
-
-  $(document).ready(function () {
-    pollBackupStatus();
-  });
-
-  function closeTooltips() {
-    $('.vm-backup-and-restoretip').trigger('mouseleave');
-  }
-
-  $('.vm-dropdown-label, .vm-dropdown-list, select, .custom-dropdown').on('click', function () {
-    closeTooltips();
-  });
-
-  let backupRequestInProgress = false;
-
+  // ── Path helpers ──────────────────────────────────────────────────────────
   async function fetchVdiskPaths(vmList) {
     return $.ajax({
       url: '/plugins/vm-backup-and-restore/helpers/get_vdisk_paths.php',
@@ -2690,56 +2674,35 @@ if (file_exists("/etc/unraid-version")) {
       });
       const text = await res.text();
       return text.trim() || p;
-    } catch (e) {
-      return p;
-    }
+    } catch (e) { return p; }
   }
 
   function backupclassifyPath(p) {
-    if (p.startsWith('/mnt/user/')) return 'USER';
-    if (p === '/mnt/user') return 'USER';
-    if (p.startsWith('/mnt/user0/')) return 'USER0';
-    if (p === '/mnt/user0') return 'USER0';
+    if (p.startsWith('/mnt/user/') || p === '/mnt/user') return 'USER';
+    if (p.startsWith('/mnt/user0/') || p === '/mnt/user0') return 'USER0';
     if (p.startsWith('/mnt/remotes/') || p === '/mnt/remotes') return 'EXEMPT';
     if (p.startsWith('/mnt/addons/') || p === '/mnt/addons') return 'EXEMPT';
     return 'OTHER';
   }
 
+  // ── Backup button ─────────────────────────────────────────────────────────
   $('#backupbtn').on('click', async function () {
-
     if ($('#backupbtn').text() === 'Stop') {
-      // backupbtn stop branch
       const $btn = $('#backupbtn');
       $btn.prop('disabled', true);
       $.post('/plugins/vm-backup-and-restore/helpers/stop_backup.php')
-        .done(function () {
-          console.log('Stop signal sent.');
-          showPopup('Stop requested. Backup stopping');
-        })
-        .fail(function () {
-          $btn.prop('disabled', false);
-          alert('Failed to send stop signal');
-        });
+        .done(() => { showPopup('Stop requested. Backup stopping'); })
+        .fail(() => { $btn.prop('disabled', false); alert('Failed to send stop signal'); });
       return;
     }
 
-    if (backupRequestInProgress) {
-      console.warn('Backup already being triggered');
-      return;
-    }
+    if (backupRequestInProgress) return;
 
     const vms = $('#vm-hidden-backup').val();
     const dest = $('#backup_destination').val().trim();
 
-    if (!vms) {
-      alert('Please select at least one VM to backup');
-      return;
-    }
-
-    if (!dest) {
-      alert('Please select a backup destination');
-      return;
-    }
+    if (!vms) { alert('Please select at least one VM to backup'); return; }
+    if (!dest) { alert('Please select a backup destination'); return; }
 
     const vmList = vms.split(',').map(v => v.trim()).filter(Boolean);
     const resolvedDest = await resolvePathServer(dest);
@@ -2747,57 +2710,39 @@ if (file_exists("/etc/unraid-version")) {
 
     try {
       const data = await fetchVdiskPaths(vmList);
-
       for (const vm of vmList) {
         const disks = data[vm];
-
-        if (!Array.isArray(disks)) {
-          alert(`Could not read vdisk paths for ${vm}`);
-          return;
-        }
-
+        if (!Array.isArray(disks)) { alert(`Could not read vdisk paths for ${vm}`); return; }
         for (const disk of disks) {
           const resolvedDisk = await resolvePathServer(disk);
           const diskClass = backupclassifyPath(resolvedDisk);
-
           if (diskClass !== destClass && diskClass !== 'EXEMPT' && destClass !== 'EXEMPT') {
-            alert(
-              `${vm}'s vdisk ${disk} is using mount type (${diskClass}) and backup destination (${destClass})\n\n` +
-              'They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0'
-            );
+            alert(`${vm}'s vdisk ${disk} is using mount type (${diskClass}) and backup destination (${destClass})\n\nThey must be on the same mount type i.e both fields using user or both user0 or none using either user or user0`);
             return;
           }
         }
       }
-    } catch (err) {
-      alert('Error validating vdisk paths');
-      console.error(err);
-      return;
-    }
+    } catch (err) { alert('Error validating vdisk paths'); console.error(err); return; }
 
     const services = getSelectedServices('');
-    if (services.includes('Pushover') && $('#notifications').val() === 'yes') {
-      if (!$('#pushover_user_key').val().trim()) {
-        alert('Please enter your Pushover user key');
-        return;
-      }
+    if (services.includes('Pushover') && document.getElementById('notifications')?.value === 'yes') {
+      if (!$('#pushover_user_key').val().trim()) { alert('Please enter your Pushover user key'); return; }
     }
 
     backupRequestInProgress = true;
 
     const webhookParams = {};
     $('#webhook-fields-container .webhook-url-input').each(function () {
-      const service = $(this).data('service');
-      webhookParams['WEBHOOK_' + service.toUpperCase()] = $(this).val().trim();
+      webhookParams['WEBHOOK_' + $(this).data('service').toUpperCase()] = $(this).val().trim();
     });
 
-    const params = $.param({
+    $.post('/plugins/vm-backup-and-restore/helpers/save_settings.php', {
       VMS_TO_BACKUP: vms,
       BACKUP_DESTINATION: dest,
       BACKUPS_TO_KEEP: $('#backups_to_keep').val(),
       BACKUP_OWNER: $('#backup_owner').val(),
       DRY_RUN: $('#dry_run').val(),
-      NOTIFICATIONS: $('#notifications').val(),
+      NOTIFICATIONS: document.getElementById('notifications')?.value || 'no',
       NOTIFICATION_SERVICE: getSelectedServices('').join(','),
       WEBHOOK_DISCORD: webhookParams['WEBHOOK_DISCORD'] || '',
       WEBHOOK_GOTIFY: webhookParams['WEBHOOK_GOTIFY'] || '',
@@ -2806,40 +2751,25 @@ if (file_exists("/etc/unraid-version")) {
       WEBHOOK_SLACK: webhookParams['WEBHOOK_SLACK'] || '',
       PUSHOVER_USER_KEY: $('#pushover_user_key').val() || '',
       csrf_token: csrfToken
-    });
-
-    $.get('/plugins/vm-backup-and-restore/helpers/save_settings.php?' + params)
+    })
       .done(function (res) {
-        if (res && res.status === 'ok') {
-          startBackup();
-        } else {
-          alert('Failed to save settings');
-        }
+        if (res && res.status === 'ok') { startBackup(); }
+        else { alert('Failed to save settings'); }
       })
-      .fail(function () {
-        alert('Error saving settings');
-      })
-      .always(function () {
-        backupRequestInProgress = false;
-      });
+      .fail(() => alert('Error saving settings'))
+      .always(() => { backupRequestInProgress = false; });
   });
 
   function startBackup() {
-    $.get('/plugins/vm-backup-and-restore/helpers/backup.php', {
-      csrf_token: csrfToken
-    })
+    $.get('/plugins/vm-backup-and-restore/helpers/backup.php', { csrf_token: csrfToken })
       .done(function (res) {
-        if (res && res.status === 'ok') {
-          console.log('Backup started, PID:', res.pid);
-        } else {
-          alert(res.message || 'Failed to start backup');
-        }
+        if (res && res.status === 'ok') { console.log('Backup started, PID:', res.pid); }
+        else { alert(res.message || 'Failed to start backup'); }
       })
-      .fail(function () {
-        alert('Error starting backup');
-      });
+      .fail(() => alert('Error starting backup'));
   }
 
+  // ── Cron conflict helpers ─────────────────────────────────────────────────
   function cronToMinutesOfWeek(expr) {
     const parts = expr.trim().split(/\s+/);
     if (parts.length !== 5) return [];
@@ -2888,27 +2818,18 @@ if (file_exists("/etc/unraid-version")) {
   function checkCronConflicts(newCron, existingCrons, excludeId, thresholdMinutes) {
     const newTimes = cronToMinutesOfWeek(newCron);
     if (!newTimes.length) return null;
-
     const MINS_IN_WEEK = 7 * 24 * 60;
 
     for (const entry of existingCrons) {
       if (entry.id === excludeId) continue;
-
       const existingTimes = cronToMinutesOfWeek(entry.cron);
-
       for (const nt of newTimes) {
         for (const et of existingTimes) {
-          const diff = Math.min(
-            Math.abs(nt - et),
-            MINS_IN_WEEK - Math.abs(nt - et)
-          );
-          if (diff < thresholdMinutes) {
-            return entry.cron;
-          }
+          const diff = Math.min(Math.abs(nt - et), MINS_IN_WEEK - Math.abs(nt - et));
+          if (diff < thresholdMinutes) return entry.cron;
         }
       }
     }
-
     return null;
   }
 
@@ -2916,19 +2837,14 @@ if (file_exists("/etc/unraid-version")) {
     return $.getJSON('/plugins/vm-backup-and-restore/helpers/schedule_cron_check.php');
   }
 
+  // ── Schedule management ───────────────────────────────────────────────────
   window.editingScheduleId = null;
 
   function loadSchedules(force = false) {
     if (scheduleUILocked && !force) return $.Deferred().resolve().promise();
-
-    return $.get(
-      '/plugins/vm-backup-and-restore/helpers/schedule_list.php',
-      function (html) {
-        $('#schedule-list').html(html);
-      }
-    ).always(() => {
-      unlockScheduleUI();
-    });
+    return $.get('/plugins/vm-backup-and-restore/helpers/schedule_list.php', function (html) {
+      $('#schedule-list').html(html);
+    }).always(() => unlockScheduleUI());
   }
 
   function validateCustomCron(expr) {
@@ -2944,19 +2860,9 @@ if (file_exists("/etc/unraid-version")) {
   function buildCronFromUI() {
     const mode = $('#cron_mode').val();
     switch (mode) {
-      case 'minutes': {
-        const v = parseInt($('#minutes_frequency').val(), 10);
-        return { valid: true, expression: `*/${v} * * * *` };
-      }
-      case 'hourly': {
-        const v = parseInt($('#hourly_frequency').val(), 10);
-        return { valid: true, expression: `0 */${v} * * *` };
-      }
-      case 'daily': {
-        const h = parseInt($('#daily_time').val(), 10);
-        const m = parseInt($('#daily_minute').val(), 10);
-        return { valid: true, expression: `${m} ${h} * * *` };
-      }
+      case 'minutes': { const v = parseInt($('#minutes_frequency').val(), 10); return { valid: true, expression: `*/${v} * * * *` }; }
+      case 'hourly': { const v = parseInt($('#hourly_frequency').val(), 10); return { valid: true, expression: `0 */${v} * * *` }; }
+      case 'daily': { const h = parseInt($('#daily_time').val(), 10); const m = parseInt($('#daily_minute').val(), 10); return { valid: true, expression: `${m} ${h} * * *` }; }
       case 'weekly': {
         const dayMap = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
         const d = dayMap[$('#weekly_day').val()];
@@ -2964,114 +2870,61 @@ if (file_exists("/etc/unraid-version")) {
         const m = parseInt($('#weekly_minute').val(), 10);
         return { valid: true, expression: `${m} ${h} * * ${d}` };
       }
-      case 'monthly': {
-        const d = parseInt($('#monthly_day').val(), 10);
-        const h = parseInt($('#monthly_time').val(), 10);
-        const m = parseInt($('#monthly_minute').val(), 10);
-        return { valid: true, expression: `${m} ${h} ${d} * *` };
-      }
-      case 'custom':
-        return validateCustomCron($('#custom_cron').val());
-      default:
-        return { valid: false };
+      case 'monthly': { const d = parseInt($('#monthly_day').val(), 10); const h = parseInt($('#monthly_time').val(), 10); const m = parseInt($('#monthly_minute').val(), 10); return { valid: true, expression: `${m} ${h} ${d} * *` }; }
+      case 'custom': return validateCustomCron($('#custom_cron').val());
+      default: return { valid: false };
     }
   }
 
   async function scheduleJob(type) {
-    if (!validateBackupPrereqs()) {
-      return;
-    }
-
+    if (!validateBackupPrereqs()) return;
     if (scheduleUILocked) return;
     lockScheduleUI();
 
     const cron = buildCronFromUI();
-    if (!cron.valid) {
-      unlockScheduleUI();
-      alert("Invalid cron expression");
-      return;
-    }
+    if (!cron.valid) { unlockScheduleUI(); alert('Invalid cron expression'); return; }
 
     const vms = $('#vm-hidden-backup').val();
     const dest = $('#backup_destination').val().trim();
-
     const vmList = vms.split(',').map(v => v.trim()).filter(Boolean);
     const resolvedDest = await resolvePathServer(dest);
     const destClass = backupclassifyPath(resolvedDest);
 
     try {
       const data = await fetchVdiskPaths(vmList);
-
       for (const vm of vmList) {
         const disks = data[vm];
-
-        if (!Array.isArray(disks)) {
-          unlockScheduleUI();
-          alert(`Could not read vdisk paths for ${vm}`);
-          return;
-        }
-
+        if (!Array.isArray(disks)) { unlockScheduleUI(); alert(`Could not read vdisk paths for ${vm}`); return; }
         for (const disk of disks) {
           const resolvedDisk = await resolvePathServer(disk);
           const diskClass = backupclassifyPath(resolvedDisk);
-
           if (diskClass !== destClass && diskClass !== 'EXEMPT' && destClass !== 'EXEMPT') {
             unlockScheduleUI();
-            alert(
-              `${vm}'s vdisk ${disk} is using mount type (${diskClass}) and backup destination (${destClass})\n\n` +
-              'They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0'
-            );
+            alert(`${vm}'s vdisk ${disk} is using mount type (${diskClass}) and backup destination (${destClass})\n\nThey must be on the same mount type i.e both fields using user or both user0 or none using either user or user0`);
             return;
           }
         }
       }
-    } catch (err) {
-      unlockScheduleUI();
-      alert('Error validating vdisk paths');
-      console.error(err);
-      return;
-    }
+    } catch (err) { unlockScheduleUI(); alert('Error validating vdisk paths'); console.error(err); return; }
 
     const existingCrons = await fetchExistingCrons();
     const conflict = checkCronConflicts(cron.expression, existingCrons, window.editingScheduleId, 15);
-    if (conflict) {
-      unlockScheduleUI();
-      alert('This remote schedule is within 15 minutes of an existing schedule (' + conflict + '). Please choose a different time.');
-      return;
-    }
+    if (conflict) { unlockScheduleUI(); alert('This remote schedule is within 15 minutes of an existing schedule (' + conflict + '). Please choose a different time.'); return; }
 
     const settings = {};
-    $('input[name], select[name]').each(function () {
-      settings[this.name] = $(this).val();
-    });
+    $('input[name], select[name]').each(function () { settings[this.name] = $(this).val(); });
 
-    const url = window.editingScheduleId
-      ? 'schedule_update.php'
-      : 'schedule_create.php';
+    const url = window.editingScheduleId ? 'schedule_update.php' : 'schedule_create.php';
 
     $.ajax({
       type: 'POST',
       url: `/plugins/vm-backup-and-restore/helpers/${url}`,
-      data: {
-        id: window.editingScheduleId,
-        type: type,
-        cron: cron.expression,
-        settings: settings
-      },
-      success: function (response) {
-        resetScheduleUI();
-        window.editingScheduleId = null;
-        loadSchedules(true);
-        showPopup("Schedule saved!");
-      },
+      data: { id: window.editingScheduleId, type, cron: cron.expression, settings },
+      success: function () { resetScheduleUI(); window.editingScheduleId = null; loadSchedules(true); showPopup('Schedule saved!'); },
       error: function (xhr) {
         unlockScheduleUI();
-
-        if (xhr.status === 409) {
-          alert('Duplicate schedule detected during create!');
-        } else {
-          alert('Error creating/updating schedule: ' + xhr.responseText);
-        }
+        if (xhr.status === 409) { alert('Duplicate schedule detected during create!'); }
+        else { alert('Error creating/updating schedule: ' + xhr.responseText); }
       }
     });
   }
@@ -3083,33 +2936,19 @@ if (file_exists("/etc/unraid-version")) {
     $.getJSON('/plugins/vm-backup-and-restore/helpers/schedule_load.php', { id }, function (s) {
       const settings = s.SETTINGS || {};
 
-      if (s.TYPE) {
-        $('[name="type"]').val(s.TYPE).trigger('change');
-      }
+      if (s.TYPE) $('[name="type"]').val(s.TYPE).trigger('change');
 
       for (const k in settings) {
         const el = $('[name="' + k + '"]');
         if (!el.length) continue;
-
-        if (el.is(':checkbox')) {
-          el.prop('checked', settings[k] == 1 || settings[k] === true);
-        } else if (el.is(':radio')) {
-          $('[name="' + k + '"][value="' + settings[k] + '"]').prop('checked', true);
-        } else {
-          el.val(settings[k]).trigger('change');
-        }
-
-        if (k === 'VMS_TO_BACKUP') {
-          $('#vm-dropdown').attr('data-selected', settings[k]);
-        }
+        if (el.is(':checkbox')) { el.prop('checked', settings[k] == 1 || settings[k] === true); }
+        else if (el.is(':radio')) { $('[name="' + k + '"][value="' + settings[k] + '"]').prop('checked', true); }
+        else { el.val(settings[k]).trigger('change'); }
+        if (k === 'VMS_TO_BACKUP') { $('#vm-dropdown').attr('data-selected', settings[k]); }
       }
 
-      $('#cron_mode')
-        .val(detectCronMode(s.CRON))
-        .trigger('change');
-
+      $('#cron_mode').val(detectCronMode(s.CRON)).trigger('change');
       window.editingScheduleId = id;
-
       $('#vm-dropdown').attr('data-selected', settings['VMS_TO_BACKUP'] || '');
       loadBackupVMs();
 
@@ -3119,35 +2958,22 @@ if (file_exists("/etc/unraid-version")) {
       if ($tip.hasClass('tooltipstered')) $tip.tooltipster('content', 'Update the backup schedule using the settings shown in the fields above');
 
       $('#cancelEditBtn').show();
-
       unlockScheduleUI();
     });
   }
 
-  $('#cancelEditBtn').on('click', function () {
-    location.reload();
-  });
+  $('#cancelEditBtn').on('click', function () { location.reload(); });
 
   function showPopup(message) {
     const popup = $('#popupMessage');
     popup.text(message).fadeIn(150);
-    setTimeout(() => {
-      popup.fadeOut(200, () => {
-        popup.text('');
-        popup.hide();
-      });
-    }, 3000);
+    setTimeout(() => popup.fadeOut(200, () => popup.text('').hide()), 3000);
   }
 
   function showPopuprestore(message) {
     const popup = $('#popupMessagerestore');
     popup.text(message).fadeIn(150);
-    setTimeout(() => {
-      popup.fadeOut(200, () => {
-        popup.text('');
-        popup.hide();
-      });
-    }, 3000);
+    setTimeout(() => popup.fadeOut(200, () => popup.text('').hide()), 3000);
   }
 
   function resetScheduleUI() {
@@ -3155,45 +2981,34 @@ if (file_exists("/etc/unraid-version")) {
     const $tip = $('#schedule-backup').closest('span');
     $tip.data('tooltip', 'Create a backup schedule using the settings shown in the fields above');
     if ($tip.hasClass('tooltipstered')) $tip.tooltipster('content', 'Create a backup schedule using the settings shown in the fields above');
-
     $('#cancelEditBtn').hide();
     $('#popupMessage').stop(true, true).hide().text('');
   }
 
   function deleteSchedule(id) {
     if (scheduleUILocked) return;
-
-    if (!confirm("Delete this schedule?")) return;
-
+    if (!confirm('Delete this schedule?')) return;
     lockScheduleUI();
-
-    $.post(
-      '/plugins/vm-backup-and-restore/helpers/schedule_delete.php',
-      { id: id }
-    ).always(() => {
-      loadSchedules(true);
-    });
+    $.post('/plugins/vm-backup-and-restore/helpers/schedule_delete.php', { id })
+      .always(() => loadSchedules(true));
   }
 
   function runScheduleBackup(id, btn) {
     if (scheduleUILocked) return;
-
-    if (!confirm("Are you sure you want to run this backup now?")) return;
-
+    if (!confirm('Are you sure you want to run this backup now?')) return;
     lockScheduleUI();
-
     btn.disabled = true;
     const originalText = btn.textContent;
     const originalTitle = $(btn).hasClass('tooltipstered')
       ? $(btn).tooltipster('content')
       : (btn.getAttribute('title') || 'Run schedule');
 
-    btn.textContent = "Running";
+    btn.textContent = 'Running';
 
     $.post('/plugins/vm-backup-and-restore/helpers/run_schedule.php', { id })
       .done(function (res) {
         if (!res.started) {
-          alert("Failed to start backup");
+          alert('Failed to start backup');
           btn.disabled = false;
           btn.textContent = originalText;
           btn.setAttribute('title', originalTitle);
@@ -3204,44 +3019,34 @@ if (file_exists("/etc/unraid-version")) {
         btn.textContent = 'Stop';
         btn.disabled = false;
         btn.setAttribute('title', 'Stop backup');
-        if ($(btn).hasClass('tooltipstered')) {
-          $(btn).tooltipster('content', 'Stop backup');
-        } else {
-          $(btn).tooltipster({ content: 'Stop backup' });
-        }
+        if ($(btn).hasClass('tooltipstered')) { $(btn).tooltipster('content', 'Stop backup'); }
+        else { $(btn).tooltipster({ content: 'Stop backup' }); }
         btn.removeAttribute('title');
 
         btn.onclick = function () {
           $.post('/plugins/vm-backup-and-restore/helpers/stop_backup.php')
-            .done(function () {
-              console.log('Stop signal sent');
-              showPopup('Stop requested. Backup stopping');
-            })
-            .fail(function () {
-              alert('Failed to send stop signal');
-            });
+            .done(() => { showPopup('Stop requested. Backup stopping'); })
+            .fail(() => { alert('Failed to send stop signal'); });
         };
 
-        const poll = setInterval(function () {
+        function waitForUnlock() {
           $.getJSON('/plugins/vm-backup-and-restore/helpers/check_lock.php', function (data) {
             if (!data.locked) {
-              clearInterval(poll);
-
               btn.textContent = originalText;
               btn.setAttribute('title', originalTitle);
-              if ($(btn).hasClass('tooltipstered')) {
-                $(btn).tooltipster('content', originalTitle);
-              }
+              if ($(btn).hasClass('tooltipstered')) $(btn).tooltipster('content', originalTitle);
               btn.removeAttribute('title');
               btn.onclick = function () { runScheduleBackup(id, btn); };
-
               unlockScheduleUI();
+              return;
             }
+            setTimeout(waitForUnlock, 1000);
           });
-        }, 1000);
+        }
+        waitForUnlock();
       })
       .fail(function (xhr, status, err) {
-        alert("Failed to start backup: " + (xhr.responseJSON?.error || err));
+        alert('Failed to start backup: ' + (xhr.responseJSON?.error || err));
         btn.disabled = false;
         btn.textContent = originalText;
         btn.setAttribute('title', originalTitle);
@@ -3251,21 +3056,10 @@ if (file_exists("/etc/unraid-version")) {
 
   function toggleSchedule(id, isEnabled) {
     if (scheduleUILocked) return;
-
-    const msg = isEnabled
-      ? "Disable this schedule?"
-      : "Enable this schedule?";
-
-    if (!confirm(msg)) return;
-
+    if (!confirm(isEnabled ? 'Disable this schedule?' : 'Enable this schedule?')) return;
     lockScheduleUI();
-
-    $.post(
-      '/plugins/vm-backup-and-restore/helpers/schedule_toggle.php',
-      { id: id }
-    ).always(() => {
-      loadSchedules(true);
-    });
+    $.post('/plugins/vm-backup-and-restore/helpers/schedule_toggle.php', { id })
+      .always(() => loadSchedules(true));
   }
 
   function detectCronMode(cron) {
@@ -3278,138 +3072,65 @@ if (file_exists("/etc/unraid-version")) {
     return 'custom';
   }
 
-  function initVmBackupDropdown() {
-    const selected = ($('#vm-hidden-backup').val() || '').split(',');
-
-    $('.vm-dropdown-list input[type=checkbox]').each(function () {
-      if (selected.includes($(this).val())) {
-        $(this).prop('checked', true);
-      }
-    });
-
-    updateVmBackupLabel();
-  }
-
-  function updateVmBackupLabel() {
-    const selected = $('.vm-dropdown-list input:checked')
-      .map(function () { return $(this).val(); })
-      .get();
-
-    $('#vm-hidden-backup').val(selected.join(','));
-
-    $('.vm-dropdown-label').text(
-      selected.length ? selected.join(', ') : 'Select VM(s)'
-    );
-  }
-
   $(document).ready(function () {
     loadSchedules();
-
     $(document).on('click', '#schedule-backup', function () { scheduleJob('backup'); });
     $(document).on('click', '#schedule-restore', function () { scheduleJob('restore'); });
   });
 </script>
 
 <script>
-  let restoreStartTime = 0;
-  const MIN_RESTORE_DURATION = 5000;
-
   function updateRestoreUI(running) {
     const btn = $('#restorebtn');
     const status = $('#restore-status');
-
     if (btn.text() === 'Stop') return;
-
     if (running) {
-      if (!restoreStartTime) {
-        restoreStartTime = Date.now();
-      }
+      if (!restoreStartTime) restoreStartTime = Date.now();
       btn.prop('disabled', true);
       btn.text('Restore Now');
       status.show();
       return;
     }
-
-    if (!restoreStartTime) {
-      btn.prop('disabled', false);
-      btn.text('Restore');
-      status.hide();
-      return;
-    }
-
+    if (!restoreStartTime) { btn.prop('disabled', false); btn.text('Restore Now'); status.hide(); return; }
     const elapsed = Date.now() - restoreStartTime;
-
-    if (elapsed < MIN_RESTORE_DURATION) {
-      setTimeout(() => updateRestoreUI(false), MIN_RESTORE_DURATION - elapsed);
-      return;
-    }
-
+    if (elapsed < MIN_RESTORE_DURATION) { setTimeout(() => updateRestoreUI(false), MIN_RESTORE_DURATION - elapsed); return; }
     restoreStartTime = 0;
     btn.prop('disabled', false);
-    btn.text('Restore');
+    btn.text('Restore Now');
     status.hide();
   }
 
-  function pollRestoreStatus() {
+  (function restoreRunningPoller() {
     $.getJSON('/plugins/vm-backup-and-restore/helpers/restore_status.php', function (res) {
       updateRestoreUI(res.running);
-    });
-  }
-
-  setInterval(pollRestoreStatus, 1000);
-
-  $(document).ready(function () {
-    pollRestoreStatus();
-  });
-
-  function closeTooltips() {
-    $('.vm-backup-and-restoretip').trigger('mouseleave');
-  }
-
-  $('.vm-dropdown-label, .vm-dropdown-list, select, .custom-dropdown').on('click', function () {
-    closeTooltips();
-  });
+    }).always(() => setTimeout(restoreRunningPoller, 1000));
+  })();
 
   function collectRestoreVersions() {
     const versions = {};
-
     $('#version-fields-container select.version-select').each(function () {
       const vm = $(this).data('vm');
       const val = $(this).val();
-
-      if (vm && val) {
-        versions[vm] = val;
-      }
+      if (vm && val) versions[vm] = val;
     });
-
     return versions;
   }
 
   function classifyPath(p) {
-    if (p.startsWith('/mnt/user/')) return 'USER';
-    if (p === '/mnt/user') return 'USER';
-    if (p.startsWith('/mnt/user0/')) return 'USER0';
-    if (p === '/mnt/user0') return 'USER0';
+    if (p.startsWith('/mnt/user/') || p === '/mnt/user') return 'USER';
+    if (p.startsWith('/mnt/user0/') || p === '/mnt/user0') return 'USER0';
     if (p.startsWith('/mnt/remotes/') || p === '/mnt/remotes') return 'EXEMPT';
     if (p.startsWith('/mnt/addons/') || p === '/mnt/addons') return 'EXEMPT';
     return 'OTHER';
   }
 
   $('#restorebtn').on('click', async function () {
-
     if ($('#restorebtn').text() === 'Stop') {
-      // restorebtn stop branch
       const $btn = $('#restorebtn');
       $btn.prop('disabled', true);
       $.post('/plugins/vm-backup-and-restore/helpers/stop_restore.php')
-        .done(function () {
-          console.log('Stop restore signal sent');
-          showPopuprestore('Stop requested. Restore stopping');
-        })
-        .fail(function () {
-          $btn.prop('disabled', false);
-          alert('Failed to send stop signal');
-        });
+        .done(() => { showPopuprestore('Stop requested. Restore stopping'); })
+        .fail(() => { $btn.prop('disabled', false); alert('Failed to send stop signal'); });
       return;
     }
 
@@ -3417,20 +3138,9 @@ if (file_exists("/etc/unraid-version")) {
     const dest = $('#location_of_backups').val().trim();
     const restore_dest = $('#restore_destination').val().trim();
 
-    if (!vms_restore) {
-      alert('Please select at least one VM to restore');
-      return;
-    }
-
-    if (!dest) {
-      alert('Please set location of backups');
-      return;
-    }
-
-    if (!restore_dest) {
-      alert('Please set a restore destination');
-      return;
-    }
+    if (!vms_restore) { alert('Please select at least one VM to restore'); return; }
+    if (!dest) { alert('Please set location of backups'); return; }
+    if (!restore_dest) { alert('Please set a restore destination'); return; }
 
     const resolvedSrc = await resolvePathServer(dest);
     const resolvedDst = await resolvePathServer(restore_dest);
@@ -3438,42 +3148,32 @@ if (file_exists("/etc/unraid-version")) {
     const dstClass = classifyPath(resolvedDst);
 
     if (srcClass !== dstClass) {
-      alert(
-        `Location of backups is using mount type (${srcClass}) and restore destination (${dstClass}). They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0`
-      );
+      alert(`Location of backups is using mount type (${srcClass}) and restore destination (${dstClass}). They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0`);
       return;
     }
 
     const servicesRestore = getSelectedServices('restore');
-    if (servicesRestore.includes('Pushover') && $('#notifications_restore').val() === 'yes') {
-      if (!$('#pushover_user_key_restore').val().trim()) {
-        alert('Please enter your Pushover user key');
-        return;
-      }
+    if (servicesRestore.includes('Pushover') && document.getElementById('notifications_restore')?.value === 'yes') {
+      if (!$('#pushover_user_key_restore').val().trim()) { alert('Please enter your Pushover user key'); return; }
     }
 
-    if ($('#restorebtn').prop('disabled')) {
-      return;
-    }
+    if ($('#restorebtn').prop('disabled')) return;
 
     const restoreVersions = collectRestoreVersions();
-    const restoreVersionsStr = Object.entries(restoreVersions)
-      .map(([vm, ver]) => `${vm}=${ver}`)
-      .join(',');
+    const restoreVersionsStr = Object.entries(restoreVersions).map(([vm, ver]) => `${vm}=${ver}`).join(',');
 
     const webhookParamsRestore = {};
     $('#webhook-fields-container-restore .webhook-url-input').each(function () {
-      const service = $(this).data('service');
-      webhookParamsRestore['WEBHOOK_' + service.toUpperCase() + '_RESTORE'] = $(this).val().trim();
+      webhookParamsRestore['WEBHOOK_' + $(this).data('service').toUpperCase() + '_RESTORE'] = $(this).val().trim();
     });
 
-    const params = $.param({
+    $.post('/plugins/vm-backup-and-restore/helpers/save_settings_restore.php', {
       LOCATION_OF_BACKUPS: dest,
       VMS_TO_RESTORE: vms_restore,
       VERSIONS: restoreVersionsStr,
       RESTORE_DESTINATION: restore_dest,
       DRY_RUN_RESTORE: $('#dry_run_restore').val(),
-      NOTIFICATIONS_RESTORE: $('#notifications_restore').val(),
+      NOTIFICATIONS_RESTORE: document.getElementById('notifications_restore')?.value || 'no',
       NOTIFICATION_SERVICE_RESTORE: getSelectedServices('restore').join(','),
       WEBHOOK_DISCORD_RESTORE: webhookParamsRestore['WEBHOOK_DISCORD_RESTORE'] || '',
       WEBHOOK_GOTIFY_RESTORE: webhookParamsRestore['WEBHOOK_GOTIFY_RESTORE'] || '',
@@ -3482,54 +3182,34 @@ if (file_exists("/etc/unraid-version")) {
       WEBHOOK_SLACK_RESTORE: webhookParamsRestore['WEBHOOK_SLACK_RESTORE'] || '',
       PUSHOVER_USER_KEY_RESTORE: $('#pushover_user_key_restore').val() || '',
       csrf_token: csrfToken
-    });
-
-    $.get(
-      '/plugins/vm-backup-and-restore/helpers/save_settings_restore.php?' + params
-    )
+    })
       .done(function (res) {
-        if (res && res.status === 'ok') {
-          console.log('Settings saved');
-          startRestore();
-        } else {
-          alert('Failed to save settings');
-        }
+        if (res && res.status === 'ok') { startRestore(); }
+        else { alert('Failed to save settings'); }
       })
-      .fail(function () {
-        alert('Error saving settings');
-      });
+      .fail(() => alert('Error saving settings'));
   });
 
   function startRestore() {
-    $.get('/plugins/vm-backup-and-restore/helpers/restore.php', {
-      csrf_token: csrfToken
-    })
+    $.get('/plugins/vm-backup-and-restore/helpers/restore.php', { csrf_token: csrfToken })
       .done(function (res) {
-        if (res && res.status === 'ok') {
-          console.log('Restore started, PID:', res.pid);
-        } else {
-          alert(res.message || 'Failed to start restore');
-        }
+        if (res && res.status === 'ok') { console.log('Restore started, PID:', res.pid); }
+        else { alert(res.message || 'Failed to start restore'); }
       })
-      .fail(function () {
-        alert('Error starting restore');
-      });
+      .fail(() => alert('Error starting restore'));
   }
 
-  if (typeof caPluginUpdateCheck === "function") {
-    caPluginUpdateCheck("vm-backup-and-restore.plg", { name: "vm-backup-and-restore" });
+  if (typeof caPluginUpdateCheck === 'function') {
+    caPluginUpdateCheck('vm-backup-and-restore.plg', { name: 'vm-backup-and-restore' });
   }
 </script>
 
 <script>
-  let currentPath = "/mnt";
+  let currentPath = '/mnt';
   let selectedFolder = null;
 
   function resolveAndApplyPath(selectedPath, targetInputId) {
-    const params = new URLSearchParams({
-      path: selectedPath,
-      csrf_token: csrf_token
-    });
+    const params = new URLSearchParams({ path: selectedPath, csrf_token: csrf_token });
 
     fetch('/plugins/vm-backup-and-restore/helpers/resolve_path.php', {
       method: 'POST',
@@ -3540,8 +3220,7 @@ if (file_exists("/etc/unraid-version")) {
       .then(resolvedPath => {
         const $field = $('#' + targetInputId);
         $field.val(resolvedPath || selectedPath);
-        $field.trigger('input');
-        $field.trigger('change');
+        $field.trigger('input').trigger('change');
         $('#folderPickerModal').hide();
       })
       .catch(() => {
@@ -3554,33 +3233,18 @@ if (file_exists("/etc/unraid-version")) {
 
   function loadFolders(path) {
     $.getJSON('/plugins/vm-backup-and-restore/helpers/list_folders.php',
-      {
-        path: path,
-        field: activeInputFieldId
-      },
+      { path, field: activeInputFieldId },
       function (data) {
         currentPath = data.current;
         selectedFolder = null;
 
         const parts = currentPath.split('/').filter(p => p !== '');
-        let breadcrumbHTML = '';
         let buildPath = '';
-
-        parts.forEach((part, index) => {
+        let breadcrumbHTML = parts.map((part, index) => {
           buildPath += '/' + part;
-
-          breadcrumbHTML += `
-        <span class="breadcrumb-part"
-              data-path="${buildPath}"
-              style="cursor:pointer;">
-          ${part}
-        </span>
-      `;
-
-          if (index < parts.length - 1) {
-            breadcrumbHTML += ' / ';
-          }
-        });
+          const sep = index < parts.length - 1 ? ' / ' : '';
+          return `<span class="breadcrumb-part" data-path="${buildPath}" style="cursor:pointer;">${part}</span>${sep}`;
+        }).join('');
 
         $('#folderBreadcrumb').html(breadcrumbHTML);
 
@@ -3588,60 +3252,39 @@ if (file_exists("/etc/unraid-version")) {
 
         if (data.parent) {
           html += `
-        <div class="vm-folder-item browse-row"
-             data-path="${data.parent}"
-             style="cursor:pointer; display:flex; align-items:center;">
-          .. Up Directory
-        </div>
-      `;
+            <div class="vm-folder-item browse-row" data-path="${data.parent}" style="cursor:pointer;display:flex;align-items:center;">
+              .. Up Directory
+            </div>
+          `;
         }
 
         data.folders.forEach(folder => {
           const disabledAttr = folder.selectable ? '' : 'disabled';
-          const tooltip = folder.selectable ? '' : 'title="Cannot select. Browse deeper"';
           const disabledStyle = folder.selectable ? '' : 'style="opacity:0.4;"';
-
           html += `
-  <div class="vm-folder-item browse-row"
-       data-path="${folder.path}"
-       style="display:flex; align-items:center; gap:0px;">
-
-    <label class="folder-check-label" style="display:flex; align-items:center; cursor:pointer; padding:9px 2px 4px 4px;">
-      <input type="checkbox"
-             class="folder-checkbox"
-             value="${folder.path}"
-             ${disabledAttr}
-             ${tooltip}
-             ${disabledStyle}>
-    </label>
-
-    <span class="folder-name-label" style="flex:1; cursor:pointer;">${folder.name}</span>
-  </div>
-`;
+            <div class="vm-folder-item browse-row" data-path="${folder.path}" style="display:flex;align-items:center;gap:0px;">
+              <label class="folder-check-label" style="display:flex;align-items:center;cursor:pointer;padding:9px 2px 4px 4px;">
+                <input type="checkbox" class="folder-checkbox" value="${folder.path}" ${disabledAttr} ${disabledStyle}>
+              </label>
+              <span class="folder-name-label" style="flex:1;cursor:pointer;">${folder.name}</span>
+            </div>
+          `;
         });
 
         $('#folderList').html(html);
 
-        $('.breadcrumb-part').off('click').on('click', function () {
-          const newPath = $(this).data('path');
-          loadFolders(newPath);
-        });
+        $('.breadcrumb-part').off('click').on('click', function () { loadFolders($(this).data('path')); });
 
         $('.browse-row').off('click').on('click', function (e) {
-          if ($(e.target).closest('.folder-check-label').length) return;
-          if ($(e.target).closest('.folder-name-label').length) return;
-          const newPath = $(this).data('path');
-          loadFolders(newPath);
+          if ($(e.target).closest('.folder-check-label, .folder-name-label').length) return;
+          loadFolders($(this).data('path'));
         });
 
         $('.folder-name-label').off('click').on('click', function () {
-          const newPath = $(this).closest('.browse-row').data('path');
-          loadFolders(newPath);
+          loadFolders($(this).closest('.browse-row').data('path'));
         });
 
-        $('.folder-check-label').off('click').on('click', function (e) {
-          e.stopPropagation();
-        });
+        $('.folder-check-label').off('click').on('click', function (e) { e.stopPropagation(); });
 
         $('.folder-checkbox').off('change').on('change', function (e) {
           if (this.disabled) return;
@@ -3649,36 +3292,25 @@ if (file_exists("/etc/unraid-version")) {
           selectedFolder = this.checked ? $(this).val() : null;
           e.stopPropagation();
         });
-      });
+      }
+    );
   }
 
   let activeInputFieldId = null;
 
   $('input[data-picker-title]').on('click', function () {
     activeInputFieldId = $(this).attr('id');
-    const modalTitle = $(this).data('picker-title');
-
-    $('#folderPickerTitle').text(modalTitle);
+    $('#folderPickerTitle').text($(this).data('picker-title'));
     $('#folderPickerModal').show();
-
     const savedPath = $(this).val();
-
-    if (savedPath && savedPath.startsWith('/mnt')) {
-      loadFolders(savedPath);
-    } else {
-      loadFolders('/mnt');
-    }
+    loadFolders(savedPath && savedPath.startsWith('/mnt') ? savedPath : '/mnt');
   });
 
-  $('#closeFolderPicker').on('click', function () {
-    $('#folderPickerModal').hide();
-  });
+  $('#closeFolderPicker').on('click', function () { $('#folderPickerModal').hide(); });
 
   $('#confirmFolderSelection').off('click').on('click', function (e) {
     e.preventDefault();
-
     if (!selectedFolder || !activeInputFieldId) return;
-
     resolveAndApplyPath(selectedFolder, activeInputFieldId);
   });
 
@@ -3695,9 +3327,8 @@ if (file_exists("/etc/unraid-version")) {
   $('#newFolderOk').on('click', function () {
     const name = $('#newFolderName').val().trim();
     if (!name) return;
-
     $.post('/plugins/vm-backup-and-restore/helpers/create_folder.php',
-      { path: currentPath, name: name, csrf_token: csrf_token },
+      { path: currentPath, name, csrf_token },
       function (res) {
         if (res.success) {
           $('#newFolderInputWrap').hide();
@@ -3712,12 +3343,8 @@ if (file_exists("/etc/unraid-version")) {
 
   $(document).ready(function () {
     const $field = $('#restore_destination');
-    if ($field.length === 0) return;
-
-    const initialPath = $field.val();
-
-    if (initialPath.startsWith('/mnt/user/')) {
-      resolveAndApplyPath(initialPath, 'restore_destination');
+    if ($field.length && $field.val().startsWith('/mnt/user/')) {
+      resolveAndApplyPath($field.val(), 'restore_destination');
     }
   });
 </script>
@@ -3726,64 +3353,40 @@ if (file_exists("/etc/unraid-version")) {
   (function () {
     const CHECK_INTERVAL = 1000;
 
-    function updateRunButtons(locked, anyLocked = false, scheduleLocked = false) {
+    function updateRunButtons(locked, anyLocked, scheduleLocked) {
       document.querySelectorAll('.run-schedule-btn').forEach(btn => {
         const currentText = btn.textContent.trim();
 
         if (scheduleLocked) {
-          // Cron-fired run is active: flip whichever "Run" btn exists to "Stop"
           if (currentText !== 'Stop') {
             btn.textContent = 'Stop';
             btn.disabled = false;
             btn.classList.remove('disabled');
-            btn.setAttribute('title', 'Stop backup');
-            if ($(btn).hasClass('tooltipstered')) {
-              $(btn).tooltipster('content', 'Stop backup');
-            }
-            btn.removeAttribute('title');
-            // Wire stop — guard against double-binding with a flag
             if (!btn._stopBound) {
               btn._stopBound = true;
-              // Remove the inline onclick so runScheduleBackup doesn't fire
               btn.onclick = null;
               btn.addEventListener('click', function () {
                 if (btn.disabled) return;
                 btn.disabled = true;
                 $.post('/plugins/vm-backup-and-restore/helpers/stop_backup.php')
-                  .done(function () { showPopup('Stop requested. Backup stopping'); })
-                  .fail(function () {
-                    btn.disabled = false;
-                    alert('Failed to send stop signal');
-                  });
+                  .done(() => showPopup('Stop requested. Backup stopping'))
+                  .fail(() => { btn.disabled = false; alert('Failed to send stop signal'); });
               });
             }
           } else {
-            // Already showing Stop — keep enabled
             btn.disabled = false;
           }
         } else if (!scheduleLocked && currentText === 'Stop') {
-          // Job finished — reset back to Run
           btn.textContent = 'Run';
           btn.disabled = false;
           btn._stopBound = false;
           btn.classList.remove('disabled');
-          btn.setAttribute('title', 'Run schedule');
-          if ($(btn).hasClass('tooltipstered')) {
-            $(btn).tooltipster('content', 'Run schedule');
-          }
-          btn.removeAttribute('title');
-          // Restore original onclick (runScheduleBackup)
-          const id = btn.getAttribute('data-schedule-id') || btn.closest('[data-schedule-id]')?.getAttribute('data-schedule-id');
-          if (id) {
-            btn.onclick = function () { runScheduleBackup(id, btn); };
-          }
+          const id = btn.getAttribute('data-schedule-id') ||
+            btn.closest('[data-schedule-id]')?.getAttribute('data-schedule-id');
+          if (id) btn.onclick = function () { runScheduleBackup(id, btn); };
         } else if (currentText !== 'Stop') {
           btn.disabled = anyLocked;
-          if (anyLocked) {
-            btn.classList.add('disabled');
-          } else {
-            btn.classList.remove('disabled');
-          }
+          btn.classList.toggle('disabled', anyLocked);
         }
       });
 
@@ -3806,20 +3409,6 @@ if (file_exists("/etc/unraid-version")) {
       }
     }
 
-    async function pollLock() {
-      try {
-        const res = await fetch('/plugins/vm-backup-and-restore/helpers/check_lock.php');
-        const data = await res.json();
-        const backupLocked = data.locked && data.mode === 'manual';
-        const restoreLocked = data.locked && data.mode === 'restore';
-        const scheduleLocked = data.locked && data.mode === 'schedule';
-        updateRunButtons(backupLocked, data.locked, scheduleLocked);
-        updateRestoreButton(restoreLocked);
-      } catch (e) {
-        console.error('Failed to check lock:', e);
-      }
-    }
-
     function updateRestoreButton(locked) {
       const restoreBtn = document.getElementById('restorebtn');
       if (!restoreBtn) return;
@@ -3832,31 +3421,37 @@ if (file_exists("/etc/unraid-version")) {
         if ($span.hasClass('tooltipstered')) $span.tooltipster('content', 'Stop restore of selected VM(s)');
         $('#restore-status').show();
       } else if (!locked && currentText === 'Stop') {
-        restoreBtn.textContent = 'Restore';
+        restoreBtn.textContent = 'Restore Now';
         $span.data('tooltip', 'Run restore of selected VM(s)');
         if ($span.hasClass('tooltipstered')) $span.tooltipster('content', 'Run restore of selected VM(s)');
         $('#restore-status').hide();
       }
     }
 
-    pollLock();
-    setInterval(pollLock, CHECK_INTERVAL);
+    (function lockPoller() {
+      fetch('/plugins/vm-backup-and-restore/helpers/check_lock.php')
+        .then(r => r.json())
+        .then(data => {
+          updateRunButtons(
+            data.locked && data.mode === 'manual',
+            data.locked,
+            data.locked && data.mode === 'schedule'
+          );
+          updateRestoreButton(data.locked && data.mode === 'restore');
+        })
+        .catch(err => console.error('Failed to check lock:', err))
+        .finally(() => setTimeout(lockPoller, CHECK_INTERVAL));
+    })();
   })();
 </script>
 
 <script>
   function loadLastRunLog() {
     const logEl = document.getElementById('last-run-log');
-
     fetch('/plugins/vm-backup-and-restore/helpers/fetch_last_run_log.php')
       .then(resp => resp.text())
-      .then(text => {
-        logEl.textContent = text || 'Backup & restore log not found';
-      })
-      .catch(err => {
-        console.error('Failed to load log', err);
-        logEl.textContent = 'Failed to load log';
-      });
+      .then(text => { logEl.textContent = text || 'Backup & restore log not found'; })
+      .catch(err => { console.error('Failed to load log', err); logEl.textContent = 'Failed to load log'; });
   }
 
   document.addEventListener('DOMContentLoaded', loadLastRunLog);
@@ -3871,12 +3466,9 @@ if (file_exists("/etc/unraid-version")) {
     }
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(() => {
-        showCopiedFeedback(this);
-      }).catch(err => {
-        console.warn('Clipboard API failed, using fallback', err);
-        fallbackCopyText(text, this);
-      });
+      navigator.clipboard.writeText(text)
+        .then(() => showCopiedFeedback(this))
+        .catch(err => { console.warn('Clipboard API failed, using fallback', err); fallbackCopyText(text, this); });
     } else {
       fallbackCopyText(text, this);
     }
@@ -3901,10 +3493,7 @@ if (file_exists("/etc/unraid-version")) {
     const original = btn.textContent;
     btn.textContent = 'Copied!';
     btn.disabled = true;
-    setTimeout(() => {
-      btn.textContent = original;
-      btn.disabled = false;
-    }, 1200);
+    setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1200);
   }
 
   function debounceButton(btn, delay = 500) {
@@ -3916,27 +3505,22 @@ if (file_exists("/etc/unraid-version")) {
     });
   }
 
-  ['backupbtn', 'restorebtn', 'schedule-backup', 'cancelEditBtn', 'clear-last-run-log', 'copy-last-run-log', 'confirmFolderSelection', 'closeFolderPicker'].forEach(id => {
-    const btn = document.getElementById(id);
-    if (btn) debounceButton(btn);
-  });
+  ['backupbtn', 'restorebtn', 'schedule-backup', 'cancelEditBtn', 'clear-last-run-log',
+    'copy-last-run-log', 'confirmFolderSelection', 'closeFolderPicker'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) debounceButton(btn);
+    });
 </script>
 
 <script>
-  // ── Unraid-style inline help icons ──────────────────────────────────────
+  // ── Inline help icons ─────────────────────────────────────────────────────
   $(document).ready(function () {
-
     let _fbbLastClick = 0;
     let _fbbF1Open = false;
 
     function attachHelp($trigger, helpText, $insertAfter) {
       const helpId = 'fbb-help-' + Math.random().toString(36).substr(2, 9);
-
-      const $helpDiv = $(
-        '<div class="fbb-help-text" id="' + helpId + '" style="display:none;">' +
-        helpText + '</div>'
-      );
-
+      const $helpDiv = $('<div class="fbb-help-text" id="' + helpId + '" style="display:none;">' + helpText + '</div>');
       $insertAfter.after($helpDiv);
       $helpDiv.data('fbb-guard', $insertAfter);
       $trigger.addClass('fbb-has-help');
@@ -3944,86 +3528,60 @@ if (file_exists("/etc/unraid-version")) {
       $trigger.on('click', function () {
         _fbbLastClick = Date.now();
         const $help = $('#' + helpId);
-        if ($help.is(':visible')) {
-          $help.slideUp(150);
-        } else {
-          $help.slideDown(150);
-        }
+        $help.is(':visible') ? $help.slideUp(150) : $help.slideDown(150);
       });
     }
 
     window._fbbAttachHelp = attachHelp;
 
     function processHelpLabels($scope) {
-      // Pass 1: label > span with betatip/restoretip class and title (existing static fields)
       $scope.find('label > span[class*="betatip"][title], label > span[class*="restoretip"][title]').each(function () {
         const $span = $(this);
         const helpText = $span.attr('title');
         if (!helpText) return;
-
         $span.removeAttr('title').attr('class', '');
-
         const $label = $span.closest('label');
         if ($label.hasClass('fbb-has-help')) return;
-
         const $formPair = $label.closest('.form-pair');
-        const $insertAfter = $formPair.length ? $formPair : $label;
-
-        attachHelp($label, helpText, $insertAfter);
+        attachHelp($label, helpText, $formPair.length ? $formPair : $label);
       });
 
-      // Pass 2: label[title] directly — used by dynamically injected fields like version selects
       $scope.find('label[title]').each(function () {
         const $label = $(this);
         const helpText = $label.attr('title');
-        if (!helpText) return;
-        if ($label.hasClass('fbb-has-help')) return;
-
+        if (!helpText || $label.hasClass('fbb-has-help')) return;
         $label.removeAttr('title');
-
         const $formPair = $label.closest('.form-pair');
-        const $insertAfter = $formPair.length ? $formPair : $label;
-
-        attachHelp($label, helpText, $insertAfter);
+        attachHelp($label, helpText, $formPair.length ? $formPair : $label);
       });
     }
 
     window._fbbProcessLabels = processHelpLabels;
 
-    // Process all labels on page load
     processHelpLabels($(document));
 
-    // Status labels — covers both .status-label and .restore-status-label
     $('span.status-label.vm-backup-and-restoretip[title], span.restore-status-label.vm-backup-and-restoretip[title]').each(function () {
       const $span = $(this);
       const helpText = $span.attr('title');
       if (!helpText) return;
-
       $span.removeAttr('title').removeClass('vm-backup-and-restoretip');
-
       const $statusRow = $span.closest('.status-row, .restore-status-row');
-      const $insertAfter = $statusRow.length ? $statusRow : $span;
-
-      attachHelp($span, helpText, $insertAfter);
+      attachHelp($span, helpText, $statusRow.length ? $statusRow : $span);
     });
 
-    // Strip tooltipster class/title from remaining input and select wrapper spans
     $('span.vm-backup-and-restoretip').each(function () {
       if ($(this).children('button').length > 0) return;
       $(this).removeAttr('title').removeClass('vm-backup-and-restoretip');
     });
 
-    // Strip tooltipster from multiselect divs (notification service widgets)
     $('div.vm-backup-and-restoretip').each(function () {
       if ($(this).closest('table').length > 0) return;
       $(this).removeAttr('title').removeClass('vm-backup-and-restoretip');
     });
 
-    // F1 — open all / close all toggle
     $(document).on('keydown', function (e) {
       if (e.key !== 'F1') return;
       e.preventDefault();
-
       if (_fbbF1Open) {
         $('.fbb-help-text').slideUp(150);
         _fbbF1Open = false;
@@ -4037,36 +3595,21 @@ if (file_exists("/etc/unraid-version")) {
       }
     });
 
-    // Close all help texts when clicking outside
     $(document).on('click', function () {
       if (Date.now() - _fbbLastClick < 150) return;
       $('.fbb-help-text').slideUp(150);
       _fbbF1Open = false;
     });
-
-  });
-  // ── End inline help icons ────────────────────────────────────────────────
-
-  $(document).ready(function () {
-    setTimeout(function () {
-      rebuildVersionFields();
-    }, 50);
   });
 
+  // Initial deferred calls
   $(document).ready(function () {
+    setTimeout(scheduleRebuildVersionFields, 50);
+    setTimeout(scanMalformedBackups, 100);
 
-    setTimeout(function () {
-      scanMalformedBackups();
-    }, 100);
+    $('#location_of_backups').on('change', scanMalformedBackups);
 
-    $('#location_of_backups').on('change', function () {
-      scanMalformedBackups();
-    });
-
-  });
-
-  $(document).ready(function () {
-    scanMalformedBackups();     // initial scan
-    startMalformedPolling();    // begin polling
+    scanMalformedBackups();
+    startMalformedPolling();
   });
 </script>
