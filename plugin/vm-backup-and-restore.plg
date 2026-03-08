@@ -4,7 +4,7 @@
 <PLUGIN 
   name="vm-backup-and-restore"
   author="jcofer555"
-  version="2026.03.08.01"
+  version="2026.03.08.02"
   launch="Settings/vm-backup-and-restore"
   pluginURL="https://raw.githubusercontent.com/jcofer555/vm-backup-and-restore/main/plugin/vm-backup-and-restore.plg"
   support="https://forums.unraid.net/topic/197218-vm-backup-restore-for-unraid/"
@@ -16,6 +16,11 @@
 <CHANGES>
 <![CDATA[
 
+### 2026.03.08.02
+
+- Improved log section
+- Change of text colors and other webui related changes
+
 ### 2026.03.08.01
 
 - Improved log section
@@ -25,18 +30,14 @@
 
 - Change to webui fields and sections
 
-### 2026.03.03.02
-
-- Input and select fields now responsive so the page works better on smaller screens
-
 
 For older releases, see https://github.com/jcofer555/vm-backup-and-restore/releases
 ]]>
 </CHANGES>
 
-<FILE Name="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.03.08.01-noarch-1.txz">
-<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.03.08.01/unraid-vm-backup-and-restore-2026.03.08.01-noarch-1.txz</URL>
-<SHA256>c30d355ed7b5165d09f90cb3c6c8c35fe56218ca29f75508ab5d0a245af25ce4</SHA256>
+<FILE Name="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.03.08.02-noarch-1.txz">
+<URL>https://github.com/jcofer555/vm-backup-and-restore/releases/download/2026.03.08.02/unraid-vm-backup-and-restore-2026.03.08.02-noarch-1.txz</URL>
+<SHA256>131f8ccfcb097b3917300e2b3afdf2deb9776dda696e688fba86ac948e4ea781</SHA256>
 </FILE>
 
 <!-- ==========================================================
@@ -49,7 +50,7 @@ For older releases, see https://github.com/jcofer555/vm-backup-and-restore/relea
 #  INSTALL / UPGRADE LOGIC
 # ==========================================================
 
-PACKAGE_TXZ="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.03.08.01-noarch-1.txz"
+PACKAGE_TXZ="/boot/config/plugins/vm-backup-and-restore/unraid-vm-backup-and-restore-2026.03.08.02-noarch-1.txz"
 USER_CFG="/boot/config/plugins/vm-backup-and-restore/settings.cfg"
 RESTORE_USER_CFG="/boot/config/plugins/vm-backup-and-restore/settings_restore.cfg"
 DEFAULT_CFG="/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/default_settings.cfg"
@@ -135,12 +136,12 @@ fi
 mv "$RESTORE_TMP_CFG" "$RESTORE_USER_CFG"
 
 # Remove older txz packages (keep only the current one)
-find /boot/config/plugins/vm-backup-and-restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.03.08.01-noarch-1.txz" -delete
+find /boot/config/plugins/vm-backup-and-restore/ -maxdepth 1 -type f -name "unraid-vm-backup-and-restore-*.txz" ! -name "unraid-vm-backup-and-restore-2026.03.08.02-noarch-1.txz" -delete
 
 echo ""
 echo "----------------------------------------------------"
 echo " vm-backup-and-restore has been installed."
-echo " Version: 2026.03.08.01"
+echo " Version: 2026.03.08.02"
 echo "----------------------------------------------------"
 echo ""
 
