@@ -138,32 +138,76 @@ if (file_exists("/etc/unraid-version")) {
     --border-radius-panel: 12px;
   }
 
-  /* ── Box sizing ── */
-  *, *::before, *::after { box-sizing: border-box; }
+  /* Prevent Unraid's modal container from adding to page scroll height */
+  #unraid-api-modals-virtual {
+    position: absolute !important;
+    height: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Hide wrapper scrollbar on 7.2 without clipping content */
+  .unraid-72 .content.shift { overflow-y: hidden !important; }
+  .unraid-72 .tab { overflow-y: hidden !important; }
 
   #vm-backup-and-restore-page {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    margin-top: -31px;
-    margin-bottom: -31px;
-  }
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Remove Unraid's wrapper padding */
+.unraid-72 .content.shift {
+  padding: 0 !important;
+}
+
+.unraid-72 .tab {
+  padding: 0 !important;
+}
 
   /* ── 3-panel grid ── */
+/* Default layout (applies to all versions unless overridden) */
+#vm-backup-and-restore-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  align-items: stretch;
+
+  /* Base height for 7.1 */
+  height: 679px;
+  max-height: 679px;
+  margin-top: -31px;
+}
+
+/* ----------------------------- */
+/* 7.2-specific height override  */
+/* ----------------------------- */
+.unraid-72 #vm-backup-and-restore-layout {
+  height: 240px;
+  max-height: 240px;
+}
+
+/* ----------------------------- */
+/* Responsive breakpoints        */
+/* ----------------------------- */
+@media (max-width: 1200px) {
   #vm-backup-and-restore-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr);
-    gap: 12px;
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    min-height: 0;
-    overflow-x: hidden;
-    box-sizing: border-box;
-    align-items: stretch;
-    height: 709px; /* default height — JS overrides on resize */
-    margin-top: -31px;
+    grid-template-columns: 1fr 1fr;
+    height: auto;
   }
+}
+
+@media (max-width: 700px) {
+  #vm-backup-and-restore-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+}
 
   /* Height is set in CSS above — 491px default, breakpoints handle narrow screens */
 
@@ -175,7 +219,20 @@ if (file_exists("/etc/unraid-version")) {
     min-height: 0;
     overflow: hidden;
   }
-
+/* Force consistent widths inside all form-pairs */
+.form-pair input[type="text"],
+.form-pair input[type="password"],
+.form-pair input[type="number"],
+.form-pair select,
+#vm-dropdown,
+#vm-dropdown-restore,
+#notification_service,
+#notification_service_restore {
+    width: 220px !important;
+    max-width: 220px !important;
+    min-width: 220px !important;
+    box-sizing: border-box !important;
+}
   /* ── All 3 panels share base styles ── */
   #vm-backup-and-restore-settings,
   #vm-backup-and-restore-settings-restore,
@@ -309,8 +366,23 @@ if (file_exists("/etc/unraid-version")) {
   #vm-backup-and-restore-page label span,
   #vm-backup-and-restore-page .status-label,
   #vm-backup-and-restore-page .restore-status-label {
-    color: #e0c8f5 !important;
+    color: #ad57df;
     font-weight: bold;
+  }
+
+  /* Dropdown list item labels should NOT be purple — override the rule above */
+  .vm-dropdown-list label,
+  .vm-dropdown-list-restore label,
+  .vm-dropdown-list label span,
+  .vm-dropdown-list-restore label span {
+    color: #e0c8f5 !important;
+    font-weight: normal !important;
+  }
+
+  /* Version field labels match other form labels */
+  .version-field label {
+    color: #ad57df !important;
+    font-weight: bold !important;
   }
 
   #vm-backup-and-restore-settings h2,
@@ -574,7 +646,6 @@ if (file_exists("/etc/unraid-version")) {
     min-height: unset !important;
     flex: none !important;
     box-sizing: border-box !important;
-    color: #e0c8f5 !important;
   }
 
   /* Webhook dynamically injected fields */
@@ -657,7 +728,7 @@ if (file_exists("/etc/unraid-version")) {
   #last-run-log .log-highlight {
     background: rgba(173, 87, 223, 0.2);
     border-radius: 2px;
-    color: #0dad35;
+    color: #11a011;
   }
 
   .log-toolbar {
@@ -728,7 +799,7 @@ if (file_exists("/etc/unraid-version")) {
     display: flex;
     align-items: center;
     background: #111;
-    border: 1px solid #e0c8f5;
+    border: 1px solid #ad57df;
     border-radius: 6px;
     overflow: hidden;
     transition: box-shadow 0.15s;
@@ -781,11 +852,18 @@ if (file_exists("/etc/unraid-version")) {
 
   .vm-dropdown-label-restore,
   .vm-dropdown-label {
-    color: var(--text-input);
+    color: #e0c8f5 !important;
     user-select: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  #vm-dropdown .vm-dropdown-label,
+  #vm-dropdown-restore .vm-dropdown-label-restore,
+  #notification_service .vm-dropdown-label,
+  #notification_service_restore .vm-dropdown-label {
+    color: #e0c8f5 !important;
   }
 
   .vm-dropdown-list-restore,
@@ -801,7 +879,7 @@ if (file_exists("/etc/unraid-version")) {
     overflow-y: auto;
     border: 1px solid var(--primary);
     background: #000;
-    color: #e0c8f5;
+    color: var(--text-input);
     z-index: 10;
     font-family: 'Segoe UI', sans-serif;
   }
@@ -822,7 +900,7 @@ if (file_exists("/etc/unraid-version")) {
     align-items: center;
     gap: 6px;
     color: #e0c8f5 !important;
-    font-weight: normal !important;
+    font-weight: normal;
   }
 
   .vm-dropdown-list-restore input[type="checkbox"],
@@ -1003,7 +1081,8 @@ if (file_exists("/etc/unraid-version")) {
 
   .vm-folder-item { padding: 6px; cursor: pointer; color: #e0c8f5 !important; font-size: 14px; }
   .vm-folder-item:hover { background: #111; }
-  .vm-folder-item label { cursor: pointer; color: #e0c8f5 !important; font-size: 14px; }
+  .vm-folder-item label { cursor: pointer; color: #e0c8f5 !important; font-size: 14px; position: relative;
+  top: -3px;   /* adjust 1–3px depending on your theme */ }
 
   .vm-breadcrumb { margin-bottom: 10px; font-size: 13px; color: #e0c8f5 !important; }
   .vm-modal-footer { margin-top: 10px; text-align: right; }
@@ -1912,6 +1991,18 @@ if (file_exists("/etc/unraid-version")) {
 
     zeroMargins();
 
+    function applyLayoutHeight() {
+      var wrapper = page.parentElement;
+      if (!wrapper) return;
+      var available = wrapper.clientHeight;
+      var scheduleSection = document.getElementById('schedule-section');
+      var scheduleHeight = scheduleSection ? scheduleSection.offsetHeight : 0;
+      var newHeight = available - scheduleHeight - 16;
+      if (newHeight > 100) layout.style.setProperty('height', newHeight + 'px', 'important');
+    }
+
+    setTimeout(applyLayoutHeight, 300);
+
     // Zero margins several times to catch Unraid's late resets
     var attempts = 0;
     var interval = setInterval(function() {
@@ -2312,7 +2403,7 @@ if (file_exists("/etc/unraid-version")) {
               const versions = vmVersionData[vm] || [];
               const fieldWrapper = $(`
                 <div class="form-pair version-field">
-                  <label class="version-label-${vm.replace(/\s+/g, '_')}">
+                  <label class="version-label-${vm.replace(/\s+/g, '_')}" style="color:#ad57df !important;font-weight:bold;">
                     Version for ${vm}:
                   </label>
                   <span>
