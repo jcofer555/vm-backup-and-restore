@@ -144,7 +144,7 @@ if ($enabledBool) {
 
         <tr style="
     background:#000;
-    color:#dddddd;
+    color:#e0c8f5;
     border-left:3px solid <?php echo $sideBorder; ?>;
     border-right:3px solid <?php echo $sideBorder; ?>;
 ">
