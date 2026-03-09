@@ -4,6 +4,6 @@
     "author": "jcofer555",
     "icon": "icon.png",
     "support": "https://forums.unraid.net/topic/197218-vm-backup-restore-for-unraid/",
-    "min": "7.1.0",
+    "min": "7.1.99",
     "launch": "Settings/vm-backup-and-restore"
 }
