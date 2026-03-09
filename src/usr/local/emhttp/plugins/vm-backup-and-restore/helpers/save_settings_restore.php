@@ -1,79 +1,86 @@
 <?php
+declare(strict_types=1);
 header('Content-Type: application/json');
 
-$config = '/boot/config/plugins/vm-backup-and-restore/settings_restore.cfg';
-$tmp    = $config . '.tmp';
+// --- Constants ---
+const CONFIG_PATH = '/boot/config/plugins/vm-backup-and-restore/settings_restore.cfg';
+const CONFIG_TMP  = CONFIG_PATH . '.tmp';
 
-// --- Read from POST ---
-$location_of_backups          = $_POST['LOCATION_OF_BACKUPS']          ?? '';
-$vms_to_restore               = $_POST['VMS_TO_RESTORE']               ?? '';
-$versions                     = $_POST['VERSIONS']                     ?? '';
-$restore_destination          = $_POST['RESTORE_DESTINATION']          ?? '/mnt/user/domains';
-$dry_run_restore              = $_POST['DRY_RUN_RESTORE']              ?? 'no';
-$notifications_restore        = $_POST['NOTIFICATIONS_RESTORE']        ?? 'no';
-$notification_service_restore = $_POST['NOTIFICATION_SERVICE_RESTORE'] ?? '';
-$pushover_user_key_restore    = $_POST['PUSHOVER_USER_KEY_RESTORE']    ?? '';
-
-$services    = ['DISCORD', 'GOTIFY', 'NTFY', 'PUSHOVER', 'SLACK'];
-$webhookUrls = [];
-foreach ($services as $svc) {
-    $webhookUrls[$svc] = $_POST['WEBHOOK_' . $svc . '_RESTORE'] ?? '';
-}
-
-// --- Normalize paths ---
-if ($location_of_backups !== '') {
-    $resolved = realpath($location_of_backups);
-    if ($resolved !== false) {
-        $location_of_backups = $resolved;
-    }
-}
-
-if ($restore_destination !== '') {
-    $resolved = realpath($restore_destination);
-    if ($resolved !== false) {
-        $restore_destination = $resolved;
-    }
-}
-
-// --- Sanitize helper: strip quotes and newlines ---
-function sanitize(string $val): string {
+// --- Utility ---
+function sanitize_val(string $val): string
+{
     return str_replace(['"', "'", "\n", "\r"], '', $val);
 }
 
-// --- Build config lines ---
-$lines = [
-    'LOCATION_OF_BACKUPS'          => $location_of_backups,
-    'VMS_TO_RESTORE'               => $vms_to_restore,
-    'VERSIONS'                     => $versions,
-    'RESTORE_DESTINATION'          => $restore_destination,
-    'DRY_RUN_RESTORE'              => $dry_run_restore,
-    'NOTIFICATIONS_RESTORE'        => $notifications_restore,
-    'NOTIFICATION_SERVICE_RESTORE' => $notification_service_restore,
-    'WEBHOOK_DISCORD_RESTORE'      => $webhookUrls['DISCORD'],
-    'WEBHOOK_GOTIFY_RESTORE'       => $webhookUrls['GOTIFY'],
-    'WEBHOOK_NTFY_RESTORE'         => $webhookUrls['NTFY'],
-    'WEBHOOK_PUSHOVER_RESTORE'     => $webhookUrls['PUSHOVER'],
-    'WEBHOOK_SLACK_RESTORE'        => $webhookUrls['SLACK'],
-    'PUSHOVER_USER_KEY_RESTORE'    => $pushover_user_key_restore,
+function json_error(string $message): void
+{
+    echo json_encode(['status' => 'error', 'message' => $message]);
+    exit;
+}
+
+// --- Read POST values ---
+$location_of_backups_str          = (string)($_POST['LOCATION_OF_BACKUPS']          ?? '');
+$vms_to_restore_str               = (string)($_POST['VMS_TO_RESTORE']               ?? '');
+$versions_str                     = (string)($_POST['VERSIONS']                     ?? '');
+$restore_destination_str          = (string)($_POST['RESTORE_DESTINATION']          ?? '/mnt/user/domains');
+$dry_run_restore_str              = (string)($_POST['DRY_RUN_RESTORE']              ?? 'no');
+$notifications_restore_str        = (string)($_POST['NOTIFICATIONS_RESTORE']        ?? 'no');
+$notification_service_restore_str = (string)($_POST['NOTIFICATION_SERVICE_RESTORE'] ?? '');
+$pushover_user_key_restore_str    = (string)($_POST['PUSHOVER_USER_KEY_RESTORE']    ?? '');
+
+$services_arr = ['DISCORD', 'GOTIFY', 'NTFY', 'PUSHOVER', 'SLACK'];
+$webhooks_arr = [];
+foreach ($services_arr as $svc_str) {
+    $webhooks_arr[$svc_str] = (string)($_POST['WEBHOOK_' . $svc_str . '_RESTORE'] ?? '');
+}
+
+// --- Normalize paths ---
+if ($location_of_backups_str !== '') {
+    $resolved_str = realpath($location_of_backups_str);
+    if ($resolved_str !== false) {
+        $location_of_backups_str = $resolved_str;
+    }
+}
+
+if ($restore_destination_str !== '') {
+    $resolved_str = realpath($restore_destination_str);
+    if ($resolved_str !== false) {
+        $restore_destination_str = $resolved_str;
+    }
+}
+
+// --- Build config ---
+$lines_arr = [
+    'LOCATION_OF_BACKUPS'          => $location_of_backups_str,
+    'VMS_TO_RESTORE'               => $vms_to_restore_str,
+    'VERSIONS'                     => $versions_str,
+    'RESTORE_DESTINATION'          => $restore_destination_str,
+    'DRY_RUN_RESTORE'              => $dry_run_restore_str,
+    'NOTIFICATIONS_RESTORE'        => $notifications_restore_str,
+    'NOTIFICATION_SERVICE_RESTORE' => $notification_service_restore_str,
+    'WEBHOOK_DISCORD_RESTORE'      => $webhooks_arr['DISCORD'],
+    'WEBHOOK_GOTIFY_RESTORE'       => $webhooks_arr['GOTIFY'],
+    'WEBHOOK_NTFY_RESTORE'         => $webhooks_arr['NTFY'],
+    'WEBHOOK_PUSHOVER_RESTORE'     => $webhooks_arr['PUSHOVER'],
+    'WEBHOOK_SLACK_RESTORE'        => $webhooks_arr['SLACK'],
+    'PUSHOVER_USER_KEY_RESTORE'    => $pushover_user_key_restore_str,
 ];
 
-$content = '';
-foreach ($lines as $key => $val) {
-    $content .= $key . '="' . sanitize($val) . '"' . "\n";
+$content_str = '';
+foreach ($lines_arr as $key_str => $val_str) {
+    $content_str .= $key_str . '="' . sanitize_val($val_str) . '"' . "\n";
 }
 
 // --- Write atomically ---
-@mkdir(dirname($config), 0755, true);
+@mkdir(dirname(CONFIG_PATH), 0755, true);
 
-if (file_put_contents($tmp, $content) === false) {
-    echo json_encode(['status' => 'error', 'message' => 'Failed to write temp config']);
-    exit;
+if (file_put_contents(CONFIG_TMP, $content_str) === false) {
+    json_error('Failed to write temp config');
 }
 
-if (!rename($tmp, $config)) {
-    @unlink($tmp);
-    echo json_encode(['status' => 'error', 'message' => 'Failed to move config into place']);
-    exit;
+if (!rename(CONFIG_TMP, CONFIG_PATH)) {
+    @unlink(CONFIG_TMP);
+    json_error('Failed to move config into place');
 }
 
 echo json_encode(['status' => 'ok']);

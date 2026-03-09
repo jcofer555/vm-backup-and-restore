@@ -1,35 +1,35 @@
 <?php
+declare(strict_types=1);
 header('Content-Type: application/json');
 
-$lock = '/tmp/vm-backup-and-restore/lock.txt';
+const LOCK_FILE = '/tmp/vm-backup-and-restore/lock.txt';
 
-if (!file_exists($lock)) {
+if (!file_exists(LOCK_FILE)) {
     echo json_encode(['locked' => false, 'mode' => null]);
     exit;
 }
 
-$contents = file_get_contents($lock);
+$contents_str = (string)file_get_contents(LOCK_FILE);
 
-if (empty(trim($contents))) {
+if (trim($contents_str) === '') {
     echo json_encode(['locked' => false, 'mode' => null]);
     exit;
 }
 
-preg_match('/PID=(\d+)/', $contents, $pm);
-preg_match('/MODE=(\S+)/', $contents, $mm);
+preg_match('/PID=(\d+)/', $contents_str, $pid_matches);
+preg_match('/MODE=(\S+)/', $contents_str, $mode_matches);
 
-$pid  = $pm[1] ?? null;
-$mode = $mm[1] ?? null;
+$pid_int   = isset($pid_matches[1])  ? (int)$pid_matches[1]    : 0;
+$mode_str  = $mode_matches[1]  ?? null;
 
-// Verify the process is actually still running
-if ($pid && !file_exists("/proc/$pid")) {
-    // Stale lock — clean it up
-    @unlink($lock);
+// Stale lock check
+if ($pid_int > 0 && !file_exists("/proc/$pid_int")) {
+    @unlink(LOCK_FILE);
     echo json_encode(['locked' => false, 'mode' => null]);
     exit;
 }
 
 echo json_encode([
     'locked' => true,
-    'mode'   => $mode
+    'mode'   => $mode_str,
 ]);

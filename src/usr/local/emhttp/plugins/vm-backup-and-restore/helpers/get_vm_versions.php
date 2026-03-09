@@ -1,76 +1,63 @@
 <?php
+declare(strict_types=1);
 header('Content-Type: application/json');
 
-$vm = $_GET['vm'] ?? '';
-$restorePath = $_GET['restore_path'] ?? '';
-$basePath = rtrim($restorePath, '/') . '/' . $vm;
+$vm_str           = $_GET['vm']           ?? '';
+$restore_path_str = rtrim($_GET['restore_path'] ?? '', '/');
+$base_path_str    = $restore_path_str . '/' . $vm_str;
 
-if (!is_dir($basePath)) {
+if (!is_dir($base_path_str)) {
     echo json_encode([]);
     exit;
 }
 
-$files = scandir($basePath);
-$versions = [];
+$files_arr    = scandir($base_path_str);
+$versions_arr = [];
 
-/*
-  Match files that begin with:
-  YYYYMMDD_HHMMSS
-*/
-foreach ($files as $file) {
-
-    if (preg_match('/^(\d{8})_(\d{6})/', $file, $m)) {
-
-        $raw = $m[1] . '-' . $m[2]; // YYYYMMDD-HHMMSS
-        $versions[$raw][] = $file;
+foreach ($files_arr as $file_str) {
+    if (preg_match('/^(\d{8})_(\d{6})/', $file_str, $matches_arr)) {
+        $raw_str = $matches_arr[1] . '-' . $matches_arr[2];
+        $versions_arr[$raw_str][] = $file_str;
     }
 }
 
-$out = [];
+$out_arr = [];
 
-foreach ($versions as $raw => $filesForVersion) {
+foreach ($versions_arr as $raw_str => $files_for_version_arr) {
 
-    $hasDisk  = false;
-    $hasXML   = false;
-    $hasNVRAM = false;
+    $has_disk_bool  = false;
+    $has_xml_bool   = false;
+    $has_nvram_bool = false;
 
-    foreach ($filesForVersion as $file) {
-
-        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-
-        if ($ext === 'img' || $ext === 'qcow2') {
-            $hasDisk = true;
+    foreach ($files_for_version_arr as $file_str) {
+        $ext_str = strtolower(pathinfo($file_str, PATHINFO_EXTENSION));
+        if ($ext_str === 'img' || $ext_str === 'qcow2') {
+            $has_disk_bool = true;
         }
-
-        if ($ext === 'xml') {
-            $hasXML = true;
+        if ($ext_str === 'xml') {
+            $has_xml_bool = true;
         }
-
-        if ($ext === 'fd') {
-            $hasNVRAM = true;
+        if ($ext_str === 'fd') {
+            $has_nvram_bool = true;
         }
     }
 
-    $missing = [];
+    $missing_arr = [];
+    if (!$has_disk_bool)  $missing_arr[] = 'vdisk';
+    if (!$has_xml_bool)   $missing_arr[] = 'xml';
+    if (!$has_nvram_bool) $missing_arr[] = 'nvram';
 
-    if (!$hasDisk)  $missing[] = 'vdisk';
-    if (!$hasXML)   $missing[] = 'xml';
-    if (!$hasNVRAM) $missing[] = 'nvram';
+    $dt_obj      = DateTime::createFromFormat('Ymd-His', $raw_str);
+    $display_str = $dt_obj ? $dt_obj->format('Y-m-d H:i:s') : $raw_str;
 
-    $dt = DateTime::createFromFormat("Ymd-His", $raw);
-    $display = $dt ? $dt->format("Y-m-d H:i:s") : $raw;
-
-    $out[] = [
-        "raw"       => $raw,
-        "display"   => $display,
-        "malformed" => count($missing) > 0,
-        "missing"   => $missing
+    $out_arr[] = [
+        'raw'      => $raw_str,
+        'display'  => $display_str,
+        'malformed' => count($missing_arr) > 0,
+        'missing'  => $missing_arr,
     ];
 }
 
-/* Sort newest first */
-usort($out, function ($a, $b) {
-    return strcmp($b['raw'], $a['raw']);
-});
+usort($out_arr, static fn(array $a, array $b): int => strcmp($b['raw'], $a['raw']));
 
-echo json_encode($out);
+echo json_encode($out_arr);

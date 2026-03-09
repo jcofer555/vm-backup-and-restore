@@ -1,78 +1,86 @@
 <?php
+declare(strict_types=1);
 header('Content-Type: application/json');
 
-$id = $argv[1] ?? ($_GET['id'] ?? ($_POST['id'] ?? ''));
+// --- Constants ---
+const SCHEDULES_CFG   = '/boot/config/plugins/vm-backup-and-restore/schedules.cfg';
+const LOCK_DIR        = '/tmp/vm-backup-and-restore';
+const LOCK_FILE       = LOCK_DIR . '/lock.txt';
+const SCHEDULE_SCRIPT = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/scheduled_backup.sh';
 
-if (!$id) {
-    echo json_encode(['status' => 'error', 'message' => 'Missing schedule id']);
+// --- Utility ---
+function json_error(string $message): void
+{
+    echo json_encode(['status' => 'error', 'message' => $message]);
     exit;
 }
 
-$cfg       = '/boot/config/plugins/vm-backup-and-restore/schedules.cfg';
-$schedules = parse_ini_file($cfg, true, INI_SCANNER_RAW);
+// --- Resolve schedule ID (supports CLI and HTTP) ---
+$id_str = (string)($argv[1] ?? ($_GET['id'] ?? ($_POST['id'] ?? '')));
 
-if (!isset($schedules[$id])) {
-    echo json_encode(['status' => 'error', 'message' => 'Schedule not found']);
-    exit;
+if ($id_str === '') {
+    json_error('Missing schedule ID');
 }
 
-$lockDir = '/tmp/vm-backup-and-restore';
-$lock    = "$lockDir/lock.txt";
-$script  = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/scheduled_backup.sh';
-
-if (!is_dir($lockDir)) {
-    mkdir($lockDir, 0777, true);
+$schedules_arr = parse_ini_file(SCHEDULES_CFG, true, INI_SCANNER_RAW);
+if (!is_array($schedules_arr) || !isset($schedules_arr[$id_str])) {
+    json_error('Schedule not found');
 }
 
-// Atomic check — verify no live process
-if (file_exists($lock)) {
-    $contents = file_get_contents($lock);
-    preg_match('/PID=(\d+)/', $contents, $pm);
-    $pid = $pm[1] ?? null;
-    if ($pid && file_exists("/proc/$pid")) {
-        echo json_encode(['status' => 'error', 'message' => 'Backup already running']);
-        exit;
+// --- Ensure lock directory ---
+if (!is_dir(LOCK_DIR)) {
+    mkdir(LOCK_DIR, 0777, true);
+}
+
+// --- Validate script ---
+if (!is_file(SCHEDULE_SCRIPT) || !is_executable(SCHEDULE_SCRIPT)) {
+    json_error('Scheduled backup script missing or not executable');
+}
+
+// --- Check for live process ---
+if (file_exists(LOCK_FILE)) {
+    $contents_str = (string)file_get_contents(LOCK_FILE);
+    preg_match('/PID=(\d+)/', $contents_str, $pid_matches);
+    $existing_pid_int = isset($pid_matches[1]) ? (int)$pid_matches[1] : 0;
+    if ($existing_pid_int > 0 && file_exists("/proc/$existing_pid_int")) {
+        json_error('Backup already running');
     }
-    @unlink($lock);
+    @unlink(LOCK_FILE);
 }
 
-// Decode settings
-$rawSettings = stripslashes($schedules[$id]['SETTINGS'] ?? '');
-$settings    = json_decode($rawSettings, true);
-if (!is_array($settings)) $settings = [];
-
-foreach ($settings as $k => $v) {
-    putenv("$k=$v");
-}
-putenv("SCHEDULE_ID=$id");
-
-if (!is_file($script) || !is_executable($script)) {
-    echo json_encode(['status' => 'error', 'message' => 'Scheduled backup script missing or not executable']);
-    exit;
+// --- Decode and apply settings ---
+$raw_settings_str = stripslashes($schedules_arr[$id_str]['SETTINGS'] ?? '');
+$settings_arr     = json_decode($raw_settings_str, true);
+if (!is_array($settings_arr)) {
+    $settings_arr = [];
 }
 
-// Write placeholder lock BEFORE launching
-$placeholder = "PID=0\nMODE=schedule\nSCHEDULE_ID=$id\nSTART=" . time() . "\n";
-if (file_put_contents($lock, $placeholder, LOCK_EX) === false) {
-    echo json_encode(['status' => 'error', 'message' => 'Unable to write lock file']);
-    exit;
+foreach ($settings_arr as $key_str => $val_str) {
+    putenv("$key_str=$val_str");
+}
+putenv("SCHEDULE_ID=$id_str");
+
+// --- Write placeholder lock ---
+$placeholder_str = "PID=0\nMODE=schedule\nSCHEDULE_ID=$id_str\nSTART=" . time() . "\n";
+if (file_put_contents(LOCK_FILE, $placeholder_str, LOCK_EX) === false) {
+    json_error('Unable to write lock file');
 }
 
-$cmd = "nohup /bin/bash $script >/dev/null 2>&1 & echo $!";
-$pid = trim(shell_exec($cmd));
+// --- Launch ---
+$cmd_str = 'nohup /bin/bash ' . escapeshellarg(SCHEDULE_SCRIPT) . ' >/dev/null 2>&1 & echo $!';
+$pid_str = trim((string)shell_exec($cmd_str));
 
-if (!$pid || !is_numeric($pid)) {
-    @unlink($lock);
-    echo json_encode(['status' => 'error', 'message' => 'Failed to start scheduled backup']);
-    exit;
+if ($pid_str === '' || !is_numeric($pid_str)) {
+    @unlink(LOCK_FILE);
+    json_error('Failed to start scheduled backup');
 }
 
-// Update with real PID
-file_put_contents($lock, "PID=$pid\nMODE=schedule\nSCHEDULE_ID=$id\nSTART=" . time() . "\n", LOCK_EX);
+$pid_int = (int)$pid_str;
+file_put_contents(LOCK_FILE, "PID=$pid_int\nMODE=schedule\nSCHEDULE_ID=$id_str\nSTART=" . time() . "\n", LOCK_EX);
 
 echo json_encode([
     'status'  => 'ok',
     'started' => true,
-    'id'      => $id,
-    'pid'     => $pid
+    'id'      => $id_str,
+    'pid'     => $pid_int,
 ]);

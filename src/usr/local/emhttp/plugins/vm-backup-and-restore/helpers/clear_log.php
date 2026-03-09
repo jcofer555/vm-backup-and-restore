@@ -1,50 +1,46 @@
 <?php
+declare(strict_types=1);
 header('Content-Type: application/json');
 
-// Accept both header and POST token
-$csrfHeader = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-$postToken  = $_POST['csrf_token'] ?? '';
-$cookieToken = $_COOKIE['csrf_token'] ?? '';
+// --- CSRF validation ---
+$csrf_header_str = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+$csrf_post_str   = $_POST['csrf_token']          ?? '';
+$csrf_cookie_str = $_COOKIE['csrf_token']        ?? '';
 
-if (empty($csrfHeader) && empty($postToken)) {
+if ($csrf_header_str === '' && $csrf_post_str === '') {
     http_response_code(403);
-    echo json_encode(['ok' => false, 'message' => 'Missing CSRF token']);
+    echo json_encode(['status' => 'error', 'message' => 'Missing CSRF token']);
     exit;
 }
 
-// Validate against cookie
-if ($csrfHeader !== $cookieToken && $postToken !== $cookieToken) {
+if (!hash_equals($csrf_cookie_str, $csrf_header_str) && !hash_equals($csrf_cookie_str, $csrf_post_str)) {
     http_response_code(403);
-    echo json_encode(['ok' => false, 'message' => 'Invalid CSRF token']);
+    echo json_encode(['status' => 'error', 'message' => 'Invalid CSRF token']);
     exit;
 }
 
-$log = $_POST['log'] ?? '';
-$files = [
-    'last'  => '/tmp/vm-backup-and-restore/vm-backup-and-restore.log'
+// --- Log target map ---
+const LOG_FILES = [
+    'last' => '/tmp/vm-backup-and-restore/vm-backup-and-restore.log',
 ];
 
-if (!isset($files[$log])) {
-    echo json_encode(['ok' => false, 'message' => 'Invalid log target']);
+$log_str = $_POST['log'] ?? '';
+
+if (!array_key_exists($log_str, LOG_FILES)) {
+    echo json_encode(['status' => 'error', 'message' => 'Invalid log target']);
     exit;
 }
 
-$file = $files[$log];
-if (file_exists($file)) {
-    file_put_contents($file, '');
-    if (file_exists($file)) {
-    file_put_contents($file, '');
-    echo json_encode([
-        'ok' => true,
-        'message' => '✅ ' . ucfirst($log) . ' log cleared successfully.'
-    ]);
-} else {
-    echo json_encode([
-        'ok' => false,
-        'message' => '❌ Log file not found.'
-    ]);
+$file_path_str = LOG_FILES[$log_str];
+
+if (!file_exists($file_path_str)) {
+    echo json_encode(['status' => 'error', 'message' => 'Log file not found']);
+    exit;
 }
 
-} else {
-    echo json_encode(['ok' => false, 'message' => 'Log file not found.']);
-}
+file_put_contents($file_path_str, '');
+
+echo json_encode([
+    'ok'      => true,
+    'message' => '✅ ' . ucfirst($log_str) . ' log cleared successfully.',
+]);

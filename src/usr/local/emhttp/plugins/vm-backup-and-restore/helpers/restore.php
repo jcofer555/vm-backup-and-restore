@@ -1,49 +1,57 @@
 <?php
+declare(strict_types=1);
 header('Content-Type: application/json');
 
-$lockDir = '/tmp/vm-backup-and-restore';
-$lock = "$lockDir/lock.txt";
-$script = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/restore.sh';
+// --- Constants ---
+const LOCK_DIR      = '/tmp/vm-backup-and-restore';
+const LOCK_FILE     = LOCK_DIR . '/lock.txt';
+const RESTORE_SCRIPT = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/restore.sh';
 
-if (!is_dir($lockDir)) {
-    mkdir($lockDir, 0777, true);
-}
-
-$fp = fopen($lock, 'c');
-if (!$fp) {
-    echo json_encode(['status' => 'error', 'message' => 'Unable to open lock file']);
+// --- Utility ---
+function json_error(string $message): void
+{
+    echo json_encode(['status' => 'error', 'message' => $message]);
     exit;
 }
 
-if (!flock($fp, LOCK_EX | LOCK_NB)) {
-    echo json_encode(['status' => 'error', 'message' => 'Backup or restore already running']);
-    exit;
+// --- Ensure lock directory ---
+if (!is_dir(LOCK_DIR)) {
+    mkdir(LOCK_DIR, 0777, true);
 }
 
-if (!is_file($script) || !is_executable($script)) {
-    echo json_encode(['status' => 'error', 'message' => 'Restore script missing or not executable']);
-    exit;
+// --- Validate script ---
+if (!is_file(RESTORE_SCRIPT) || !is_executable(RESTORE_SCRIPT)) {
+    json_error('Restore script missing or not executable');
 }
 
-$cmd = "nohup /bin/bash $script >/dev/null 2>&1 & echo $!";
-$pid = trim(shell_exec($cmd));
-
-if (!$pid || !is_numeric($pid)) {
-    echo json_encode(['status' => 'error', 'message' => 'Failed to start restore']);
-    exit;
+// --- Check for live process via existing lock ---
+if (file_exists(LOCK_FILE)) {
+    $contents_str = (string)file_get_contents(LOCK_FILE);
+    preg_match('/PID=(\d+)/', $contents_str, $pid_matches);
+    $existing_pid_int = isset($pid_matches[1]) ? (int)$pid_matches[1] : 0;
+    if ($existing_pid_int > 0 && file_exists("/proc/$existing_pid_int")) {
+        json_error('Backup or restore already running');
+    }
+    @unlink(LOCK_FILE);
 }
 
-$meta = [
-    "PID=$pid",
-    "MODE=restore",
-    "START=" . time()
-];
+// --- Write placeholder lock before launch ---
+$placeholder_str = "PID=0\nMODE=restore\nSTART=" . time() . "\n";
+if (file_put_contents(LOCK_FILE, $placeholder_str, LOCK_EX) === false) {
+    json_error('Unable to write lock file');
+}
 
-ftruncate($fp, 0);
-fwrite($fp, implode("\n", $meta) . "\n");
-fflush($fp);
+// --- Launch restore script ---
+$cmd_str = 'nohup /bin/bash ' . escapeshellarg(RESTORE_SCRIPT) . ' >/dev/null 2>&1 & echo $!';
+$pid_str = trim((string)shell_exec($cmd_str));
 
-echo json_encode([
-    'status' => 'ok',
-    'pid' => $pid
-]);
+if ($pid_str === '' || !is_numeric($pid_str)) {
+    @unlink(LOCK_FILE);
+    json_error('Failed to start restore');
+}
+
+// --- Update lock with real PID ---
+$pid_int = (int)$pid_str;
+file_put_contents(LOCK_FILE, "PID=$pid_int\nMODE=restore\nSTART=" . time() . "\n", LOCK_EX);
+
+echo json_encode(['status' => 'ok', 'pid' => $pid_int]);

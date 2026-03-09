@@ -1,35 +1,39 @@
 <?php
-function rebuild_cron() {
-    $cfg = '/boot/config/plugins/vm-backup-and-restore/schedules.cfg';
-    $cronFile = '/boot/config/plugins/vm-backup-and-restore/vm-backup-and-restore.cron';
+declare(strict_types=1);
 
-    if (!file_exists($cfg)) {
-        file_put_contents($cronFile, "");
+function rebuild_cron(): void
+{
+    $cfg_path_str  = '/boot/config/plugins/vm-backup-and-restore/schedules.cfg';
+    $cron_path_str = '/boot/config/plugins/vm-backup-and-restore/vm-backup-and-restore.cron';
+    $helper_str    = '/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/run_schedule.php';
+
+    if (!file_exists($cfg_path_str)) {
+        file_put_contents($cron_path_str, '');
+        exec('update_cron');
         return;
     }
 
-    $schedules = parse_ini_file($cfg, true, INI_SCANNER_RAW);
-
-    $out = "# VM Backup & Restore schedules\n";
-
-    foreach ($schedules as $id => $s) {
-
-        // Normalize ENABLED (handles yes/no, true/false, quoted/unquoted)
-        $enabled = strtolower((string)($s['ENABLED'] ?? 'yes')) === 'yes';
-        if (!$enabled) {
-            continue;
-        }
-
-        $cron = trim((string)($s['CRON'] ?? ''));
-        if ($cron === '') {
-            continue;
-        }
-
-        $out .= $cron . " php ";
-        $out .= "/usr/local/emhttp/plugins/vm-backup-and-restore/helpers/run_schedule.php $id\n";
+    $schedules_arr = parse_ini_file($cfg_path_str, true, INI_SCANNER_RAW);
+    if (!is_array($schedules_arr)) {
+        $schedules_arr = [];
     }
 
-    file_put_contents($cronFile, $out);
+    $out_str = "# VM Backup & Restore schedules\n";
 
+    foreach ($schedules_arr as $id_str => $s_arr) {
+        $enabled_bool = strtolower((string)($s_arr['ENABLED'] ?? 'yes')) === 'yes';
+        if (!$enabled_bool) {
+            continue;
+        }
+
+        $cron_str = trim((string)($s_arr['CRON'] ?? ''));
+        if ($cron_str === '') {
+            continue;
+        }
+
+        $out_str .= $cron_str . ' php ' . $helper_str . ' ' . escapeshellarg($id_str) . "\n";
+    }
+
+    file_put_contents($cron_path_str, $out_str);
     exec('update_cron');
 }

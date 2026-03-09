@@ -1,76 +1,79 @@
 <?php
-$cfg = '/boot/config/plugins/vm-backup-and-restore/schedules.cfg';
+declare(strict_types=1);
 
-$schedules = [];
-if (file_exists($cfg)) {
-    $schedules = parse_ini_file($cfg, true, INI_SCANNER_RAW);
+const SCHEDULES_CFG = '/boot/config/plugins/vm-backup-and-restore/schedules.cfg';
+
+$schedules_arr = [];
+if (file_exists(SCHEDULES_CFG)) {
+    $parsed_arr = parse_ini_file(SCHEDULES_CFG, true, INI_SCANNER_RAW);
+    if (is_array($parsed_arr)) {
+        $schedules_arr = $parsed_arr;
+    }
 }
 
-function yesNo($value) {
-    $v = strtolower((string)$value);
-    return ($v === 'yes' || $v === '1' || $v === 'true') ? 'Yes' : 'No';
+function yesNo(mixed $value): string
+{
+    $v_str = strtolower((string)$value);
+    return in_array($v_str, ['yes', '1', 'true'], true) ? 'Yes' : 'No';
 }
 
-function humanCron($cron) {
-    $cron = trim($cron);
-    $parts = preg_split('/\s+/', $cron);
-    if (count($parts) !== 5) return $cron;
-
-    [$min, $hour, $dom, $month, $dow] = $parts;
-
-    if (preg_match('/^\*\/(\d+)$/', $min, $m) && $hour === '*' && $dom === '*' && $month === '*' && $dow === '*') {
-        $n = (int)$m[1];
-        return "Runs every $n minute" . ($n !== 1 ? 's' : '');
+function humanCron(string $cron): string
+{
+    $cron_str = trim($cron);
+    $parts_arr = preg_split('/\s+/', $cron_str);
+    if (!is_array($parts_arr) || count($parts_arr) !== 5) {
+        return $cron_str;
     }
 
-    if ($min === '*' && $hour === '*' && $dom === '*' && $month === '*' && $dow === '*') {
-        return "Runs every minute";
-    }
+    [$min_str, $hour_str, $dom_str, $month_str, $dow_str] = $parts_arr;
 
-    if ($min === '0' && preg_match('/^\*\/(\d+)$/', $hour, $m) && $dom === '*' && $month === '*' && $dow === '*') {
-        $n = (int)$m[1];
-        return "Runs every $n hour" . ($n !== 1 ? 's' : '');
+    if (preg_match('/^\*\/(\d+)$/', $min_str, $m) && $hour_str === '*' && $dom_str === '*' && $month_str === '*' && $dow_str === '*') {
+        $n_int = (int)$m[1];
+        return "Runs every $n_int minute" . ($n_int !== 1 ? 's' : '');
     }
-
-    if (preg_match('/^\d+$/', $min) && preg_match('/^\d+$/', $hour) && $dom === '*' && $month === '*' && $dow === '*') {
-        $t = date('g:i A', mktime((int)$hour, (int)$min));
-        return "Runs daily at $t";
+    if ($min_str === '*' && $hour_str === '*' && $dom_str === '*' && $month_str === '*' && $dow_str === '*') {
+        return 'Runs every minute';
     }
-
-    if (preg_match('/^\d+$/', $min) && preg_match('/^\d+$/', $hour) && $dom === '*' && $month === '*' && preg_match('/^\d+$/', $dow)) {
-        $days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-        $t = date('g:i A', mktime((int)$hour, (int)$min));
-        $d = $days[(int)$dow] ?? $dow;
-        return "Runs every $d at $t";
+    if ($min_str === '0' && preg_match('/^\*\/(\d+)$/', $hour_str, $m) && $dom_str === '*' && $month_str === '*' && $dow_str === '*') {
+        $n_int = (int)$m[1];
+        return "Runs every $n_int hour" . ($n_int !== 1 ? 's' : '');
     }
-
-    if (preg_match('/^\d+$/', $min) && preg_match('/^\d+$/', $hour) && preg_match('/^\d+$/', $dom) && $month === '*' && $dow === '*') {
-        $t = date('g:i A', mktime((int)$hour, (int)$min));
-        $suffix = match((int)$dom % 10) {
-            1 => ((int)$dom === 11) ? 'th' : 'st',
-            2 => ((int)$dom === 12) ? 'th' : 'nd',
-            3 => ((int)$dom === 13) ? 'th' : 'rd',
-            default => 'th'
+    if (preg_match('/^\d+$/', $min_str) && preg_match('/^\d+$/', $hour_str) && $dom_str === '*' && $month_str === '*' && $dow_str === '*') {
+        $t_str = date('g:i A', mktime((int)$hour_str, (int)$min_str));
+        return "Runs daily at $t_str";
+    }
+    if (preg_match('/^\d+$/', $min_str) && preg_match('/^\d+$/', $hour_str) && $dom_str === '*' && $month_str === '*' && preg_match('/^\d+$/', $dow_str)) {
+        $days_arr = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        $t_str    = date('g:i A', mktime((int)$hour_str, (int)$min_str));
+        $d_str    = $days_arr[(int)$dow_str] ?? $dow_str;
+        return "Runs every $d_str at $t_str";
+    }
+    if (preg_match('/^\d+$/', $min_str) && preg_match('/^\d+$/', $hour_str) && preg_match('/^\d+$/', $dom_str) && $month_str === '*' && $dow_str === '*') {
+        $t_str      = date('g:i A', mktime((int)$hour_str, (int)$min_str));
+        $dom_int    = (int)$dom_str;
+        $suffix_str = match($dom_int % 10) {
+            1 => ($dom_int === 11) ? 'th' : 'st',
+            2 => ($dom_int === 12) ? 'th' : 'nd',
+            3 => ($dom_int === 13) ? 'th' : 'rd',
+            default => 'th',
         };
-        return "Runs monthly on the {$dom}{$suffix} at $t";
+        return "Runs monthly on the {$dom_str}{$suffix_str} at $t_str";
     }
 
-    return $cron;
+    return $cron_str;
 }
 ?>
 
-<?php if (!empty($schedules)): ?>
+<?php if (!empty($schedules_arr)): ?>
 
-<table class="vm-schedules-table"
+<div class="TableContainer">
+<table class="vmbr-schedules-table"
        style="
            width:100%;
-           border-collapse: collapse;
+           border-collapse:collapse;
            margin-top:20px;
-           border-top:3px solid #ad57df;
-           border-bottom:3px solid #ad57df;
-           border-left:3px solid #ad57df;
-           border-right:3px solid #ad57df;
-           table-layout:fixed;
+           border:3px solid #ad57df;
+           table-layout:auto;
            background:#000;
        ">
 
@@ -81,159 +84,111 @@ function humanCron($cron) {
     text-align:center;
     border-bottom:3px solid #ad57df;
 ">
-    <th style="padding:8px; width:16%;">Scheduling</th>
-    <th style="padding:8px; width:10%;">VM(s) To Backup</th>
-    <th style="padding:8px; width:18%;">Backup Destination</th>
-    <th style="padding:8px; width:8%;">Backups To Keep</th>
-    <th style="padding:8px; width:8%;">Backup Owner</th>
-    <th style="padding:8px; width:6%;">Dry Run</th>
-    <th style="padding:8px; width:8%;">Notifications</th>
-    <th style="padding:8px; width:26%;">Actions</th>
+    <th style="padding:8px;">Scheduling</th>
+    <th style="padding:8px;">VM(s) To Backup</th>
+    <th style="padding:8px;">Backup Destination</th>
+    <th style="padding:8px;">Backups To Keep</th>
+    <th style="padding:8px;">Backup Owner</th>
+    <th style="padding:8px;">Dry Run</th>
+    <th style="padding:8px;">Notifications</th>
+    <th style="padding:8px; width:auto;">Actions</th>
 </tr>
 </thead>
 
 <tbody>
 
-    <?php foreach ($schedules as $id => $s): ?>
+    <?php foreach ($schedules_arr as $id_str => $s_arr): ?>
 
         <?php
-        $enabledBool = ($s['ENABLED'] ?? 'yes') === 'yes';
-        $btnText     = $enabledBool ? 'Disable' : 'Enable';
+        $enabled_bool = ((string)($s_arr['ENABLED'] ?? 'yes')) === 'yes';
+        $btn_text_str = $enabled_bool ? 'Disable' : 'Enable';
+        $side_border_str = $enabled_bool ? '#2e7d32' : '#ad57df';
+        $status_dot_str  = $enabled_bool ? '🟢' : '🔴';
 
-if ($enabledBool) {
-    $sideBorder = '#2e7d32';  // green
-    $statusDot  = '🟢';
-} else {
-    $sideBorder = '#ad57df';  // red
-    $statusDot  = '🔴';
-}
+        $cron_str = (string)($s_arr['CRON'] ?? '');
 
-        $cron = $s['CRON'] ?? '';
-
-        $settings = [];
-        if (!empty($s['SETTINGS'])) {
-            $settingsRaw = stripslashes($s['SETTINGS']);
-            $settings    = json_decode($settingsRaw, true);
-            if (!is_array($settings)) $settings = [];
+        $settings_arr = [];
+        if (!empty($s_arr['SETTINGS'])) {
+            $decoded_arr = json_decode(stripslashes((string)$s_arr['SETTINGS']), true);
+            if (is_array($decoded_arr)) {
+                $settings_arr = $decoded_arr;
+            }
         }
 
-        $vms  = '—';
-        $dest = '—';
+        $vms_str  = '—';
+        $dest_str = '—';
 
-        if (!empty($settings['VMS_TO_BACKUP'])) {
-            $vms = str_replace(',', ', ', $settings['VMS_TO_BACKUP']);
+        if (!empty($settings_arr['VMS_TO_BACKUP'])) {
+            $vms_str = str_replace(',', ', ', $settings_arr['VMS_TO_BACKUP']);
+        }
+        if (!empty($settings_arr['BACKUP_DESTINATION'])) {
+            $dest_str = $settings_arr['BACKUP_DESTINATION'];
         }
 
-        if (!empty($settings['BACKUP_DESTINATION'])) {
-            $dest = $settings['BACKUP_DESTINATION'];
-        }
-
-        if (!isset($settings['BACKUPS_TO_KEEP'])) {
-            $backupsToKeep = '—';
+        if (!isset($settings_arr['BACKUPS_TO_KEEP'])) {
+            $backups_to_keep_str = '—';
         } else {
-            $btk = (int)$settings['BACKUPS_TO_KEEP'];
-            if ($btk === 1)      $backupsToKeep = 'Only Latest';
-            elseif ($btk === 0)  $backupsToKeep = 'Unlimited';
-            else                 $backupsToKeep = $btk;
+            $btk_int = (int)$settings_arr['BACKUPS_TO_KEEP'];
+            if ($btk_int === 1)     $backups_to_keep_str = 'Only Latest';
+            elseif ($btk_int === 0) $backups_to_keep_str = 'Unlimited';
+            else                    $backups_to_keep_str = (string)$btk_int;
         }
 
-        $backupOwner = $settings['BACKUP_OWNER'] ?? '—';
-        $dryRun      = !isset($settings['DRY_RUN'])      ? '—' : yesNo($settings['DRY_RUN']);
-        $notify      = !isset($settings['NOTIFICATIONS']) ? '—' : yesNo($settings['NOTIFICATIONS']);
+        $backup_owner_str = $settings_arr['BACKUP_OWNER'] ?? '—';
+        $dry_run_str      = !isset($settings_arr['DRY_RUN'])      ? '—' : yesNo($settings_arr['DRY_RUN']);
+        $notify_str       = !isset($settings_arr['NOTIFICATIONS']) ? '—' : yesNo($settings_arr['NOTIFICATIONS']);
         ?>
 
         <tr style="
     background:#000;
     color:#e0c8f5;
-    border-left:3px solid <?php echo $sideBorder; ?>;
-    border-right:3px solid <?php echo $sideBorder; ?>;
+    border-left:3px solid <?php echo $side_border_str; ?>;
+    border-right:3px solid <?php echo $side_border_str; ?>;
 ">
-
-            <!-- Scheduling -->
-            <td style="padding:8px; text-align:center;">
-    <span style="margin-right:6px;">
-        <?php echo $statusDot; ?>
-    </span>
-    <?php echo htmlspecialchars(humanCron($cron)); ?>
-</td>
-
-            <!-- VM(s) -->
-            <td style="padding:8px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+            <td style="padding:8px; text-align:center; vertical-align:middle;">
+                <span style="margin-right:6px;"><?php echo $status_dot_str; ?></span>
+                <?php echo htmlspecialchars(humanCron($cron_str)); ?>
+            </td>
+            <td style="padding:8px; text-align:center; vertical-align:middle; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
                 class="vm-backup-and-restoretip"
-                title="<?php echo htmlspecialchars($vms); ?>">
-                <?php echo htmlspecialchars($vms); ?>
+                title="<?php echo htmlspecialchars($vms_str); ?>">
+                <?php echo htmlspecialchars($vms_str); ?>
             </td>
-
-            <!-- Backup Destination -->
-            <td style="
-                padding:8px;
-                text-align:center;
-                white-space:nowrap;
-                overflow:hidden;
-                text-overflow:ellipsis;"
+            <td style="padding:8px; text-align:center; vertical-align:middle; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
                 class="vm-backup-and-restoretip"
-                title="<?php echo htmlspecialchars($dest); ?>">
-                <?php echo htmlspecialchars($dest); ?>
+                title="<?php echo htmlspecialchars($dest_str); ?>">
+                <?php echo htmlspecialchars($dest_str); ?>
             </td>
-
-            <!-- Backups To Keep -->
-            <td style="padding:8px; text-align:center;">
-                <?php echo htmlspecialchars($backupsToKeep); ?>
-            </td>
-
-            <!-- Backup Owner -->
-            <td style="padding:8px; text-align:center;">
-                <?php echo htmlspecialchars($backupOwner); ?>
-            </td>
-
-            <!-- Dry Run -->
-            <td style="padding:8px; text-align:center;">
-                <?php echo $dryRun; ?>
-            </td>
-
-            <!-- Notifications -->
-            <td style="padding:8px; text-align:center;">
-                <?php echo htmlspecialchars($notify); ?>
-            </td>
-
-            <!-- Actions -->
-            <td style="padding:8px; text-align:center;">
-
+            <td style="padding:8px; text-align:center; vertical-align:middle;"><?php echo htmlspecialchars($backups_to_keep_str); ?></td>
+            <td style="padding:8px; text-align:center; vertical-align:middle;"><?php echo htmlspecialchars($backup_owner_str); ?></td>
+            <td style="padding:8px; text-align:center; vertical-align:middle;"><?php echo $dry_run_str; ?></td>
+            <td style="padding:8px; text-align:center; vertical-align:middle;"><?php echo htmlspecialchars($notify_str); ?></td>
+            <td style="padding:8px; text-align:center; vertical-align:middle; white-space:normal;">
                 <button type="button"
                         class="vm-backup-and-restoretip"
                         title="Edit schedule"
-                        onclick="editSchedule('<?php echo $id; ?>')">
-                    Edit
-                </button>
-
+                        onclick="editSchedule('<?php echo $id_str; ?>')">Edit</button>
                 <button type="button"
                         class="vm-backup-and-restoretip"
-                        title="<?php echo $enabledBool ? 'Disable schedule' : 'Enable schedule'; ?>"
-                        onclick="toggleSchedule('<?php echo $id; ?>', <?php echo $enabledBool ? 'true' : 'false'; ?>)">
-                    <?php echo $btnText; ?>
+                        title="<?php echo $enabled_bool ? 'Disable schedule' : 'Enable schedule'; ?>"
+                        onclick="toggleSchedule('<?php echo $id_str; ?>', <?php echo $enabled_bool ? 'true' : 'false'; ?>)">
+                    <?php echo $btn_text_str; ?>
                 </button>
-
                 <button type="button"
                         class="vm-backup-and-restoretip"
                         title="Delete schedule"
-                        onclick="deleteSchedule('<?php echo $id; ?>')">
-                    Delete
-                </button>
-
+                        onclick="deleteSchedule('<?php echo $id_str; ?>')">Delete</button>
                 <button type="button"
-                        class="schedule-action-btn running-btn run-schedule-btn data-schedule-id vm-backup-and-restoretip"
+                        class="schedule-action-btn running-btn run-schedule-btn vm-backup-and-restoretip"
                         title="Run schedule"
-                        onclick="runScheduleBackup('<?php echo $id; ?>', this)">
-                    Run
-                </button>
-
+                        onclick="runScheduleBackup('<?php echo $id_str; ?>', this)">Run</button>
             </td>
-
         </tr>
 
     <?php endforeach; ?>
 
 </tbody>
 </table>
+</div><!-- /.TableContainer -->
 
 <?php endif; ?>

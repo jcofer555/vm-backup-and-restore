@@ -1,28 +1,26 @@
 <?php
+declare(strict_types=1);
 header('Content-Type: application/json');
 
-$cfgs = [
-    '/boot/config/plugins/vm-backup-and-restore/schedules.cfg',
-];
+const SCHEDULES_CFG = '/boot/config/plugins/vm-backup-and-restore/schedules.cfg';
 
-$crons = [];
+$crons_arr = [];
 
-foreach ($cfgs as $cfg) {
-    if (!file_exists($cfg)) continue;
-    $schedules = parse_ini_file($cfg, true, INI_SCANNER_RAW);
-    if (!is_array($schedules)) continue;
-
-    foreach ($schedules as $id => $s) {
-        $cron = trim($s['CRON'] ?? '');
-        $enabled = strtolower((string)($s['ENABLED'] ?? 'yes')) === 'yes';
-        if ($cron !== '') {
-            $crons[] = [
-                'id'      => $id,
-                'cron'    => $cron,
-                'enabled' => $enabled,
-            ];
+if (file_exists(SCHEDULES_CFG)) {
+    $schedules_arr = parse_ini_file(SCHEDULES_CFG, true, INI_SCANNER_RAW);
+    if (is_array($schedules_arr)) {
+        foreach ($schedules_arr as $id_str => $s_arr) {
+            $cron_str     = trim((string)($s_arr['CRON']    ?? ''));
+            $enabled_bool = strtolower((string)($s_arr['ENABLED'] ?? 'yes')) === 'yes';
+            if ($cron_str !== '') {
+                $crons_arr[] = [
+                    'id'      => $id_str,
+                    'cron'    => $cron_str,
+                    'enabled' => $enabled_bool,
+                ];
+            }
         }
     }
 }
 
-echo json_encode($crons);
+echo json_encode($crons_arr);

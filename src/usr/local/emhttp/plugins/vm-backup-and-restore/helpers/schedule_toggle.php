@@ -1,35 +1,39 @@
 <?php
+declare(strict_types=1);
 require_once 'rebuild_cron.php';
 
-$cfg = '/boot/config/plugins/vm-backup-and-restore/schedules.cfg';
-$id  = $_POST['id'] ?? '';
+header('Content-Type: application/json');
 
-if (!$id || !file_exists($cfg)) {
+const SCHEDULES_CFG = '/boot/config/plugins/vm-backup-and-restore/schedules.cfg';
+
+$id_str = (string)($_POST['id'] ?? '');
+
+if ($id_str === '' || !file_exists(SCHEDULES_CFG)) {
+    http_response_code(400);
+    echo json_encode(['status' => 'error', 'message' => 'Missing ID or schedules file not found']);
     exit;
 }
 
-$schedules = parse_ini_file($cfg, true, INI_SCANNER_RAW);
-
-if (!isset($schedules[$id])) {
+$schedules_arr = parse_ini_file(SCHEDULES_CFG, true, INI_SCANNER_RAW);
+if (!is_array($schedules_arr) || !isset($schedules_arr[$id_str])) {
+    http_response_code(404);
+    echo json_encode(['status' => 'error', 'message' => 'Schedule not found']);
     exit;
 }
 
-// Normalize ENABLED:
-$current = strtolower((string)($schedules[$id]['ENABLED'] ?? 'yes'));
-$schedules[$id]['ENABLED'] = ($current === 'yes') ? 'no' : 'yes';
+$current_str = strtolower((string)($schedules_arr[$id_str]['ENABLED'] ?? 'yes'));
+$schedules_arr[$id_str]['ENABLED'] = ($current_str === 'yes') ? 'no' : 'yes';
 
-// Write back — ALWAYS quote values, NEVER escape JSON
-$out = '';
-
-foreach ($schedules as $section => $values) {
-    $out .= "[$section]\n";
-    foreach ($values as $key => $value) {
-        $out .= $key . '="' . (string)$value . '"' . "\n";
+$out_str = '';
+foreach ($schedules_arr as $section_str => $values_arr) {
+    $out_str .= "[$section_str]\n";
+    foreach ($values_arr as $key_str => $val_str) {
+        $out_str .= $key_str . '="' . (string)$val_str . '"' . "\n";
     }
-    $out .= "\n";
+    $out_str .= "\n";
 }
 
-file_put_contents($cfg, $out);
-
-// Rebuild cron AFTER successful write
+file_put_contents(SCHEDULES_CFG, $out_str);
 rebuild_cron();
+
+echo json_encode(['status' => 'ok']);

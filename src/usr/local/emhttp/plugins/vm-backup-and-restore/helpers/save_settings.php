@@ -1,72 +1,79 @@
 <?php
+declare(strict_types=1);
 header('Content-Type: application/json');
 
-$config = '/boot/config/plugins/vm-backup-and-restore/settings.cfg';
-$tmp    = $config . '.tmp';
+// --- Constants ---
+const CONFIG_PATH = '/boot/config/plugins/vm-backup-and-restore/settings.cfg';
+const CONFIG_TMP  = CONFIG_PATH . '.tmp';
 
-// --- Read from POST ---
-$vms_to_backup        = $_POST['VMS_TO_BACKUP']        ?? '';
-$backup_destination   = $_POST['BACKUP_DESTINATION']   ?? '';
-$backups_to_keep      = $_POST['BACKUPS_TO_KEEP']       ?? '0';
-$backup_owner         = $_POST['BACKUP_OWNER']          ?? 'nobody';
-$dry_run              = $_POST['DRY_RUN']               ?? 'no';
-$notifications        = $_POST['NOTIFICATIONS']         ?? 'no';
-$notification_service = $_POST['NOTIFICATION_SERVICE']  ?? '';
-$pushover_user_key    = $_POST['PUSHOVER_USER_KEY']     ?? '';
-
-$services    = ['DISCORD', 'GOTIFY', 'NTFY', 'PUSHOVER', 'SLACK'];
-$webhookUrls = [];
-foreach ($services as $svc) {
-    $webhookUrls[$svc] = $_POST['WEBHOOK_' . $svc] ?? '';
-}
-
-// --- Normalize path ---
-if ($backup_destination !== '') {
-    $resolved = realpath($backup_destination);
-    if ($resolved !== false) {
-        $backup_destination = $resolved;
-    }
-}
-
-// --- Sanitize helper: strip quotes and newlines ---
-function sanitize(string $val): string {
+// --- Utility ---
+function sanitize_val(string $val): string
+{
     return str_replace(['"', "'", "\n", "\r"], '', $val);
 }
 
-// --- Build config lines ---
-$lines = [
-    'VMS_TO_BACKUP'        => $vms_to_backup,
-    'BACKUP_DESTINATION'   => $backup_destination,
-    'BACKUPS_TO_KEEP'      => $backups_to_keep,
-    'BACKUP_OWNER'         => $backup_owner,
-    'DRY_RUN'              => $dry_run,
-    'NOTIFICATIONS'        => $notifications,
-    'NOTIFICATION_SERVICE' => $notification_service,
-    'WEBHOOK_DISCORD'      => $webhookUrls['DISCORD'],
-    'WEBHOOK_GOTIFY'       => $webhookUrls['GOTIFY'],
-    'WEBHOOK_NTFY'         => $webhookUrls['NTFY'],
-    'WEBHOOK_PUSHOVER'     => $webhookUrls['PUSHOVER'],
-    'WEBHOOK_SLACK'        => $webhookUrls['SLACK'],
-    'PUSHOVER_USER_KEY'    => $pushover_user_key,
+function json_error(string $message): void
+{
+    echo json_encode(['status' => 'error', 'message' => $message]);
+    exit;
+}
+
+// --- Read POST values ---
+$vms_to_backup_str        = (string)($_POST['VMS_TO_BACKUP']        ?? '');
+$backup_destination_str   = (string)($_POST['BACKUP_DESTINATION']   ?? '');
+$backups_to_keep_str      = (string)($_POST['BACKUPS_TO_KEEP']       ?? '0');
+$backup_owner_str         = (string)($_POST['BACKUP_OWNER']          ?? 'nobody');
+$dry_run_str              = (string)($_POST['DRY_RUN']               ?? 'no');
+$notifications_str        = (string)($_POST['NOTIFICATIONS']         ?? 'no');
+$notification_service_str = (string)($_POST['NOTIFICATION_SERVICE']  ?? '');
+$pushover_user_key_str    = (string)($_POST['PUSHOVER_USER_KEY']     ?? '');
+
+$services_arr = ['DISCORD', 'GOTIFY', 'NTFY', 'PUSHOVER', 'SLACK'];
+$webhooks_arr = [];
+foreach ($services_arr as $svc_str) {
+    $webhooks_arr[$svc_str] = (string)($_POST['WEBHOOK_' . $svc_str] ?? '');
+}
+
+// --- Normalize backup destination path ---
+if ($backup_destination_str !== '') {
+    $resolved_str = realpath($backup_destination_str);
+    if ($resolved_str !== false) {
+        $backup_destination_str = $resolved_str;
+    }
+}
+
+// --- Build config ---
+$lines_arr = [
+    'VMS_TO_BACKUP'        => $vms_to_backup_str,
+    'BACKUP_DESTINATION'   => $backup_destination_str,
+    'BACKUPS_TO_KEEP'      => $backups_to_keep_str,
+    'BACKUP_OWNER'         => $backup_owner_str,
+    'DRY_RUN'              => $dry_run_str,
+    'NOTIFICATIONS'        => $notifications_str,
+    'NOTIFICATION_SERVICE' => $notification_service_str,
+    'WEBHOOK_DISCORD'      => $webhooks_arr['DISCORD'],
+    'WEBHOOK_GOTIFY'       => $webhooks_arr['GOTIFY'],
+    'WEBHOOK_NTFY'         => $webhooks_arr['NTFY'],
+    'WEBHOOK_PUSHOVER'     => $webhooks_arr['PUSHOVER'],
+    'WEBHOOK_SLACK'        => $webhooks_arr['SLACK'],
+    'PUSHOVER_USER_KEY'    => $pushover_user_key_str,
 ];
 
-$content = '';
-foreach ($lines as $key => $val) {
-    $content .= $key . '="' . sanitize($val) . '"' . "\n";
+$content_str = '';
+foreach ($lines_arr as $key_str => $val_str) {
+    $content_str .= $key_str . '="' . sanitize_val($val_str) . '"' . "\n";
 }
 
 // --- Write atomically ---
-@mkdir(dirname($config), 0755, true);
+@mkdir(dirname(CONFIG_PATH), 0755, true);
 
-if (file_put_contents($tmp, $content) === false) {
-    echo json_encode(['status' => 'error', 'message' => 'Failed to write temp config']);
-    exit;
+if (file_put_contents(CONFIG_TMP, $content_str) === false) {
+    json_error('Failed to write temp config');
 }
 
-if (!rename($tmp, $config)) {
-    @unlink($tmp);
-    echo json_encode(['status' => 'error', 'message' => 'Failed to move config into place']);
-    exit;
+if (!rename(CONFIG_TMP, CONFIG_PATH)) {
+    @unlink(CONFIG_TMP);
+    json_error('Failed to move config into place');
 }
 
 echo json_encode(['status' => 'ok']);
