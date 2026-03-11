@@ -171,15 +171,6 @@ WEBHOOK_PUSHOVER_RESTORE="${WEBHOOK_PUSHOVER_RESTORE//\"/}"
 WEBHOOK_SLACK_RESTORE="${WEBHOOK_SLACK_RESTORE//\"/}"
 PUSHOVER_USER_KEY_RESTORE="${PUSHOVER_USER_KEY_RESTORE//\"/}"
 
-classify_path() {
-    local path_str="$1"
-    if [[ "$path_str" == /mnt/user || "$path_str" == /mnt/user/* ]];   then echo "USER";   return; fi
-    if [[ "$path_str" == /mnt/user0 || "$path_str" == /mnt/user0/* ]]; then echo "USER0";  return; fi
-    if [[ "$path_str" == /mnt/remotes || "$path_str" == /mnt/remotes/* ]]; then echo "EXEMPT"; return; fi
-    if [[ "$path_str" == /mnt/addons || "$path_str" == /mnt/addons/* ]]; then echo "EXEMPT"; return; fi
-    echo "OTHER"
-}
-
 notify_restore() {
     local level_str="$1"
     local title_str="$2"
@@ -256,20 +247,11 @@ DRY_RUN="$DRY_RUN_RESTORE"
 debug_log "===== Session started ====="
 debug_log "VMS_TO_RESTORE=$VMS_TO_RESTORE backup_path=$backup_path_str vm_domains=$vm_domains_str DRY_RUN=$DRY_RUN"
 
-src_class_str=$(classify_path "$backup_path_str")
-dst_class_str=$(classify_path "$vm_domains_str")
-
-debug_log "Mount compatibility: src=$backup_path_str ($src_class_str) dst=$vm_domains_str ($dst_class_str)"
-
-if [[ "$src_class_str" != "$dst_class_str" && "$src_class_str" != "EXEMPT" && "$dst_class_str" != "EXEMPT" ]]; then
-    echo "[ERROR] Location of backups is using mount type ($src_class_str) and restore destination ($dst_class_str)."
-    echo "[ERROR] They must be on the same mount type i.e both fields using user or both user0 or none using either user or user0"
-    echo "Restore aborted due to mount type mismatch"
-    debug_log "ERROR: Mount type mismatch — aborting"
-    set_restore_status "Restore aborted – mount-type mismatch"
-    notify_restore "alert" "VM Backup & Restore Error" "Restore aborted due to mount type mismatch"
-    exit 1
-fi
+# NOTE: The backup source location and the restore destination do not need to share
+# the same mount type — e.g. backups can live on /mnt/remotes while restoring to
+# /mnt/user. The vdisk path vs restore-destination check is enforced in the UI
+# before this script is ever invoked.
+debug_log "backup_path=$backup_path_str vm_domains=$vm_domains_str (mount-type check skipped — handled by UI)"
 
 mapfile -t RUNNING_BEFORE_arr < <(virsh list --state-running --name | grep -Fxv "")
 debug_log "VMs running before restore: ${RUNNING_BEFORE_arr[*]:-none}"

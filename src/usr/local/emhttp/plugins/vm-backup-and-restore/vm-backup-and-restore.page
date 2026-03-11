@@ -70,7 +70,55 @@ foreach ($restore_defaults_arr as $key_str => $default_str) {
 @file_put_contents(CFG_RESTORE_PATH, $restore_cfg_text_str);
 $restore_settings_arr = $existing_restore_arr;
 
-// ── Unraid version ─────────────────────────────────────────────────────────
+// ── Sibling plugin detection ───────────────────────────────────────────────
+$sibling_plugin_checks_arr = [
+    'automover' => [
+        'plg'   => '/boot/config/plugins/automover.plg',
+        'page'  => '/usr/local/emhttp/plugins/automover/automover.page',
+        'label' => 'Automover',
+        'url'   => '/Settings/automover',
+    ],
+    'flash-backup' => [
+        'plg'   => '/boot/config/plugins/flash-backup.plg',
+        'page'  => '/usr/local/emhttp/plugins/flash-backup/flash-backup.page',
+        'label' => 'Flash Backup',
+        'url'   => '/Settings/flash-backup',
+    ],
+    'automover_beta' => [
+        'plg'   => '/boot/config/plugins/automover_beta.plg',
+        'page'  => '/usr/local/emhttp/plugins/automover_beta/automover_beta.page',
+        'label' => 'Automover (Beta)',
+        'url'   => '/Settings/automover_beta',
+    ],
+    'flash-backup_beta' => [
+        'plg'   => '/boot/config/plugins/flash-backup_beta.plg',
+        'page'  => '/usr/local/emhttp/plugins/flash-backup_beta/flash-backup_beta.page',
+        'label' => 'Flash Backup (Beta)',
+        'url'   => '/Settings/flash-backup_beta',
+    ],
+      'vm-backup-and-restore_beta' => [
+        'plg'   => '/boot/config/plugins/vm-backup-and-restore_beta.plg',
+        'page'  => '/usr/local/emhttp/plugins/vm-backup-and-restore_beta/vm-backup-and-restore_beta.page',
+        'label' => 'VM Backup & Restore (Beta)',
+        'url'   => '/Settings/vm-backup-and-restore_beta',
+    ],
+];
+$sibling_plugins_arr = [];
+$current_plugin_str  = basename(dirname(__FILE__)); // e.g. vm-backup-and-restore
+foreach ($sibling_plugin_checks_arr as $key_str => $check_arr) {
+    // Skip self
+    if ($key_str === $current_plugin_str) continue;
+    if (file_exists($check_arr['plg']) && file_exists($check_arr['page'])) {
+        $sibling_plugins_arr[$key_str] = $check_arr;
+    }
+}
+$has_siblings_bool = !empty($sibling_plugins_arr);
+
+// Sort siblings alphabetically by label — current plugin is never shown as an option.
+$all_plugin_options_arr = $sibling_plugins_arr;
+uasort($all_plugin_options_arr, fn($a, $b) => strcmp($a['label'], $b['label']));
+
+
 $unraid_version_str = '7.1';
 if (file_exists('/etc/unraid-version')) {
     $ver_data_arr = parse_ini_file('/etc/unraid-version');
@@ -78,7 +126,6 @@ if (file_exists('/etc/unraid-version')) {
         $unraid_version_str = $ver_data_arr['version'];
     }
 }
-// Use guide's exact threshold: 7.2.0-beta
 $isResponsiveWebgui = version_compare($unraid_version_str, '7.2.0-beta', '>=');
 
 // ── Notification service list ──────────────────────────────────────────────
@@ -89,12 +136,10 @@ $selected_services_restore_arr = array_filter(explode(',', $restore_settings_arr
 
 <script>
 'use strict';
-// ── 1. Constants ─────────────────────────────────────────────────────────
 const HELPERS_BASE_STR  = '/plugins/vm-backup-and-restore/helpers';
 const POLL_FAST_MS_INT  = 1000;
 const POLL_SLOW_MS_INT  = 4000;
 
-// ── 2. CSRF discovery ─────────────────────────────────────────────────────
 let csrfToken_str = "<?= $_GET['csrf_token'] ?? ($_COOKIE['csrf_token'] ?? '') ?>";
 if (!csrfToken_str || csrfToken_str === 'undefined') {
   try {
@@ -114,7 +159,6 @@ if (!csrfToken_str || csrfToken_str === 'undefined') {
 
 <script>
 'use strict';
-// ── 3. PHP→JS: saved webhook values ──────────────────────────────────────
 const SAVED_WEBHOOKS_OBJ = {
   DISCORD:  "<?= htmlspecialchars($settings_arr['WEBHOOK_DISCORD']  ?? '') ?>",
   GOTIFY:   "<?= htmlspecialchars($settings_arr['WEBHOOK_GOTIFY']   ?? '') ?>",
@@ -134,130 +178,167 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
 </script>
 
 <style>
+  /* ── Design tokens ─────────────────────────────────────────────────────── */
   :root {
-    --primary:       #ad57df;
-    --primary-glow:  rgba(173,87,223,0.45);
-    --primary-dim:   rgba(173,87,223,0.3);
-    --text-input:    #e0c8f5;
-    --bg:            #000;
-    --border-panel:  3px solid #ad57df;
-    --radius-panel:  12px;
+    --c-accent:        #7c3aed;
+    --c-accent-light:  #a78bfa;
+    --c-accent-dim:    rgba(124,58,237,0.18);
+    --c-accent-glow:   rgba(124,58,237,0.35);
+    --c-bg:            #0d0d11;
+    --c-surface:       #13131a;
+    --c-surface-raised:#1a1a24;
+    --c-border:        rgba(124,58,237,0.30);
+    --c-border-strong: rgba(124,58,237,0.60);
+    --c-text:          #d4d4e8;
+    --c-text-muted:    #8888aa;
+    --c-label:         #a78bfa;
+    --c-danger:        #ef4444;
+    --c-warn:          #f59e0b;
+    --c-success:       #22c55e;
+    --radius-card:     10px;
+    --radius-input:    6px;
+    --shadow-card:     0 4px 24px rgba(0,0,0,0.5);
+    --input-w:         210px;
+    --label-w:         158px;
   }
 
   #unraid-api-modals-virtual { position:absolute !important; height:0 !important; overflow:visible !important; }
 
-  /* ── Page wrapper ── */
-  #vm-backup-and-restore-page { display:flex; flex-direction:column; width:100%; }
+  /* ── Page shell ─────────────────────────────────────────────────────────── */
+  #vmbr-page {
+    display:flex; flex-direction:column;
+    width:100%; font-family:'Segoe UI',system-ui,sans-serif;
+    color:var(--c-text); margin-top:-31px;
+  }
 
-  /* ── 3-panel grid — desktop default (3 columns) ── */
+  /* ── Header strip (removed) ── */
+
+  /* ── 2-column grid ──────────────────────────────────────────────────────── */
   #vmbr-layout {
     display:grid;
-    grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1.6fr);
-    gap:12px;
-    width:100%; box-sizing:border-box;
-    align-items:stretch;
-    height:auto;
-    margin-top: -31px;
-    margin-bottom: 13px;
+    grid-template-columns:minmax(340px,0.85fr) minmax(0,2.4fr);
+    gap:14px; width:100%; box-sizing:border-box;
+    align-items:stretch; margin-bottom:14px;
   }
-  .vmbr-panel-wrap { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:visible; }
+  .vmbr-panel-wrap { display:flex; flex-direction:column; min-width:0; overflow:visible; }
 
-  /* ── Panels — shared base ── */
-  #vmbr-backup-panel,
-  #vmbr-restore-panel,
-  #vmbr-log-panel {
-    background:#000 !important;
-    border-radius:var(--radius-panel);
-    border:var(--border-panel) !important;
-    color:var(--text-input) !important;
-    min-width:0; width:100%;
-    box-sizing:border-box;
+  /* ── Cards ──────────────────────────────────────────────────────────────── */
+  .vmbr-card {
+    background:var(--c-surface);
+    border:1px solid var(--c-border);
+    border-radius:var(--radius-card);
+    box-shadow:var(--shadow-card);
+    display:flex; flex-direction:column;
+    overflow:visible;
+    margin-top:-17px;
+    height:695px;
   }
 
-  #vmbr-backup-panel,
-  #vmbr-restore-panel {
-    padding:16px 20px 20px;
-    overflow-y:auto;
-    height:679px;
+  .vmbr-card-header {
+    display:flex; align-items:center; gap:10px;
+    padding:10px 16px 9px;
+    background:var(--c-surface-raised);
+    border-bottom:1px solid var(--c-border);
+    flex-shrink:0;
+  }
+  .vmbr-card-icon {
+    width:28px; height:28px; border-radius:6px;
+    background:var(--c-accent-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; flex-shrink:0;
+  }
+  .vmbr-card-title {
+    font-size:13px; font-weight:700; letter-spacing:.4px;
+    text-transform:uppercase; color:var(--c-accent-light);
+    flex:1;
+  }
+  .vmbr-card-status {
+    display:flex; align-items:center; gap:6px;
+    font-size:11px; color:var(--c-text-muted);
+  }
+  .vmbr-status-dot {
+    width:7px; height:7px; border-radius:50%;
+    background:var(--c-text-muted); flex-shrink:0;
+    transition:background .4s;
+  }
+  .vmbr-status-dot.active { background:var(--c-success); box-shadow:0 0 6px var(--c-success); animation:vmbr-pulse 1.4s infinite; }
+  @keyframes vmbr-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .vmbr-card-body {
+    padding:14px 16px 16px;
+    overflow-y:auto; flex:1;
     container-type:inline-size;
     container-name:plugin-panel;
+    border-radius:0 0 var(--radius-card) var(--radius-card);
   }
 
-  #vmbr-log-panel {
-    padding:0; overflow:hidden;
-    display:flex; flex-direction:column;
-    height:679px;
+  /* ── Form pairs ──────────────────────────────────────────────────────────── */
+  .form-pair {
+    display:flex !important; flex-direction:row !important;
+    align-items:center !important; flex-wrap:nowrap !important;
+    gap:0 10px !important; margin-bottom:10px !important; margin-top:4px !important;
   }
-
-  /* ── 2-column: tablet / narrow desktop (≤1200px) ── */
-  @media (max-width:1200px) {
-    #vmbr-layout { grid-template-columns:1fr 1fr; }
-    #vmbr-backup-panel,
-    #vmbr-restore-panel { height:500px; max-height:70vh; }
-    #vmbr-log-panel { grid-column:1 / -1; height:350px; }
+  .form-pair > label {
+    width:var(--label-w) !important; min-width:var(--label-w) !important;
+    flex:none !important; font-size:12px !important;
+    font-weight:600 !important; color:var(--c-label) !important;
+    letter-spacing:.2px;
   }
+  .form-pair > span { display:contents !important; }
+  .form-pair input[type="text"],
+  .form-pair input[type="password"],
+  .form-pair input[type="number"],
+  .form-pair select {
+    width:var(--input-w) !important; max-width:var(--input-w) !important;
+    height:auto !important; flex:none !important;
+  }
+  .form-pair input[type="checkbox"] { width:15px !important; height:15px !important; flex:none !important; }
+  .form-pair > .input-wrapper { display:contents !important; }
+  #vmbr-webhook-container-backup .input-wrapper,
+  #vmbr-webhook-container-restore .input-wrapper {
+    display:flex !important; flex-direction:column !important;
+    gap:2px !important; width:var(--input-w) !important;
+  }
+  .input-wrapper { display:flex; flex-direction:column; flex:1; min-width:0; }
 
-  /* ── 1-column: mobile (≤768px) ── */
+  @container plugin-panel (max-width:400px) {
+    .form-pair { flex-direction:column !important; align-items:flex-start !important; gap:4px 0 !important; }
+    .form-pair > label { width:auto !important; min-width:unset !important; }
+  }
   @media (max-width:768px) {
-    #vmbr-layout { grid-template-columns:1fr; height:auto; }
-    #vmbr-backup-panel,
-    #vmbr-restore-panel { height:auto; min-height:420px; overflow-y:auto; }
-    #vmbr-log-panel { grid-column:1; height:380px; }
+    .form-pair { flex-direction:column !important; align-items:flex-start !important; gap:4px 0 !important; }
+    .form-pair > label { width:auto !important; min-width:unset !important; }
   }
 
-  /* ── Schedule section ── */
-  #vmbr-schedule-section {
-    width:100%; box-sizing:border-box;
-    margin-top:12px; padding-bottom:16px;
-    color:var(--text-input) !important;
-    overflow:visible !important;
-  }
-  #vmbr-schedule-list { color:var(--text-input) !important; width:100%; overflow:visible !important; }
-
-  @media (min-width:1201px) {
-    #vm-backup-and-restore-page.unraid-71 #vmbr-schedule-section { margin-top:-50px !important; }
-    #vm-backup-and-restore-page.unraid-72 #vmbr-schedule-section { margin-top:-20px !important; }
+  /* ── Section dividers ────────────────────────────────────────────────────── */
+  .vmbr-section-label {
+    font-size:10px; font-weight:700; letter-spacing:1px;
+    text-transform:uppercase; color:var(--c-text-muted);
+    padding:6px 0 4px; margin-bottom:4px;
+    border-bottom:1px solid var(--c-border);
   }
 
-  /* ── Schedule table ── */
-  #vmbr-schedule-list .TableContainer { overflow-x:auto; width:100%; }
-  .vmbr-schedules-table {
-    border-collapse:collapse; table-layout:auto;
-    width:100%; min-width:700px;
-  }
-  .vmbr-schedules-table td,
-  .vmbr-schedules-table th { padding:8px 10px; vertical-align:middle !important; white-space:normal; word-break:break-word; }
-  .vmbr-schedules-table td:last-child { white-space:normal !important; }
-  .vmbr-schedules-table td:last-child button {
-    display:inline-block !important;
-    margin:2px 3px !important;
-    white-space:nowrap;
-  }
-  .vmbr-schedules-table tbody tr:hover { background:#0d0d0d !important; }
-  .vmbr-schedules-table tbody tr + tr td { border-top:var(--border-panel) !important; }
+  /* ── Labels (override) ───────────────────────────────────────────────────── */
+  #vmbr-page label,
+  #vmbr-page label span { color:var(--c-label) !important; font-weight:600 !important; }
 
-  /* ── Labels ── */
-  #vm-backup-and-restore-page label,
-  #vm-backup-and-restore-page label span { color:#ad57df !important; font-weight:bold; }
-
-  /* VM dropdown list labels/items — must beat #vm-backup-and-restore-page label rule above */
-  #vm-backup-and-restore-page .vmbr-vm-dropdown-list label,
-  #vm-backup-and-restore-page .vmbr-vm-dropdown-list label span,
-  #vm-backup-and-restore-page .vmbr-vm-dropdown-list div,
+  /* Dropdown item labels override */
+  #vmbr-page .vmbr-vm-dropdown-list label,
+  #vmbr-page .vmbr-vm-dropdown-list label span,
+  #vmbr-page .vmbr-vm-dropdown-list div,
   #vmbr-vm-dropdown-backup .vmbr-vm-dropdown-list label,
   #vmbr-vm-dropdown-restore .vmbr-vm-dropdown-list label,
   #vmbr-notif-service-backup .vmbr-vm-dropdown-list label,
   #vmbr-notif-service-restore .vmbr-vm-dropdown-list label {
-    color:#e0c8f5 !important; font-weight:normal !important;
+    color:var(--c-text) !important; font-weight:400 !important;
   }
+  .vmbr-version-field label { color:var(--c-label) !important; font-weight:600 !important; }
 
-  .vmbr-version-field label { color:#ad57df !important; font-weight:bold !important; }
-
-  /* ── Inputs & selects — uniform 220px, max-width enforced ── */
-  #vm-backup-and-restore-page input[type="text"],
-  #vm-backup-and-restore-page input[type="password"],
-  #vm-backup-and-restore-page input[type="number"],
-  #vm-backup-and-restore-page select,
+  /* ── Inputs & selects ────────────────────────────────────────────────────── */
+  #vmbr-page input[type="text"],
+  #vmbr-page input[type="password"],
+  #vmbr-page input[type="number"],
+  #vmbr-page select,
   #vmbr-backup-panel input[type="text"],
   #vmbr-backup-panel input[type="password"],
   #vmbr-backup-panel input[type="number"],
@@ -266,661 +347,806 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
   #vmbr-restore-panel input[type="password"],
   #vmbr-restore-panel input[type="number"],
   #vmbr-restore-panel select {
-    background:#000 !important; border:1px solid #ad57df !important;
-    border-radius:5px !important; color:#e0c8f5 !important;
-    padding:6px 8px !important; transition:box-shadow .15s,border-color .15s;
-    width:220px !important; max-width:220px !important; box-sizing:border-box !important;
+    background:var(--c-bg) !important;
+    border:1px solid var(--c-border-strong) !important;
+    border-radius:var(--radius-input) !important;
+    color:var(--c-text) !important;
+    padding:5px 8px !important;
+    font-size:12px !important;
+    transition:border-color .15s, box-shadow .15s;
+    width:var(--input-w) !important; max-width:var(--input-w) !important;
+    box-sizing:border-box !important;
   }
-
-  /* Search input — must beat the broad panel input rule above via more-specific selector */
-  #vmbr-backup-panel #vmbr-log-search,
-  #vmbr-restore-panel #vmbr-log-search,
-  #vm-backup-and-restore-page #vmbr-log-search,
-  #vmbr-log-search {
-    border:none !important; box-shadow:none !important; outline:none !important;
-    width:130px !important; max-width:none !important; background:transparent !important;
-    padding:4px 8px !important;
-  }
-
-  /* Backup destination text stays #e0c8f5 */
-  #vmbr-backup-destination { color:#e0c8f5 !important; }
-
-  #vm-backup-and-restore-page input:focus,
-  #vm-backup-and-restore-page select:focus,
+  #vmbr-page input:focus,
+  #vmbr-page select:focus,
   #vmbr-backup-panel input:focus,
   #vmbr-backup-panel select:focus,
   #vmbr-restore-panel input:focus,
   #vmbr-restore-panel select:focus {
-    outline:none !important; border-color:#ad57df !important;
-    box-shadow:0 0 0 3px var(--primary-glow) !important;
+    outline:none !important;
+    border-color:var(--c-accent-light) !important;
+    box-shadow:0 0 0 3px var(--c-accent-glow) !important;
   }
+  #vmbr-page input:hover,
+  #vmbr-page select:hover { border-color:var(--c-accent-light) !important; }
+  #vmbr-page select:disabled,
+  #vmbr-page input:disabled { opacity:.45; cursor:not-allowed; }
+  #vmbr-page select option { background:var(--c-surface); color:var(--c-text); }
+  #vmbr-page input[type="checkbox"] { accent-color:var(--c-accent); cursor:pointer; }
 
-  /* Search input focus must NOT get the box-shadow from above — wrapper handles it */
-  #vmbr-log-search:focus { box-shadow:none !important; border:none !important; outline:none !important; }
-
-  #vm-backup-and-restore-page input:hover,
-  #vm-backup-and-restore-page select:hover { border-color:#ad57df !important; filter:brightness(1.1); }
-  #vmbr-log-search:hover { border:none !important; filter:none; }
-
-  #vm-backup-and-restore-page select:disabled,
-  #vm-backup-and-restore-page input:disabled { color:#888 !important; border-color:#555 !important; cursor:not-allowed; opacity:.6; }
-
-  #vm-backup-and-restore-page select option { background:#000; color:#e0c8f5; }
-
-  /* ── Consistent field widths (form-pair context) ── */
-  .form-pair input[type="text"],
-  .form-pair input[type="password"],
-  .form-pair input[type="number"],
-  .form-pair select,
-  #vmbr-vm-dropdown-backup,
-  #vmbr-vm-dropdown-restore,
-  #vmbr-notif-service-backup,
-  #vmbr-notif-service-restore {
-    width:220px !important; max-width:220px !important;
-    min-width:0 !important; box-sizing:border-box !important;
-  }
-
-  /* Special path fields — same width, no extra box-shadow override except on focus */
+  /* Path fields */
   #vmbr-backup-destination,
   #vmbr-restore-location,
   #vmbr-restore-destination {
-    background:#000 !important; border:1px solid #ad57df !important;
-    border-radius:5px !important; color:#e0c8f5 !important;
-    padding:6px 8px !important;
+    background:var(--c-bg) !important;
+    border:1px solid var(--c-border-strong) !important;
+    border-radius:var(--radius-input) !important;
+    color:var(--c-text) !important;
+    padding:5px 8px !important; font-size:12px !important;
     transition:box-shadow .15s;
   }
   #vmbr-backup-destination:focus,
   #vmbr-restore-location:focus,
-  #vmbr-restore-destination:focus { outline:none !important; box-shadow:0 0 0 3px var(--primary-glow) !important; }
+  #vmbr-restore-destination:focus { outline:none !important; box-shadow:0 0 0 3px var(--c-accent-glow) !important; }
 
-  /* Number spinner */
+  /* Search override */
+  #vmbr-backup-panel #vmbr-log-search,
+  #vmbr-restore-panel #vmbr-log-search,
+  #vmbr-page #vmbr-log-search,
+  #vmbr-log-search {
+    border:none !important; box-shadow:none !important; outline:none !important;
+    width:200px !important; max-width:200px !important; background:transparent !important;
+    padding:4px 6px !important; font-size:12px !important;
+  }
+  #vmbr-log-search:focus { box-shadow:none !important; border:none !important; }
+  #vmbr-log-search:hover { border:none !important; }
+
   input[type="number"] { padding-right:0; }
   input[type="number"].short-input { -moz-appearance:auto; -webkit-appearance:auto; appearance:auto; }
-  input[type="number"]::-webkit-inner-spin-button,
-  input[type="number"]::-webkit-outer-spin-button { margin:0; right:0; position:absolute; }
 
-  input.state-error { border-color:#e05555 !important; color:#e05555 !important; }
-  select.version-select:disabled { pointer-events:none; opacity:.5; cursor:default; }
+  select.version-select:disabled { pointer-events:none; opacity:.45; cursor:default; }
+  input.state-error { border-color:var(--c-danger) !important; color:var(--c-danger) !important; }
 
-  #vm-backup-and-restore-page input[type="checkbox"] {
-    accent-color:var(--primary); cursor:pointer; height:16px; width:16px;
+  /* ── Buttons ─────────────────────────────────────────────────────────────── */
+  #vmbr-page button {
+    border:none; border-radius:6px; color:#fff;
+    cursor:pointer; padding:7px 14px; font-size:12px;
+    font-weight:600; letter-spacing:.3px; transition:background .15s, box-shadow .15s;
+    background:var(--c-accent);
   }
+  #vmbr-page button:hover { filter:brightness(1.12); }
+  #vmbr-page button:focus-visible { outline:2px solid var(--c-accent-light); outline-offset:2px; }
 
-  /* ── Buttons ── */
-  button { border:none; border-radius:4px; color:#fff; cursor:pointer; margin-right:10px; padding:8px 15px; }
-  button:hover { filter:brightness(1.15); }
-  button:focus-visible, select:focus-visible, a:focus-visible { outline:none; box-shadow:none; }
-
-  .vmbr-actions-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-
-  /* ── Popups ── */
-  .vmbr-popup { display:none; background:yellow; color:#000; padding:6px 10px; border-radius:4px; margin-top:8px; font-weight:bold; }
-
-  /* ── Status rows ── */
-  .vmbr-status-row { align-items:center; display:flex; margin-bottom:6px; }
-  /* Use same panel IDs as the panel color rule so we win the specificity contest */
-  #vmbr-backup-panel .vmbr-status-label,
-  #vmbr-restore-panel .vmbr-status-label {
-    width:75px; flex-shrink:0; color:#ad57df !important; font-weight:bold !important; margin-right:10px;
-  }
-
-  /* ── form-pair ── */
-  .form-pair {
-    display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important;
-    align-items:center !important; justify-content:flex-start !important;
-    gap:0 10px !important; margin-bottom:12px !important; margin-top:6px !important;
-  }
-  .form-pair > label { width:160px !important; min-width:160px !important; flex:none !important; color:var(--primary) !important; }
-  .form-pair > span { display:contents !important; }
-  .form-pair input[type="text"],
-  .form-pair input[type="password"],
-  .form-pair input[type="number"],
-  .form-pair select { width:220px !important; max-width:220px !important; height:auto !important; flex:none !important; }
-  .form-pair input[type="checkbox"] { width:16px !important; height:16px !important; flex:none !important; }
-
-  /* Multiselect inside form-pair */
-  #vmbr-vm-dropdown-backup,
-  #vmbr-vm-dropdown-restore,
-  #vmbr-notif-service-backup,
-  #vmbr-notif-service-restore { width:220px !important; max-width:220px !important; height:auto !important; min-height:unset !important; flex:none !important; box-sizing:border-box !important; }
-
-  /* Webhook injected fields */
-  #vmbr-webhook-container-backup input,
-  #vmbr-webhook-container-backup select,
-  #vmbr-webhook-container-restore input,
-  #vmbr-webhook-container-restore select { width:220px !important; max-width:220px !important; height:auto !important; flex:none !important; box-sizing:border-box !important; }
-
-  .form-pair > .input-wrapper { display:contents !important; }
-
-  #vmbr-webhook-container-backup .input-wrapper,
-  #vmbr-webhook-container-restore .input-wrapper { display:flex !important; flex-direction:column !important; gap:2px !important; width:220px !important; }
-
-  .input-wrapper { display:flex; flex-direction:column; flex:1; min-width:0; }
-
-  @container plugin-panel (max-width:430px) {
-    .form-pair { flex-direction:column !important; flex-wrap:nowrap !important; align-items:flex-start !important; gap:4px 0 !important; }
-    .form-pair > label { width:auto !important; min-width:unset !important; }
-  }
-  @media (max-width:768px) {
-    .form-pair { flex-direction:column !important; flex-wrap:nowrap !important; align-items:flex-start !important; gap:4px 0 !important; }
-    .form-pair > label { width:auto !important; min-width:unset !important; }
-  }
-
-  /* ── Log panel ── */
-  #vmbr-log-pre {
-    background:#000; border:none; border-radius:0 0 10px 10px;
-    color:var(--text-input); font-family:monospace; font-size:13px; line-height:1.6;
-    overflow-y:auto; padding:10px 14px 12px; white-space:pre-wrap;
-    word-break:break-word; flex:1 1 0; margin:0; min-height:0;
-  }
-  #vmbr-log-pre .log-highlight { background:rgba(173,87,223,.2); border-radius:2px; color:#11a011; }
-
-  .vmbr-log-toolbar {
-    display:flex; align-items:center; gap:8px; padding:4px 12px;
-    background:#0a0a0a; border-bottom:1px solid var(--primary-dim);
-    border-radius:10px 10px 0 0; flex-shrink:0;
-  }
-  .vmbr-log-toolbar-center { display:flex; align-items:center; gap:6px; flex:1; justify-content:center; }
-  .vmbr-log-scroll-group { display:flex; flex-direction:column; margin-left:auto; }
-  .vmbr-log-scroll-group span { display:block; margin:0 !important; padding:0 !important; line-height:0; }
-  .vmbr-log-scroll-group span + span { margin-top:-7px !important; }
   #vmbr-log-scroll-top-btn,
-  #vmbr-log-autoscroll-btn { padding:1px 7px !important; font-size:13px !important; line-height:1.2 !important; min-width:0 !important; display:block !important; }
+  #vmbr-log-autoscroll-btn { padding:2px 8px !important; font-size:13px !important; }
 
-  #vmbr-log-toast { font-size:11px; color:var(--primary); white-space:nowrap; pointer-events:none; min-width:70px; visibility:hidden; }
-  #vmbr-log-toast.visible { visibility:visible; }
+  .vmbr-actions-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px; }
 
-  .vmbr-stop-toast { font-size:11px; color:var(--primary); white-space:nowrap; pointer-events:none; visibility:hidden; }
-  .vmbr-stop-toast.visible { visibility:visible; }
-
-  .vmbr-log-search-wrap {
-    display:flex; align-items:center; background:#111;
-    border:1px solid #ad57df; border-radius:6px; overflow:hidden; transition:box-shadow .15s;
-  }
-  .vmbr-log-search-wrap:focus-within { box-shadow:0 0 0 2px var(--primary-glow); }
-  #vmbr-log-search {
-    background:transparent !important; border:none !important; border-radius:0 !important;
-    color:#e0c8f5 !important; font-size:12px; padding:4px 8px !important;
-    width:130px !important; max-width:none !important; outline:none !important;
-    box-shadow:none !important;
-  }
-  #vmbr-log-search::placeholder { color:rgba(255,255,255,.25); }
-  #vmbr-log-search-count { font-size:11px; color:#e0c8f5; white-space:nowrap; width:68px; flex-shrink:0; display:inline-block; visibility:hidden; }
-  #vmbr-log-search-count.visible { visibility:visible; }
-
-  /* ── Multiselect dropdowns — purple border + focus glow ── */
+  /* ── Multiselect dropdowns ───────────────────────────────────────────────── */
   .vmbr-multiselect {
-    position:relative; width:220px; max-width:220px;
-    border:1px solid var(--primary) !important;
-    padding:6px; background:#000; cursor:pointer; white-space:nowrap;
-    border-radius:5px; color:var(--text-input); transition:box-shadow .15s;
-    box-sizing:border-box;
+    position:relative; width:var(--input-w); max-width:var(--input-w);
+    border:1px solid var(--c-border-strong) !important;
+    padding:5px 8px; background:var(--c-bg); cursor:pointer;
+    border-radius:var(--radius-input); color:var(--c-text);
+    transition:box-shadow .15s; box-sizing:border-box; font-size:12px;
   }
-  /* Explicit ID rules to beat Unraid global div resets (ID > class specificity) */
   #vmbr-vm-dropdown-backup,
   #vmbr-vm-dropdown-restore,
   #vmbr-notif-service-backup,
   #vmbr-notif-service-restore {
-    border:1px solid #ad57df !important;
-    border-radius:5px !important;
-    background:#000 !important;
+    border:1px solid var(--c-border-strong) !important;
+    border-radius:var(--radius-input) !important;
+    background:var(--c-bg) !important;
+    width:var(--input-w) !important; max-width:var(--input-w) !important;
+    height:auto !important; min-height:unset !important;
+    flex:none !important; box-sizing:border-box !important;
   }
   .vmbr-multiselect:hover,
   #vmbr-vm-dropdown-backup:hover,
   #vmbr-vm-dropdown-restore:hover,
   #vmbr-notif-service-backup:hover,
-  #vmbr-notif-service-restore:hover { box-shadow:0 0 0 2px var(--primary-dim) !important; }
+  #vmbr-notif-service-restore:hover { border-color:var(--c-accent-light) !important; }
   .vmbr-multiselect:focus,
   .vmbr-multiselect.active,
-  #vmbr-vm-dropdown-backup:focus,  #vmbr-vm-dropdown-backup.active,
-  #vmbr-vm-dropdown-restore:focus, #vmbr-vm-dropdown-restore.active,
-  #vmbr-notif-service-backup:focus,  #vmbr-notif-service-backup.active,
-  #vmbr-notif-service-restore:focus, #vmbr-notif-service-restore.active {
-    box-shadow:0 0 0 3px var(--primary-glow) !important; outline:none;
-  }
+  #vmbr-vm-dropdown-backup.active,
+  #vmbr-vm-dropdown-restore.active,
+  #vmbr-notif-service-backup.active,
+  #vmbr-notif-service-restore.active { box-shadow:0 0 0 3px var(--c-accent-glow) !important; outline:none; }
 
-  .vmbr-dropdown-label { color:#e0c8f5 !important; user-select:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .vmbr-dropdown-label { color:var(--c-text) !important; user-select:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px; }
 
   .vmbr-vm-dropdown-list {
-    padding:6px; display:none; position:absolute; top:100%; left:0;
+    padding:4px; display:none; position:absolute; top:100%; left:0;
     width:100%; max-height:200px; overflow-y:auto;
-    border:1px solid var(--primary); background:#000;
-    color:var(--text-input); z-index:10; font-family:'Segoe UI',sans-serif;
+    border:1px solid var(--c-border-strong); background:var(--c-surface);
+    color:var(--c-text); z-index:10; border-radius:0 0 6px 6px;
   }
-  .vmbr-vm-dropdown-list div { padding:4px 0; line-height:1.5; height:28px; display:flex; align-items:center; color:#e0c8f5 !important; }
-  .vmbr-vm-dropdown-list label { display:flex; align-items:center; gap:6px; color:#e0c8f5 !important; font-weight:normal; }
+  .vmbr-vm-dropdown-list div { padding:3px 2px; line-height:1.5; height:26px; display:flex; align-items:center; color:var(--c-text) !important; }
+  .vmbr-vm-dropdown-list label { display:flex; align-items:center; gap:6px; color:var(--c-text) !important; font-weight:400; font-size:12px; }
   .vmbr-vm-dropdown-list input[type="checkbox"] {
-    appearance:none; width:16px; height:16px; border:1px solid #fff; background:#000;
-    cursor:pointer; position:relative; accent-color:#ad57df; flex:none !important;
-    transition:border-color .15s,box-shadow .15s;
+    appearance:none; width:14px; height:14px; border:1px solid var(--c-text-muted);
+    background:var(--c-bg); cursor:pointer; position:relative;
+    accent-color:var(--c-accent); flex:none !important;
+    transition:border-color .15s, box-shadow .15s;
   }
-  .vmbr-vm-dropdown-list input[type="checkbox"]:hover { border-color:#e0c8f5; box-shadow:0 0 0 2px var(--primary-glow); }
-  .vmbr-vm-dropdown-list input[type="checkbox"]:checked::after { content:'✔'; position:absolute; top:-2px; left:2px; font-size:14px; color:#fff; }
-  .vmbr-vm-dropdown-list div:hover { background:#111; }
-
+  .vmbr-vm-dropdown-list input[type="checkbox"]:hover { border-color:var(--c-accent-light); }
+  .vmbr-vm-dropdown-list input[type="checkbox"]:checked::after { content:'✔'; position:absolute; top:-2px; left:2px; font-size:12px; color:#fff; }
+  .vmbr-vm-dropdown-list div:hover { background:var(--c-surface-raised); }
   #vmbr-vm-dropdown-backup.disabled,
-  #vmbr-vm-dropdown-restore.disabled { pointer-events:none; opacity:.5; cursor:default; }
+  #vmbr-vm-dropdown-restore.disabled { pointer-events:none; opacity:.45; cursor:default; }
 
-  /* ── In-progress banners ── */
-  .vmbr-banner { display:none; max-width:373px; margin-bottom:8px; }
+  /* Webhook injected fields */
+  #vmbr-webhook-container-backup input,
+  #vmbr-webhook-container-backup select,
+  #vmbr-webhook-container-restore input,
+  #vmbr-webhook-container-restore select {
+    width:var(--input-w) !important; max-width:var(--input-w) !important;
+    height:auto !important; flex:none !important; box-sizing:border-box !important;
+  }
+
+  /* ── In-progress banners ─────────────────────────────────────────────────── */
+  .vmbr-banner {
+    display:none; margin-bottom:10px;
+    background:var(--c-accent-dim);
+    border:1px solid var(--c-border-strong);
+    border-radius:8px; padding:8px 12px;
+    max-width:calc(var(--label-w) + 10px + var(--input-w));
+    box-sizing:border-box;
+  }
   .vmbr-banner-inner { display:flex; align-items:center; gap:10px; }
-  .vmbr-banner-text { color:yellow; font-weight:bold; }
+  .vmbr-banner-text { color:var(--c-text); font-weight:700; font-size:12px; }
+  .vmbr-stop-toast { font-size:11px; color:var(--c-accent-light); white-space:nowrap; pointer-events:none; visibility:hidden; }
+  .vmbr-stop-toast.visible { visibility:visible; }
+  .vmbr-banner button { font-size:11px !important; padding:4px 10px !important; background:var(--c-accent) !important; }
 
-  /* ── Scrollbars ── */
+  .vmbr-notif-row:hover { background:var(--c-surface-raised); }
+
+  /* ── Popups ─────────────────────────────────────────────────────────────── */
+  .vmbr-popup {
+    display:none;
+    background:rgba(34,197,94,0.15); color:var(--c-success);
+    border:1px solid rgba(34,197,94,0.35);
+    padding:6px 10px; border-radius:6px; margin-top:8px;
+    font-weight:600; font-size:12px;
+  }
+
+  /* ── Plugin / Mode switcher row (inside card header) ────────────────────── */
+  #vmbr-mode-row {
+    display:flex; align-items:center; gap:10px;
+    padding:7px 12px;
+    background:var(--c-surface-raised);
+    border-bottom:1px solid var(--c-border);
+    border-radius:var(--radius-card) var(--radius-card) 0 0;
+    flex-shrink:0; flex-wrap:nowrap;
+    box-sizing:border-box; width:100%;
+  }
+  .vmbr-topbar-group {
+    display:flex; align-items:center; gap:5px; flex-shrink:0;
+  }
+  .vmbr-topbar-label {
+    font-size:12px; font-weight:600; color:var(--c-label);
+    letter-spacing:.2px; white-space:nowrap;
+  }
+  #vmbr-mode-row select,
+  #vmbr-mode-row .vmbr-topbar-select {
+    height:auto !important; font-size:11px !important;
+    background:var(--c-bg) !important;
+    color:var(--c-text) !important;
+    border:1px solid var(--c-border-strong) !important;
+    border-radius:var(--radius-input) !important;
+    padding:4px 7px !important;
+    cursor:pointer !important;
+    width:150px !important; max-width:150px !important;
+    min-width:0 !important; box-sizing:border-box !important;
+  }
+  #vmbr-mode-row select:focus,
+  #vmbr-mode-row .vmbr-topbar-select:focus { outline:none !important; box-shadow:0 0 0 2px var(--c-accent-glow) !important; }
+
+
+  #vmbr-log-panel {
+    background:var(--c-surface);
+    border:1px solid var(--c-border);
+    border-radius:var(--radius-card);
+    box-shadow:var(--shadow-card);
+    display:flex; flex-direction:column;
+    overflow:hidden; height:695px;
+    margin-top:-17px;
+  }
+
+  .vmbr-log-toolbar {
+    display:flex; align-items:center; gap:6px; padding:4px 12px;
+    background:var(--c-surface-raised);
+    border-bottom:1px solid var(--c-border);
+    flex-shrink:0;
+  }
+  /* search on the left, buttons flush right */
+  .vmbr-log-toolbar-right { display:flex; align-items:center; gap:6px; margin-left:auto; }
+  #vmbr-log-toast { font-size:11px; color:var(--c-accent-light); white-space:nowrap; pointer-events:none; min-width:60px; visibility:hidden; }
+  #vmbr-log-toast.visible { visibility:visible; }
+
+  #vmbr-log-pre {
+    background:var(--c-bg); border:none; border-radius:0 0 10px 10px;
+    color:#b0b8d0; font-family:'Consolas','JetBrains Mono',monospace;
+    font-size:12px; line-height:1.65;
+    overflow-y:auto; padding:10px 14px 12px; white-space:pre-wrap;
+    word-break:break-word; flex:1 1 0; margin:0; min-height:0;
+  }
+  #vmbr-log-pre .log-highlight { background:rgba(124,58,237,.22); border-radius:2px; color:var(--c-success); }
+
+  .vmbr-log-search-wrap {
+    display:flex; align-items:center;
+    background:var(--c-bg);
+    border:1px solid var(--c-border-strong); border-radius:6px;
+    overflow:hidden; transition:box-shadow .15s;
+    flex-shrink:0;
+  }
+  .vmbr-log-search-wrap:focus-within { box-shadow:0 0 0 2px var(--c-accent-glow); }
+  #vmbr-log-search::placeholder { color:rgba(255,255,255,.2); }
+  #vmbr-log-search-count { font-size:11px; color:var(--c-text); white-space:nowrap; width:68px; flex-shrink:0; display:inline-block; visibility:hidden; }
+  #vmbr-log-search-count.visible { visibility:visible; }
+
+  /* ── Schedule section ────────────────────────────────────────────────────── */
+  #vmbr-schedule-section {
+    width:100%; box-sizing:border-box; padding-bottom:16px;
+    color:var(--c-text) !important; overflow:visible !important;
+    margin-top:18px !important;
+  }
+  #vmbr-schedule-list { color:var(--c-text) !important; width:100%; overflow:visible !important; }
+
+  @media (min-width:1201px) {
+    #vmbr-page.unraid-71 #vmbr-schedule-section { margin-top:-32px !important; }
+    #vmbr-page.unraid-72 #vmbr-schedule-section { margin-top:2px !important; }
+  }
+
+  #vmbr-schedule-list .TableContainer {
+    width:100%; box-sizing:border-box;
+    border:2px solid var(--c-border-strong);
+    border-radius:var(--radius-card);
+    overflow-x:auto;
+  }
+  .vmbr-schedules-table {
+    border-collapse:collapse; table-layout:auto;
+    width:100%; min-width:560px;
+    background:var(--c-surface) !important;
+  }
+  .vmbr-schedules-table thead tr {
+    background:var(--c-surface-raised) !important;
+    border-bottom:2px solid var(--c-border-strong) !important;
+  }
+  .vmbr-schedules-table thead tr th:first-child { border-radius:8px 0 0 0; }
+  .vmbr-schedules-table thead tr th:last-child  { border-radius:0 8px 0 0; }
+  .vmbr-schedules-table th {
+    padding:10px 12px; font-size:11px; font-weight:700;
+    letter-spacing:.6px; text-transform:uppercase;
+    color:var(--c-accent-light) !important;
+    white-space:nowrap; text-align:center;
+  }
+  .vmbr-schedules-table td {
+    padding:9px 12px; vertical-align:middle !important;
+    white-space:normal; word-break:break-word;
+    color:var(--c-text) !important; font-size:12px;
+    background:var(--c-surface) !important;
+    text-align:center;
+  }
+  /* Actions column — keep buttons on one line */
+  .vmbr-schedules-table td:last-child,
+  .vmbr-schedules-table th:last-child { white-space:nowrap !important; text-align:center; }
+  .vmbr-schedules-table td:last-child {
+    display:table-cell !important;
+  }
+  .vmbr-schedules-table td:last-child button {
+    display:inline-block !important;
+    margin:2px 2px !important;
+    white-space:nowrap;
+    padding:5px 9px !important;
+    font-size:11px !important;
+  }
+  .vmbr-schedules-table tbody tr:hover td { background:var(--c-surface-raised) !important; }
+  .vmbr-schedules-table tbody tr + tr td { border-top:1px solid var(--c-border) !important; }
+
+  /* ── Scrollbars ──────────────────────────────────────────────────────────── */
   #vmbr-backup-panel::-webkit-scrollbar,
   #vmbr-restore-panel::-webkit-scrollbar,
   #vmbr-log-pre::-webkit-scrollbar,
   .vmbr-vm-dropdown-list::-webkit-scrollbar,
-  .vmbr-folder-list::-webkit-scrollbar { width:8px !important; display:block !important; }
-
+  .vmbr-folder-list::-webkit-scrollbar { width:6px !important; display:block !important; }
   #vmbr-backup-panel::-webkit-scrollbar-thumb,
   #vmbr-restore-panel::-webkit-scrollbar-thumb,
   #vmbr-log-pre::-webkit-scrollbar-thumb,
   .vmbr-vm-dropdown-list::-webkit-scrollbar-thumb,
-  .vmbr-folder-list::-webkit-scrollbar-thumb { background:#ad57df !important; border-radius:4px !important; }
-
+  .vmbr-folder-list::-webkit-scrollbar-thumb { background:var(--c-accent) !important; border-radius:3px !important; }
   #vmbr-backup-panel::-webkit-scrollbar-track,
   #vmbr-restore-panel::-webkit-scrollbar-track,
   #vmbr-log-pre::-webkit-scrollbar-track,
   .vmbr-vm-dropdown-list::-webkit-scrollbar-track,
-  .vmbr-folder-list::-webkit-scrollbar-track { background:#111 !important; }
-
+  .vmbr-folder-list::-webkit-scrollbar-track { background:var(--c-bg) !important; }
   #vmbr-backup-panel,
   #vmbr-restore-panel,
-  #vmbr-log-pre { scrollbar-width:thin !important; scrollbar-color:#ad57df #111 !important; }
+  #vmbr-log-pre { scrollbar-width:thin !important; scrollbar-color:var(--c-accent) var(--c-bg) !important; }
 
-  /* ── Shake ── */
+  /* ── Shake ──────────────────────────────────────────────────────────────── */
   @keyframes vmbr-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 50%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
   #vmbr-backup-panel.state-error { animation:vmbr-shake .3s; }
 
-  /* ── Modal ── */
-  .vmbr-modal { display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,.85); }
-  .vmbr-modal-content { width:90%; max-width:600px; margin:8% auto; background:#000 !important; border:2px solid #ad57df !important; border-radius:8px; color:#e0c8f5 !important; padding:15px; font-size:14px; box-sizing:border-box; }
-  .vmbr-modal-header { display:flex; justify-content:space-between; font-weight:bold; margin-bottom:10px; color:#e0c8f5 !important; font-size:14px; }
-  #vmbr-folder-picker-title { color:#e0c8f5 !important; }
-  .vmbr-folder-list { max-height:300px; overflow-y:auto; border:1px solid #ad57df !important; padding:5px; font-size:14px; }
-  .vmbr-folder-item { padding:6px; cursor:pointer; color:#e0c8f5 !important; font-size:14px; }
-  .vmbr-folder-item:hover { background:#111; }
-  .vmbr-folder-item label { cursor:pointer; color:#e0c8f5 !important; font-size:14px; position:relative; top:-3px; }
-  .vmbr-breadcrumb { margin-bottom:10px; font-size:13px; color:#e0c8f5 !important; }
-  .vmbr-modal-footer { margin-top:10px; text-align:right; }
+  /* ── Modal ───────────────────────────────────────────────────────────────── */
+  .vmbr-modal { display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,.75); backdrop-filter:blur(3px); }
+  .vmbr-modal-content {
+    width:90%; max-width:580px; margin:8% auto;
+    background:var(--c-surface) !important;
+    border:1px solid var(--c-border-strong) !important;
+    border-radius:10px; color:var(--c-text) !important;
+    padding:0; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.7);
+  }
+  .vmbr-modal-header {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 16px;
+    background:var(--c-surface-raised) !important;
+    border-bottom:1px solid var(--c-border-strong);
+    font-weight:700; font-size:13px; color:var(--c-text) !important;
+  }
+  #vmbr-folder-picker-title { color:var(--c-accent-light) !important; }
+  .vmbr-folder-list { max-height:300px; overflow-y:auto; padding:6px; font-size:13px; }
+  .vmbr-folder-item { padding:6px 8px; cursor:pointer; color:var(--c-text) !important; border-radius:4px; }
+  .vmbr-folder-item:hover { background:var(--c-surface-raised); }
+  .vmbr-folder-item label { cursor:pointer; color:var(--c-text) !important; font-size:13px; position:relative; top:-3px; }
+  .vmbr-breadcrumb { margin:10px 16px 6px; font-size:12px; color:var(--c-text-muted) !important; }
+  .vmbr-modal-footer { padding:10px 16px; text-align:right; border-top:1px solid var(--c-border); background:var(--c-surface-raised); }
+  .vmbr-modal-footer button,
+  .vmbr-modal-header button {
+    border:none; border-radius:6px; color:#fff;
+    cursor:pointer; padding:7px 14px; font-size:12px;
+    font-weight:600; letter-spacing:.3px;
+    background:var(--c-accent); transition:background .15s, box-shadow .15s;
+  }
+  .vmbr-modal-footer button:hover,
+  .vmbr-modal-header button:hover { filter:brightness(1.12); }
 
-  /* ── Inline help ── */
+  /* ── Inline help ─────────────────────────────────────────────────────────── */
   label.fbb-has-help, span.fbb-has-help { cursor:help; }
-  .fbb-help-text { background:#1a0a1a; border-left:3px solid var(--primary); border-radius:4px; color:var(--text-input); font-size:12px; line-height:1.5; margin-bottom:8px; padding:7px 10px; max-width:500px; box-sizing:border-box; }
+  .fbb-help-text {
+    background:var(--c-surface-raised);
+    border-left:3px solid var(--c-accent);
+    border-radius:4px; color:var(--c-text-muted);
+    font-size:11px; line-height:1.5;
+    margin-bottom:8px; padding:6px 10px;
+    max-width:500px; box-sizing:border-box;
+  }
 
-  /* ── Footer ── */
-  .footer > div { gap:6px !important; }
-  .footer button { margin:0 !important; }
+  /* ── Malformed warning ────────────────────────────────────────────────────── */
+  #vmbr-malformed-container > div {
+    background:rgba(239,68,68,0.12) !important;
+    color:var(--c-danger) !important;
+    border:1px solid rgba(239,68,68,.35) !important;
+    padding:9px 12px !important; border-radius:6px !important;
+    margin-bottom:10px !important; font-size:12px !important;
+  }
+
+  /* ── Responsive ──────────────────────────────────────────────────────────── */
+  @media (max-width:1200px) {
+    #vmbr-layout { grid-template-columns:1fr; }
+    .vmbr-card-body { height:480px; }
+    #vmbr-log-panel { grid-column:1; height:360px; }
+    .vmbr-schedules-table td:last-child button { padding:4px 7px !important; font-size:10px !important; }
+  }
+  @media (max-width:768px) {
+    #vmbr-layout { grid-template-columns:1fr; }
+    .vmbr-card-body { height:auto; min-height:400px; }
+    #vmbr-log-panel { grid-column:1; height:360px; }
+    .vmbr-schedules-table td:last-child button { padding:3px 6px !important; font-size:10px !important; }
+  }
 </style>
 
-<div id="vm-backup-and-restore-page" class="<?php echo $isResponsiveWebgui ? 'unraid-72' : 'unraid-71'; ?>">
-<div id="vmbr-layout">
+<div id="vmbr-page" class="<?php echo $isResponsiveWebgui ? 'unraid-72' : 'unraid-71'; ?>">
 
-  <!-- ══ BACKUP PANEL ═══════════════════════════════════════════════════ -->
+<!-- ══ LAYOUT ════════════════════════════════════════════════════════════ -->
+<div id="vmbr-layout" style="margin-top:0;">
+
+  <!-- ══ BACKUP / RESTORE CARD ════════════════════════════════════════════ -->
   <div id="vmbr-backup-wrap" class="vmbr-panel-wrap">
-    <form id="vmbr-backup-panel">
+    <div class="vmbr-card">
 
-      <div class="vmbr-status-row">
-        <span class="vmbr-status-label" style="color:#ad57df !important;font-weight:bold;margin-right:12px;" title="Shows which part of the backup process is currently running">Status:</span>
-        <span id="vmbr-backup-status-text">No Backup Running</span>
-      </div>
-      <br>
-
-      <!-- VM(s) To Backup -->
-      <div class="form-pair">
-        <label title="Choose which VM(s) to backup">VM(s) To Backup:</label>
-        <div id="vmbr-vm-dropdown-backup" class="vmbr-multiselect" tabindex="0"
-             data-selected="<?php echo htmlspecialchars($settings_arr['VMS_TO_BACKUP'] ?? '') ?>">
-          <div class="vmbr-dropdown-label">Select VM(s)</div>
-          <div class="vmbr-vm-dropdown-list"></div>
+      <!-- Plugin / Mode row — always visible -->
+      <div id="vmbr-mode-row">
+        <?php if ($has_siblings_bool): ?>
+        <div class="vmbr-topbar-group">
+          <span class="vmbr-topbar-label fbb-has-help" id="vmbr-plugin-label">Plugin:</span>
+          <select id="vmbr-plugin-switcher" class="vmbr-topbar-select" onchange="if(this.value)window.location=this.value">
+            <option value="" disabled selected>Switch plugin…</option>
+            <?php foreach ($all_plugin_options_arr as $info_arr): ?>
+            <option value="<?= htmlspecialchars($info_arr['url']) ?>"><?= htmlspecialchars($info_arr['label']) ?></option>
+            <?php endforeach; ?>
+          </select>
         </div>
-        <input type="hidden" id="vmbr-hidden-vms-backup" name="VMS_TO_BACKUP"
-               value="<?php echo htmlspecialchars($settings_arr['VMS_TO_BACKUP'] ?? '') ?>">
-      </div>
-
-      <!-- Backup Destination -->
-      <div class="form-pair">
-        <label title="Choose destination for backup. Each VM will be saved to a subdirectory named after the VM">Backup Destination:</label>
-        <input type="text" id="vmbr-backup-destination" name="BACKUP_DESTINATION"
-               data-picker-title="Select Backup Destination"
-               placeholder="Click here" readonly style="cursor:pointer;padding:6px 8px;box-sizing:border-box;line-height:normal;"
-               value="<?php echo htmlspecialchars($settings_arr['BACKUP_DESTINATION'] ?? '') ?>">
-      </div>
-
-      <!-- Backups To Keep -->
-      <div class="form-pair">
-        <label for="vmbr-backup-keep" title="Choose the amount of backups to keep for each VM selected">Backups To Keep:</label>
-        <select id="vmbr-backup-keep" class="short-input" name="BACKUPS_TO_KEEP">
-          <?php
-          $keep_int = (int)($settings_arr['BACKUPS_TO_KEEP'] ?? 0);
-          for ($i_int = 0; $i_int <= 99; $i_int++) {
-              $sel_str = ($keep_int === $i_int) ? 'selected' : '';
-              if ($i_int === 0)     echo "<option value=\"0\" $sel_str>Unlimited</option>";
-              elseif ($i_int === 1) echo "<option value=\"1\" $sel_str>Only Latest</option>";
-              else                  echo "<option value=\"$i_int\" $sel_str>$i_int</option>";
-          }
-          ?>
-        </select>
-      </div>
-
-      <!-- Backup Owner -->
-      <div class="form-pair">
-        <label title="Choose the owner for the backup files">Backup Owner:</label>
-        <select id="vmbr-backup-owner" name="BACKUP_OWNER"
-                data-selected="<?php echo htmlspecialchars($settings_arr['BACKUP_OWNER'] ?? 'nobody') ?>">
-        </select>
-      </div>
-
-      <!-- Dry Run -->
-      <div class="form-pair">
-        <label for="vmbr-backup-dry-run" title="Enable to simulate a backup without making changes">Dry Run:</label>
-        <select id="vmbr-backup-dry-run" class="short-input" name="DRY_RUN">
-          <option value="yes" <?= ($settings_arr['DRY_RUN'] ?? 'no') === 'yes' ? 'selected' : '' ?>>Yes</option>
-          <option value="no"  <?= ($settings_arr['DRY_RUN'] ?? 'no') === 'no'  ? 'selected' : '' ?>>No</option>
-        </select>
-      </div>
-
-      <!-- Notifications -->
-      <div class="form-pair">
-        <label for="vmbr-backup-notif" title="Send Unraid system notifications when VM backup starts and finishes">Notifications:</label>
-        <select id="vmbr-backup-notif" class="short-input" name="NOTIFICATIONS">
-          <option value="yes" <?= ($settings_arr['NOTIFICATIONS'] ?? 'no') === 'yes' ? 'selected' : '' ?>>Yes</option>
-          <option value="no"  <?= ($settings_arr['NOTIFICATIONS'] ?? 'no') === 'no'  ? 'selected' : '' ?>>No</option>
-        </select>
-      </div>
-
-      <!-- Notification Service -->
-      <div id="vmbr-backup-notif-service-row" style="display:none;">
-        <div class="form-pair">
-          <label title="Choose which notification service(s) to use">Service:</label>
-          <div style="display:flex;flex-direction:column;gap:4px;">
-            <select id="vmbr-backup-notif-hidden" name="NOTIFICATION_SERVICE" multiple style="display:none;">
-              <?php foreach ($notif_services_arr as $svc_str): ?>
-              <option value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_arr, true) ? 'selected' : '' ?>><?= $svc_str ?></option>
-              <?php endforeach; ?>
-            </select>
-            <div id="vmbr-notif-service-backup" class="vmbr-multiselect" tabindex="0" style="width:220px;">
-              <div class="vmbr-dropdown-label" id="vmbr-backup-notif-label">Select service(s)</div>
-              <div class="vmbr-vm-dropdown-list" id="vmbr-backup-notif-list" style="display:none;">
-                <?php foreach ($notif_services_arr as $svc_str): ?>
-                <div><label>
-                  <input type="checkbox" value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_arr, true) ? 'checked' : '' ?>>
-                  <?= $svc_str ?>
-                </label></div>
-                <?php endforeach; ?>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Webhook fields -->
-      <div id="vmbr-webhook-container-backup"></div>
-
-      <!-- Scheduling -->
-      <div class="form-pair" id="vmbr-cron-mode-row">
-        <label for="vmbr-cron-mode" title="Select scheduling mode">Scheduling:</label>
-        <div class="input-wrapper">
-          <select id="vmbr-cron-mode" name="CRON_MODE" class="short-input">
-            <option value="hourly"  <?= ($settings_arr['CRON_MODE'] ?? 'daily') === 'hourly'  ? 'selected' : '' ?>>Hourly</option>
-            <option value="daily"   <?= ($settings_arr['CRON_MODE'] ?? 'daily') === 'daily'   ? 'selected' : '' ?>>Daily</option>
-            <option value="weekly"  <?= ($settings_arr['CRON_MODE'] ?? 'daily') === 'weekly'  ? 'selected' : '' ?>>Weekly</option>
-            <option value="monthly" <?= ($settings_arr['CRON_MODE'] ?? 'daily') === 'monthly' ? 'selected' : '' ?>>Monthly</option>
+        <?php endif; ?>
+        <div class="vmbr-topbar-group">
+          <span class="vmbr-topbar-label fbb-has-help" id="vmbr-mode-label">Mode:</span>
+          <select id="vmbr-mode-switcher" class="vmbr-topbar-select" onchange="vmbrSwitchMode(this.value)">
+            <option value="backup">Backup</option>
+            <option value="restore">Restore</option>
           </select>
         </div>
       </div>
 
-      <!-- Hourly -->
-      <div id="vmbr-hourly-options" style="display:none;margin-top:10px;">
+      <!-- Card header — title + status dot update per mode -->
+      <div class="vmbr-card-header">
+        <span id="vmbr-active-card-title" class="vmbr-card-title">Backup</span>
+        <div id="vmbr-backup-status-wrap" class="vmbr-card-status">
+          <div class="vmbr-status-dot" id="vmbr-backup-dot"></div>
+          <span id="vmbr-backup-status-text">Idle</span>
+        </div>
+        <div id="vmbr-restore-status-wrap" class="vmbr-card-status" style="display:none;">
+          <div class="vmbr-status-dot" id="vmbr-restore-dot"></div>
+          <span id="vmbr-restore-status-text">Idle</span>
+        </div>
+      </div>
+      <form id="vmbr-backup-panel" class="vmbr-card-body">
+
+        <div class="vmbr-section-label">Configuration</div>
+
+        <!-- VM(s) To Backup -->
         <div class="form-pair">
-          <label for="vmbr-hourly-freq" title="Select how often to run per day">Select Frequency:</label>
-          <div class="input-wrapper">
-            <select id="vmbr-hourly-freq" name="HOURLY_FREQUENCY" class="short-input">
-              <?php foreach ([4, 6, 8] as $freq_int): ?>
-              <option value="<?= $freq_int ?>" <?= ($settings_arr['HOURLY_FREQUENCY'] ?? '') === (string)$freq_int ? 'selected' : '' ?>>Every <?= $freq_int ?> Hours</option>
-              <?php endforeach; ?>
-            </select>
+          <label title="Choose which VM(s) to backup">VM(s) To Backup:</label>
+          <div id="vmbr-vm-dropdown-backup" class="vmbr-multiselect" tabindex="0"
+               data-selected="<?php echo htmlspecialchars($settings_arr['VMS_TO_BACKUP'] ?? '') ?>">
+            <div class="vmbr-dropdown-label">Select VM(s)</div>
+            <div class="vmbr-vm-dropdown-list"></div>
           </div>
+          <input type="hidden" id="vmbr-hidden-vms-backup" name="VMS_TO_BACKUP"
+                 value="<?php echo htmlspecialchars($settings_arr['VMS_TO_BACKUP'] ?? '') ?>">
         </div>
-      </div>
 
-      <!-- Daily -->
-      <div id="vmbr-daily-options" style="display:none;margin-top:10px;">
+        <!-- Backup Destination -->
         <div class="form-pair">
-          <label for="vmbr-daily-hour" title="Select the hour for daily execution">Hour:</label>
-          <div class="input-wrapper">
-            <select id="vmbr-daily-hour" name="DAILY_TIME" class="short-input">
-              <?php for ($h_int = 0; $h_int < 24; $h_int++): $h_str = str_pad($h_int, 2, '0', STR_PAD_LEFT); ?>
-              <option value="<?= $h_str ?>" <?= ($settings_arr['DAILY_TIME'] ?? '00') === $h_str ? 'selected' : '' ?>><?= $h_str ?></option>
-              <?php endfor; ?>
-            </select>
-          </div>
+          <label title="Choose destination for backup. Each VM saved to a subdirectory named after the VM">Destination:</label>
+          <input type="text" id="vmbr-backup-destination" name="BACKUP_DESTINATION"
+                 data-picker-title="Select Backup Destination"
+                 placeholder="Click to browse…" readonly style="cursor:pointer;"
+                 value="<?php echo htmlspecialchars($settings_arr['BACKUP_DESTINATION'] ?? '') ?>">
         </div>
+
+        <!-- Backups To Keep -->
         <div class="form-pair">
-          <label for="vmbr-daily-min" title="Select the minute for daily execution">Minute:</label>
-          <div class="input-wrapper">
-            <select id="vmbr-daily-min" name="DAILY_MINUTE" class="short-input">
-              <?php for ($m_int = 0; $m_int < 60; $m_int++): $m_str = str_pad($m_int, 2, '0', STR_PAD_LEFT); ?>
-              <option value="<?= $m_str ?>" <?= ($settings_arr['DAILY_MINUTE'] ?? '00') === $m_str ? 'selected' : '' ?>><?= $m_str ?></option>
-              <?php endfor; ?>
-            </select>
-          </div>
+          <label for="vmbr-backup-keep" title="Choose the amount of backups to keep for each VM selected">Backups To Keep:</label>
+          <select id="vmbr-backup-keep" class="short-input" name="BACKUPS_TO_KEEP">
+            <?php
+            $keep_int = (int)($settings_arr['BACKUPS_TO_KEEP'] ?? 0);
+            for ($i_int = 0; $i_int <= 99; $i_int++) {
+                $sel_str = ($keep_int === $i_int) ? 'selected' : '';
+                if ($i_int === 0)     echo "<option value=\"0\" $sel_str>Unlimited</option>";
+                elseif ($i_int === 1) echo "<option value=\"1\" $sel_str>Only Latest</option>";
+                else                  echo "<option value=\"$i_int\" $sel_str>$i_int</option>";
+            }
+            ?>
+          </select>
         </div>
-      </div>
 
-      <!-- Weekly -->
-      <div id="vmbr-weekly-options" style="display:none;margin-top:10px;">
+        <!-- Backup Owner -->
         <div class="form-pair">
-          <label for="vmbr-weekly-day" title="Select day of the week">Day Of Week:</label>
-          <div class="input-wrapper">
-            <select id="vmbr-weekly-day" name="WEEKLY_DAY" class="short-input">
-              <?php foreach (['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as $day_str): ?>
-              <option value="<?= $day_str ?>" <?= ($settings_arr['WEEKLY_DAY'] ?? '') === $day_str ? 'selected' : '' ?>><?= $day_str ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
+          <label title="Choose the owner for the backup files">Backup Owner:</label>
+          <select id="vmbr-backup-owner" name="BACKUP_OWNER"
+                  data-selected="<?php echo htmlspecialchars($settings_arr['BACKUP_OWNER'] ?? 'nobody') ?>">
+          </select>
         </div>
+
+        <!-- Dry Run -->
         <div class="form-pair">
-          <label for="vmbr-weekly-hour" title="Hour">Hour:</label>
-          <div class="input-wrapper">
-            <select id="vmbr-weekly-hour" name="WEEKLY_TIME" class="short-input">
-              <?php for ($h_int = 0; $h_int < 24; $h_int++): $h_str = str_pad($h_int, 2, '0', STR_PAD_LEFT); ?>
-              <option value="<?= $h_str ?>" <?= ($settings_arr['WEEKLY_TIME'] ?? '00') === $h_str ? 'selected' : '' ?>><?= $h_str ?></option>
-              <?php endfor; ?>
-            </select>
-          </div>
+          <label for="vmbr-backup-dry-run" title="Enable to simulate a backup without making changes">Dry Run:</label>
+          <select id="vmbr-backup-dry-run" class="short-input" name="DRY_RUN">
+            <option value="yes" <?= ($settings_arr['DRY_RUN'] ?? 'no') === 'yes' ? 'selected' : '' ?>>Yes</option>
+            <option value="no"  <?= ($settings_arr['DRY_RUN'] ?? 'no') === 'no'  ? 'selected' : '' ?>>No</option>
+          </select>
         </div>
+
+        <div class="vmbr-section-label" style="margin-top:8px;">Notifications</div>
+
+        <!-- Notifications -->
         <div class="form-pair">
-          <label for="vmbr-weekly-min" title="Minute">Minute:</label>
-          <div class="input-wrapper">
-            <select id="vmbr-weekly-min" name="WEEKLY_MINUTE" class="short-input">
-              <?php for ($m_int = 0; $m_int < 60; $m_int++): $m_str = str_pad($m_int, 2, '0', STR_PAD_LEFT); ?>
-              <option value="<?= $m_str ?>" <?= ($settings_arr['WEEKLY_MINUTE'] ?? '00') === $m_str ? 'selected' : '' ?>><?= $m_str ?></option>
-              <?php endfor; ?>
-            </select>
-          </div>
+          <label for="vmbr-backup-notif" title="Send notifications when VM backup starts and finishes">Notifications:</label>
+          <select id="vmbr-backup-notif" class="short-input" name="NOTIFICATIONS">
+            <option value="yes" <?= ($settings_arr['NOTIFICATIONS'] ?? 'no') === 'yes' ? 'selected' : '' ?>>Yes</option>
+            <option value="no"  <?= ($settings_arr['NOTIFICATIONS'] ?? 'no') === 'no'  ? 'selected' : '' ?>>No</option>
+          </select>
         </div>
-      </div>
 
-      <!-- Monthly -->
-      <div id="vmbr-monthly-options" style="display:none;margin-top:10px;">
-        <div class="form-pair">
-          <label for="vmbr-monthly-day" title="Select day of the month">Day Of Month:</label>
-          <div class="input-wrapper">
-            <select id="vmbr-monthly-day" name="MONTHLY_DAY" class="short-input">
-              <?php for ($d_int = 1; $d_int <= 31; $d_int++): $d_str = str_pad($d_int, 2, '0', STR_PAD_LEFT); ?>
-              <option value="<?= $d_str ?>" <?= ($settings_arr['MONTHLY_DAY'] ?? '') === $d_str ? 'selected' : '' ?>><?= $d_str ?></option>
-              <?php endfor; ?>
-            </select>
-          </div>
-        </div>
-        <div class="form-pair">
-          <label for="vmbr-monthly-hour" title="Hour">Hour:</label>
-          <div class="input-wrapper">
-            <select id="vmbr-monthly-hour" name="MONTHLY_TIME" class="short-input">
-              <?php for ($h_int = 0; $h_int < 24; $h_int++): $h_str = str_pad($h_int, 2, '0', STR_PAD_LEFT); ?>
-              <option value="<?= $h_str ?>" <?= ($settings_arr['MONTHLY_TIME'] ?? '00') === $h_str ? 'selected' : '' ?>><?= $h_str ?></option>
-              <?php endfor; ?>
-            </select>
-          </div>
-        </div>
-        <div class="form-pair">
-          <label for="vmbr-monthly-min" title="Minute">Minute:</label>
-          <div class="input-wrapper">
-            <select id="vmbr-monthly-min" name="MONTHLY_MINUTE" class="short-input">
-              <?php for ($m_int = 0; $m_int < 60; $m_int++): $m_str = str_pad($m_int, 2, '0', STR_PAD_LEFT); ?>
-              <option value="<?= $m_str ?>" <?= ($settings_arr['MONTHLY_MINUTE'] ?? '00') === $m_str ? 'selected' : '' ?>><?= $m_str ?></option>
-              <?php endfor; ?>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- Backup in-progress banner -->
-      <div id="vmbr-backup-banner" class="vmbr-banner">
-        <div class="vmbr-banner-inner">
-          <span id="vmbr-backup-banner-text" class="vmbr-banner-text"></span>
-          <button type="button" id="vmbr-backup-stop-btn" title="Stops backup immediately and cleans up files" onclick="vmbrStopFromBanner('backup')">Stop</button>
-          <span id="vmbr-backup-stop-toast" class="vmbr-stop-toast">Stop requested</span>
-        </div>
-      </div>
-
-      <!-- Actions -->
-      <div class="vmbr-actions-row">
-        <button type="button" id="vmbr-backup-now-btn" title="Run backup of selected VM(s)">Backup Now</button>
-        <button type="button" id="vmbr-schedule-btn" class="button schedule-button" title="Create a backup schedule using the settings shown above">Schedule It</button>
-        <button type="button" id="vmbr-cancel-edit-btn" style="display:none;">Cancel</button>
-      </div>
-
-      <div id="vmbr-backup-popup" class="vmbr-popup"></div>
-    </form>
-  </div>
-
-  <!-- ══ RESTORE PANEL ══════════════════════════════════════════════════ -->
-  <div id="vmbr-restore-wrap" class="vmbr-panel-wrap">
-    <form id="vmbr-restore-panel">
-
-      <div class="vmbr-status-row">
-        <span class="vmbr-status-label" style="color:#ad57df !important;font-weight:bold;margin-right:12px;" title="Shows which part of the restore process is currently running">Status:</span>
-        <span id="vmbr-restore-status-text">No Restore Running</span>
-      </div>
-      <br>
-
-      <!-- Location Of Backups -->
-      <div class="form-pair">
-        <label title="Choose location where backups are stored">Location Of Backups:</label>
-        <input type="text" id="vmbr-restore-location" name="LOCATION_OF_BACKUPS"
-               data-picker-title="Select Location Of Backups"
-               placeholder="Click here" readonly style="cursor:pointer;padding:6px 8px;box-sizing:border-box;line-height:normal;"
-               value="<?php echo htmlspecialchars($restore_settings_arr['LOCATION_OF_BACKUPS'] ?? '') ?>">
-      </div>
-
-      <!-- VM(s) To Restore -->
-      <div class="form-pair">
-        <label title="Choose which VM(s) to restore">VM(s) To Restore:</label>
-        <div id="vmbr-vm-dropdown-restore" class="vmbr-multiselect" tabindex="0"
-             data-selected="<?php echo htmlspecialchars($restore_settings_arr['VMS_TO_RESTORE'] ?? '') ?>">
-          <div class="vmbr-dropdown-label">Select VM(s)</div>
-          <div class="vmbr-vm-dropdown-list"></div>
-        </div>
-        <input type="hidden" id="vmbr-hidden-vms-restore" name="VMS_TO_RESTORE"
-               value="<?php echo htmlspecialchars($restore_settings_arr['VMS_TO_RESTORE'] ?? '') ?>">
-      </div>
-
-      <!-- Malformed warnings + version fields -->
-      <div id="vmbr-malformed-container"></div>
-      <div id="vmbr-version-wrapper" style="display:none;">
-        <div id="vmbr-version-container"></div>
-      </div>
-
-      <!-- Restore Destination -->
-      <div class="form-pair">
-        <label title="Choose destination to restore VM(s) to">Restore Destination:</label>
-        <input type="text" id="vmbr-restore-destination" name="RESTORE_DESTINATION"
-               data-picker-title="Select Restore Destination"
-               placeholder="Click here" readonly style="cursor:pointer;padding:6px 8px;box-sizing:border-box;line-height:normal;"
-               value="<?php echo htmlspecialchars($restore_settings_arr['RESTORE_DESTINATION'] ?? '') ?>">
-      </div>
-
-      <!-- Dry Run Restore -->
-      <div class="form-pair">
-        <label for="vmbr-restore-dry-run" title="Enable to simulate a restore without making changes">Dry Run:</label>
-        <select id="vmbr-restore-dry-run" class="short-input" name="DRY_RUN_RESTORE">
-          <option value="yes" <?= ($restore_settings_arr['DRY_RUN_RESTORE'] ?? 'no') === 'yes' ? 'selected' : '' ?>>Yes</option>
-          <option value="no"  <?= ($restore_settings_arr['DRY_RUN_RESTORE'] ?? 'no') === 'no'  ? 'selected' : '' ?>>No</option>
-        </select>
-      </div>
-
-      <!-- Notifications Restore -->
-      <div class="form-pair">
-        <label for="vmbr-restore-notif" title="Send Unraid system notifications when VM restore starts and finishes">Notifications:</label>
-        <select id="vmbr-restore-notif" class="short-input" name="NOTIFICATIONS_RESTORE">
-          <option value="yes" <?= ($restore_settings_arr['NOTIFICATIONS_RESTORE'] ?? 'no') === 'yes' ? 'selected' : '' ?>>Yes</option>
-          <option value="no"  <?= ($restore_settings_arr['NOTIFICATIONS_RESTORE'] ?? 'no') === 'no'  ? 'selected' : '' ?>>No</option>
-        </select>
-      </div>
-
-      <!-- Notification Service Restore -->
-      <div id="vmbr-restore-notif-service-row" style="display:none;">
-        <div class="form-pair">
-          <label title="Choose which notification service(s) to use">Service:</label>
-          <div style="display:flex;flex-direction:column;gap:4px;">
-            <select id="vmbr-restore-notif-hidden" name="NOTIFICATION_SERVICE_RESTORE" multiple style="display:none;">
-              <?php foreach ($notif_services_arr as $svc_str): ?>
-              <option value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_restore_arr, true) ? 'selected' : '' ?>><?= $svc_str ?></option>
-              <?php endforeach; ?>
-            </select>
-            <div id="vmbr-notif-service-restore" class="vmbr-multiselect" tabindex="0" style="width:220px;">
-              <div class="vmbr-dropdown-label" id="vmbr-restore-notif-label">Select service(s)</div>
-              <div class="vmbr-vm-dropdown-list" id="vmbr-restore-notif-list" style="display:none;">
+        <!-- Notification Service -->
+        <div id="vmbr-backup-notif-service-row" style="display:none;">
+          <div class="form-pair">
+            <label title="Choose which notification service(s) to use">Service:</label>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <select id="vmbr-backup-notif-hidden" name="NOTIFICATION_SERVICE" multiple style="display:none;">
                 <?php foreach ($notif_services_arr as $svc_str): ?>
-                <div><label>
-                  <input type="checkbox" value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_restore_arr, true) ? 'checked' : '' ?>>
-                  <?= $svc_str ?>
-                </label></div>
+                <option value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_arr, true) ? 'selected' : '' ?>><?= $svc_str ?></option>
                 <?php endforeach; ?>
+              </select>
+              <div id="vmbr-notif-service-backup" class="vmbr-multiselect" tabindex="0">
+                <div class="vmbr-dropdown-label" id="vmbr-backup-notif-label">Select service(s)</div>
+                <div class="vmbr-vm-dropdown-list" id="vmbr-backup-notif-list" style="display:none;">
+                  <?php foreach ($notif_services_arr as $svc_str): ?>
+                  <div class="vmbr-notif-row" style="cursor:pointer;padding:4px 6px;border-radius:4px;" onclick="(function(r){var cb=r.querySelector('input[type=checkbox]');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change',{bubbles:true}));})(this)">
+                    <label style="pointer-events:none;">
+                      <input type="checkbox" value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_arr, true) ? 'checked' : '' ?> onclick="event.stopPropagation()">
+                      <?= $svc_str ?>
+                    </label>
+                  </div>
+                  <?php endforeach; ?>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Restore webhook fields -->
-      <div id="vmbr-webhook-container-restore"></div>
+        <!-- Webhook fields -->
+        <div id="vmbr-webhook-container-backup"></div>
 
-      <!-- Restore in-progress banner -->
-      <div id="vmbr-restore-banner" class="vmbr-banner">
-        <div class="vmbr-banner-inner">
-          <span id="vmbr-restore-banner-text" class="vmbr-banner-text"></span>
-          <button type="button" id="vmbr-restore-stop-btn" title="Stops restore immediately and cleans up files" onclick="vmbrStopFromBanner('restore')">Stop</button>
-          <span id="vmbr-restore-stop-toast" class="vmbr-stop-toast">Stop requested</span>
+        <div class="vmbr-section-label" style="margin-top:8px;">Schedule</div>
+
+        <!-- Scheduling -->
+        <div class="form-pair" id="vmbr-cron-mode-row">
+          <label for="vmbr-cron-mode" title="Select scheduling mode">Frequency:</label>
+          <div class="input-wrapper">
+            <select id="vmbr-cron-mode" name="CRON_MODE" class="short-input">
+              <option value="hourly"  <?= ($settings_arr['CRON_MODE'] ?? 'daily') === 'hourly'  ? 'selected' : '' ?>>Hourly</option>
+              <option value="daily"   <?= ($settings_arr['CRON_MODE'] ?? 'daily') === 'daily'   ? 'selected' : '' ?>>Daily</option>
+              <option value="weekly"  <?= ($settings_arr['CRON_MODE'] ?? 'daily') === 'weekly'  ? 'selected' : '' ?>>Weekly</option>
+              <option value="monthly" <?= ($settings_arr['CRON_MODE'] ?? 'daily') === 'monthly' ? 'selected' : '' ?>>Monthly</option>
+            </select>
+          </div>
         </div>
-      </div>
 
-      <div class="form-group">
-        <button type="button" id="vmbr-restore-now-btn" title="Run restore of selected VM(s)">Restore Now</button>
-      </div>
+        <!-- Hourly -->
+        <div id="vmbr-hourly-options" style="display:none;">
+          <div class="form-pair">
+            <label for="vmbr-hourly-freq" title="Select how often to run per day">Interval:</label>
+            <div class="input-wrapper">
+              <select id="vmbr-hourly-freq" name="HOURLY_FREQUENCY" class="short-input">
+                <?php foreach ([4, 6, 8] as $freq_int): ?>
+                <option value="<?= $freq_int ?>" <?= ($settings_arr['HOURLY_FREQUENCY'] ?? '') === (string)$freq_int ? 'selected' : '' ?>>Every <?= $freq_int ?> Hours</option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+          </div>
+        </div>
 
-      <div id="vmbr-restore-popup" class="vmbr-popup"></div>
-    </form>
-  </div>
+        <!-- Daily -->
+        <div id="vmbr-daily-options" style="display:none;">
+          <div class="form-pair">
+            <label for="vmbr-daily-hour" title="Select the hour for daily execution">Hour:</label>
+            <div class="input-wrapper">
+              <select id="vmbr-daily-hour" name="DAILY_TIME" class="short-input">
+                <?php for ($h_int = 0; $h_int < 24; $h_int++): $h_str = str_pad($h_int, 2, '0', STR_PAD_LEFT); ?>
+                <option value="<?= $h_str ?>" <?= ($settings_arr['DAILY_TIME'] ?? '00') === $h_str ? 'selected' : '' ?>><?= $h_str ?></option>
+                <?php endfor; ?>
+              </select>
+            </div>
+          </div>
+          <div class="form-pair">
+            <label for="vmbr-daily-min" title="Select the minute for daily execution">Minute:</label>
+            <div class="input-wrapper">
+              <select id="vmbr-daily-min" name="DAILY_MINUTE" class="short-input">
+                <?php for ($m_int = 0; $m_int < 60; $m_int++): $m_str = str_pad($m_int, 2, '0', STR_PAD_LEFT); ?>
+                <option value="<?= $m_str ?>" <?= ($settings_arr['DAILY_MINUTE'] ?? '00') === $m_str ? 'selected' : '' ?>><?= $m_str ?></option>
+                <?php endfor; ?>
+              </select>
+            </div>
+          </div>
+        </div>
 
-  <!-- ══ LOG PANEL ══════════════════════════════════════════════════════ -->
+        <!-- Weekly -->
+        <div id="vmbr-weekly-options" style="display:none;">
+          <div class="form-pair">
+            <label for="vmbr-weekly-day" title="Select day of the week">Day:</label>
+            <div class="input-wrapper">
+              <select id="vmbr-weekly-day" name="WEEKLY_DAY" class="short-input">
+                <?php foreach (['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as $day_str): ?>
+                <option value="<?= $day_str ?>" <?= ($settings_arr['WEEKLY_DAY'] ?? '') === $day_str ? 'selected' : '' ?>><?= $day_str ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+          </div>
+          <div class="form-pair">
+            <label for="vmbr-weekly-hour" title="Hour">Hour:</label>
+            <div class="input-wrapper">
+              <select id="vmbr-weekly-hour" name="WEEKLY_TIME" class="short-input">
+                <?php for ($h_int = 0; $h_int < 24; $h_int++): $h_str = str_pad($h_int, 2, '0', STR_PAD_LEFT); ?>
+                <option value="<?= $h_str ?>" <?= ($settings_arr['WEEKLY_TIME'] ?? '00') === $h_str ? 'selected' : '' ?>><?= $h_str ?></option>
+                <?php endfor; ?>
+              </select>
+            </div>
+          </div>
+          <div class="form-pair">
+            <label for="vmbr-weekly-min" title="Minute">Minute:</label>
+            <div class="input-wrapper">
+              <select id="vmbr-weekly-min" name="WEEKLY_MINUTE" class="short-input">
+                <?php for ($m_int = 0; $m_int < 60; $m_int++): $m_str = str_pad($m_int, 2, '0', STR_PAD_LEFT); ?>
+                <option value="<?= $m_str ?>" <?= ($settings_arr['WEEKLY_MINUTE'] ?? '00') === $m_str ? 'selected' : '' ?>><?= $m_str ?></option>
+                <?php endfor; ?>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monthly -->
+        <div id="vmbr-monthly-options" style="display:none;">
+          <div class="form-pair">
+            <label for="vmbr-monthly-day" title="Select day of the month">Day:</label>
+            <div class="input-wrapper">
+              <select id="vmbr-monthly-day" name="MONTHLY_DAY" class="short-input">
+                <?php for ($d_int = 1; $d_int <= 31; $d_int++): $d_str = str_pad($d_int, 2, '0', STR_PAD_LEFT); ?>
+                <option value="<?= $d_str ?>" <?= ($settings_arr['MONTHLY_DAY'] ?? '') === $d_str ? 'selected' : '' ?>><?= $d_str ?></option>
+                <?php endfor; ?>
+              </select>
+            </div>
+          </div>
+          <div class="form-pair">
+            <label for="vmbr-monthly-hour" title="Hour">Hour:</label>
+            <div class="input-wrapper">
+              <select id="vmbr-monthly-hour" name="MONTHLY_TIME" class="short-input">
+                <?php for ($h_int = 0; $h_int < 24; $h_int++): $h_str = str_pad($h_int, 2, '0', STR_PAD_LEFT); ?>
+                <option value="<?= $h_str ?>" <?= ($settings_arr['MONTHLY_TIME'] ?? '00') === $h_str ? 'selected' : '' ?>><?= $h_str ?></option>
+                <?php endfor; ?>
+              </select>
+            </div>
+          </div>
+          <div class="form-pair">
+            <label for="vmbr-monthly-min" title="Minute">Minute:</label>
+            <div class="input-wrapper">
+              <select id="vmbr-monthly-min" name="MONTHLY_MINUTE" class="short-input">
+                <?php for ($m_int = 0; $m_int < 60; $m_int++): $m_str = str_pad($m_int, 2, '0', STR_PAD_LEFT); ?>
+                <option value="<?= $m_str ?>" <?= ($settings_arr['MONTHLY_MINUTE'] ?? '00') === $m_str ? 'selected' : '' ?>><?= $m_str ?></option>
+                <?php endfor; ?>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Backup in-progress banner -->
+        <div id="vmbr-backup-banner" class="vmbr-banner">
+          <div class="vmbr-banner-inner">
+            <span id="vmbr-backup-banner-text" class="vmbr-banner-text"></span>
+            <button type="button" id="vmbr-backup-stop-btn" title="Stop backup immediately and clean up files" onclick="vmbrStopFromBanner('backup')">Stop</button>
+            <span id="vmbr-backup-stop-toast" class="vmbr-stop-toast">Stop requested</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="vmbr-actions-row">
+          <button type="button" id="vmbr-backup-now-btn" title="Run backup of selected VM(s)">Backup Now</button>
+          <button type="button" id="vmbr-schedule-btn" class="button schedule-button" title="Create a backup schedule using the settings shown above">Schedule It</button>
+          <button type="button" id="vmbr-cancel-edit-btn" style="display:none;">Cancel</button>
+        </div>
+
+        <div id="vmbr-backup-popup" class="vmbr-popup"></div>
+      </form>
+
+      <!-- ══ RESTORE PANEL (same card, hidden by default) ════════════════ -->
+      <form id="vmbr-restore-panel" class="vmbr-card-body" style="display:none;">
+
+        <div class="vmbr-section-label">Source</div>
+
+        <!-- Location Of Backups -->
+        <div class="form-pair">
+          <label title="Choose location where backups are stored">Backups Location:</label>
+          <input type="text" id="vmbr-restore-location" name="LOCATION_OF_BACKUPS"
+                 data-picker-title="Select Location Of Backups"
+                 placeholder="Click to browse…" readonly style="cursor:pointer;"
+                 value="<?php echo htmlspecialchars($restore_settings_arr['LOCATION_OF_BACKUPS'] ?? '') ?>">
+        </div>
+
+        <!-- VM(s) To Restore -->
+        <div class="form-pair">
+          <label title="Choose which VM(s) to restore">VM(s) To Restore:</label>
+          <div id="vmbr-vm-dropdown-restore" class="vmbr-multiselect" tabindex="0"
+               data-selected="<?php echo htmlspecialchars($restore_settings_arr['VMS_TO_RESTORE'] ?? '') ?>">
+            <div class="vmbr-dropdown-label">Select VM(s)</div>
+            <div class="vmbr-vm-dropdown-list"></div>
+          </div>
+          <input type="hidden" id="vmbr-hidden-vms-restore" name="VMS_TO_RESTORE"
+                 value="<?php echo htmlspecialchars($restore_settings_arr['VMS_TO_RESTORE'] ?? '') ?>">
+        </div>
+
+        <!-- Malformed warnings + version fields -->
+        <div id="vmbr-malformed-container"></div>
+        <div id="vmbr-version-wrapper" style="display:none;">
+          <div id="vmbr-version-container"></div>
+        </div>
+
+        <div class="vmbr-section-label" style="margin-top:4px;">Destination</div>
+
+        <!-- Restore Destination -->
+        <div class="form-pair">
+          <label title="Choose destination to restore VM(s) to">Restore To:</label>
+          <input type="text" id="vmbr-restore-destination" name="RESTORE_DESTINATION"
+                 data-picker-title="Select Restore Destination"
+                 placeholder="Click to browse…" readonly style="cursor:pointer;"
+                 value="<?php echo htmlspecialchars($restore_settings_arr['RESTORE_DESTINATION'] ?? '') ?>">
+        </div>
+
+        <!-- Dry Run Restore -->
+        <div class="form-pair">
+          <label for="vmbr-restore-dry-run" title="Enable to simulate a restore without making changes">Dry Run:</label>
+          <select id="vmbr-restore-dry-run" class="short-input" name="DRY_RUN_RESTORE">
+            <option value="yes" <?= ($restore_settings_arr['DRY_RUN_RESTORE'] ?? 'no') === 'yes' ? 'selected' : '' ?>>Yes</option>
+            <option value="no"  <?= ($restore_settings_arr['DRY_RUN_RESTORE'] ?? 'no') === 'no'  ? 'selected' : '' ?>>No</option>
+          </select>
+        </div>
+
+        <div class="vmbr-section-label" style="margin-top:8px;">Notifications</div>
+
+        <!-- Notifications Restore -->
+        <div class="form-pair">
+          <label for="vmbr-restore-notif" title="Send notifications when VM restore starts and finishes">Notifications:</label>
+          <select id="vmbr-restore-notif" class="short-input" name="NOTIFICATIONS_RESTORE">
+            <option value="yes" <?= ($restore_settings_arr['NOTIFICATIONS_RESTORE'] ?? 'no') === 'yes' ? 'selected' : '' ?>>Yes</option>
+            <option value="no"  <?= ($restore_settings_arr['NOTIFICATIONS_RESTORE'] ?? 'no') === 'no'  ? 'selected' : '' ?>>No</option>
+          </select>
+        </div>
+
+        <!-- Notification Service Restore -->
+        <div id="vmbr-restore-notif-service-row" style="display:none;">
+          <div class="form-pair">
+            <label title="Choose which notification service(s) to use">Service:</label>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <select id="vmbr-restore-notif-hidden" name="NOTIFICATION_SERVICE_RESTORE" multiple style="display:none;">
+                <?php foreach ($notif_services_arr as $svc_str): ?>
+                <option value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_restore_arr, true) ? 'selected' : '' ?>><?= $svc_str ?></option>
+                <?php endforeach; ?>
+              </select>
+              <div id="vmbr-notif-service-restore" class="vmbr-multiselect" tabindex="0">
+                <div class="vmbr-dropdown-label" id="vmbr-restore-notif-label">Select service(s)</div>
+                <div class="vmbr-vm-dropdown-list" id="vmbr-restore-notif-list" style="display:none;">
+                  <?php foreach ($notif_services_arr as $svc_str): ?>
+                  <div class="vmbr-notif-row" style="cursor:pointer;padding:4px 6px;border-radius:4px;" onclick="(function(r){var cb=r.querySelector('input[type=checkbox]');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change',{bubbles:true}));})(this)">
+                    <label style="pointer-events:none;">
+                      <input type="checkbox" value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_restore_arr, true) ? 'checked' : '' ?> onclick="event.stopPropagation()">
+                      <?= $svc_str ?>
+                    </label>
+                  </div>
+                  <?php endforeach; ?>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Restore webhook fields -->
+        <div id="vmbr-webhook-container-restore"></div>
+
+        <!-- Restore in-progress banner -->
+        <div id="vmbr-restore-banner" class="vmbr-banner">
+          <div class="vmbr-banner-inner">
+            <span id="vmbr-restore-banner-text" class="vmbr-banner-text"></span>
+            <button type="button" id="vmbr-restore-stop-btn" title="Stop restore immediately and clean up files" onclick="vmbrStopFromBanner('restore')">Stop</button>
+            <span id="vmbr-restore-stop-toast" class="vmbr-stop-toast">Stop requested</span>
+          </div>
+        </div>
+
+        <div class="vmbr-actions-row">
+          <button type="button" id="vmbr-restore-now-btn" title="Run restore of selected VM(s)">Restore Now</button>
+        </div>
+
+        <div id="vmbr-restore-popup" class="vmbr-popup"></div>
+      </form>
+
+    </div><!-- /.vmbr-card -->
+  </div><!-- /#vmbr-backup-wrap -->
+
+  <!-- ══ LOG PANEL ═══════════════════════════════════════════════════════ -->
   <div id="vmbr-log-panel">
+    <div class="vmbr-card-header" style="border-radius:10px 10px 0 0;">
+      <span class="vmbr-card-title">Activity Log</span>
+      <span id="vmbr-log-last-run" style="font-size:11px;color:var(--c-text-muted);margin-left:10px;">No last run available</span>
+    </div>
     <div class="vmbr-log-toolbar">
       <div class="vmbr-log-search-wrap">
         <input type="text" id="vmbr-log-search" placeholder="Search…" autocomplete="off">
       </div>
       <span id="vmbr-log-search-count"></span>
-      <div class="vmbr-log-toolbar-center">
-        <button type="button" id="vmbr-log-clear-btn" title="Clear the vm backup and restore log">Clear Log</button>
-        <button type="button" id="vmbr-log-copy-btn" title="Copy log to clipboard">Copy Log</button>
+      <div class="vmbr-log-toolbar-right">
         <span id="vmbr-log-toast"></span>
-      </div>
-      <div class="vmbr-log-scroll-group">
-        <span><button type="button" id="vmbr-log-scroll-top-btn" title="Scroll to top">&#8679;</button></span>
-        <span><button type="button" id="vmbr-log-autoscroll-btn" title="Scroll to bottom / toggle auto-scroll">&#8681;</button></span>
+        <button type="button" id="vmbr-log-clear-btn" title="Clear the log">Clear</button>
+        <button type="button" id="vmbr-log-copy-btn" title="Copy log to clipboard">Copy</button>
+        <button type="button" id="vmbr-log-scroll-top-btn" title="Scroll to top / Enable auto scroll">&#8679;</button>
+        <button type="button" id="vmbr-log-autoscroll-btn" title="Scroll to bottom / Disable auto scroll">&#8681;</button>
       </div>
     </div>
     <pre id="vmbr-log-pre">VM backup &amp; restore log not found</pre>
@@ -932,9 +1158,9 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
   <div id="vmbr-schedule-list"></div>
 </div>
 
-</div><!-- /#vm-backup-and-restore-page -->
+</div><!-- /#vmbr-page -->
 
-<!-- ── Folder picker modal ─────────────────────────────────────────────── -->
+<!-- ── Folder picker modal ──────────────────────────────────────────────── -->
 <div id="vmbr-folder-picker-modal" class="vmbr-modal">
   <div class="vmbr-modal-content">
     <div class="vmbr-modal-header">
@@ -944,16 +1170,17 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     <div id="vmbr-folder-breadcrumb" class="vmbr-breadcrumb"></div>
     <div id="vmbr-folder-list" class="vmbr-folder-list"></div>
     <div class="vmbr-modal-footer">
-      <button type="button" id="vmbr-folder-create-btn">Create Folder</button>
+      <button type="button" id="vmbr-folder-create-btn">New Folder</button>
       <span id="vmbr-new-folder-wrap" style="display:none;">
-        <input type="text" id="vmbr-new-folder-name" placeholder="Folder name">
+        <input type="text" id="vmbr-new-folder-name" placeholder="Folder name" style="display:inline-block;width:160px;">
         <button type="button" id="vmbr-new-folder-ok-btn">OK</button>
         <button type="button" id="vmbr-new-folder-cancel-btn">Cancel</button>
       </span>
-      <button type="button" id="vmbr-folder-confirm-btn">Done</button>
+      <button type="button" id="vmbr-folder-confirm-btn">Select</button>
     </div>
   </div>
 </div>
+
 
 <script>
 'use strict';
@@ -1006,7 +1233,22 @@ let vmbrOriginalRestoreSelection_arr = ($('#vmbr-hidden-vms-restore').val() || '
   .split(',').map(s => s.trim()).filter(Boolean);
 
 // ════════════════════════════════════════════════════════════════════════════
-// 3. UTILITIES
+// 3. MODE SWITCHER
+// ════════════════════════════════════════════════════════════════════════════
+function vmbrSwitchMode(mode_str) {
+  const isBackup_bool = (mode_str === 'backup');
+  // Toggle form panels
+  $('#vmbr-backup-panel').toggle(isBackup_bool);
+  $('#vmbr-restore-panel').toggle(!isBackup_bool);
+  // Update card title
+  $('#vmbr-active-card-title').text(isBackup_bool ? 'Backup' : 'Restore');
+  // Toggle status dot/text
+  $('#vmbr-backup-status-wrap').toggle(isBackup_bool);
+  $('#vmbr-restore-status-wrap').toggle(!isBackup_bool);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 4. UTILITIES
 // ════════════════════════════════════════════════════════════════════════════
 function vmbrH(path_str) { return H + '/' + path_str; }
 function vmbrGet(ep_str, data_obj)  { return $.getJSON(vmbrH(ep_str), data_obj || {}); }
@@ -1086,6 +1328,13 @@ function vmbrSetAllButtonsDisabled(disabled_bool) {
   document.querySelectorAll('.run-schedule-btn').forEach(b => { b.disabled = disabled_bool; });
 }
 
+// ── Status dot helper ──────────────────────────────────────────────────────
+function vmbrSetDot(dotId_str, isActive_bool) {
+  const el = document.getElementById(dotId_str);
+  if (!el) return;
+  el.classList.toggle('active', isActive_bool);
+}
+
 // ── Banners ────────────────────────────────────────────────────────────────
 function vmbrShowBanner(type_str, label_str) {
   if (type_str === 'restore') {
@@ -1148,7 +1397,7 @@ function vmbrRebuildWebhookFields(isRestore_bool) {
             <input type="text" id="${fldId_str}" class="short-input vmbr-webhook-input"
                    data-service="${svc_str}" data-restore="${isRestore_bool ? '1' : '0'}"
                    placeholder="${cfg.prefix || ''}" value="${saved_str}">
-            <div id="${errId_str}" style="color:yellow;font-size:1em;display:none;">* Invalid ${svc_str} webhook URL</div>
+            <div id="${errId_str}" style="color:#f59e0b;font-size:11px;display:none;">* Invalid ${svc_str} webhook URL</div>
           </div>
         </div>
       `));
@@ -1163,7 +1412,7 @@ function vmbrRebuildWebhookFields(isRestore_bool) {
           <div class="input-wrapper">
             <input type="text" id="${pkId_str}" name="PUSHOVER_USER_KEY${isRestore_bool ? '_RESTORE' : ''}"
                    class="short-input" placeholder="user key from pushover.net/dashboard" value="${savedKey_str}">
-            <div id="${pkErr_str}" style="color:yellow;font-size:1em;display:none;">* Pushover user key is required</div>
+            <div id="${pkErr_str}" style="color:#f59e0b;font-size:11px;display:none;">* Pushover user key is required</div>
           </div>
         </div>
       `));
@@ -1251,7 +1500,7 @@ function vmbrToggleCronOptions(mode_str) {
 
 function vmbrDetectCronMode(cron_str) {
   if (!cron_str) return 'daily';
-  if (/^0 \*\/\d+ \* \* \*$/.test(cron_str))  return 'hourly';
+  if (/^0 \/\d+ \* \* \*$/.test(cron_str))  return 'hourly';
   if (/^\d+ \d+ \* \* \*$/.test(cron_str))     return 'daily';
   if (/^\d+ \d+ \* \* [0-6]$/.test(cron_str))  return 'weekly';
   if (/^\d+ \d+ \d+ \* \*$/.test(cron_str))    return 'monthly';
@@ -1322,15 +1571,15 @@ async function vmbrFetchVdiskPaths(vmList_arr) {
 }
 
 async function vmbrValidateMountTypes(vmList_arr, dest_str) {
-  const resolvedDest_str = await vmbrResolvePathServer(dest_str);
-  const destClass_str    = vmbrClassifyPath(resolvedDest_str);
+  // Classify using the raw (pre-symlink) path so /mnt/user paths aren't
+  // incorrectly resolved to /mnt/cache by realpath() on the server.
+  const destClass_str = vmbrClassifyPath(dest_str);
   const data_obj = await vmbrFetchVdiskPaths(vmList_arr);
   for (const vm_str of vmList_arr) {
     const disks_arr = data_obj[vm_str];
     if (!Array.isArray(disks_arr)) { alert(`Could not read vdisk paths for ${vm_str}`); return false; }
     for (const disk_str of disks_arr) {
-      const resolvedDisk_str = await vmbrResolvePathServer(disk_str);
-      const diskClass_str    = vmbrClassifyPath(resolvedDisk_str);
+      const diskClass_str = vmbrClassifyPath(disk_str);
       if (diskClass_str !== destClass_str && diskClass_str !== 'EXEMPT' && destClass_str !== 'EXEMPT') {
         alert(`${vm_str}'s vdisk ${disk_str} uses mount type (${diskClass_str}) but backup destination uses (${destClass_str}).\n\nBoth must use the same mount type.`);
         return false;
@@ -1344,7 +1593,7 @@ async function vmbrValidateMountTypes(vmList_arr, dest_str) {
 <script>
 'use strict';
 // ════════════════════════════════════════════════════════════════════════════
-// 4. POLLERS  (state-snapshot — DOM only updated when data changes)
+// 4. POLLERS
 // ════════════════════════════════════════════════════════════════════════════
 
 // ── Backup status ──────────────────────────────────────────────────────────
@@ -1356,13 +1605,15 @@ async function vmbrValidateMountTypes(vmList_arr, dest_str) {
         lastBackupStatus_str = data.status;
         const el = document.getElementById('vmbr-backup-status-text');
         if (el) el.textContent = data.status;
+        vmbrSetDot('vmbr-backup-dot', data.status && data.status !== 'No Backup Running' && data.status !== 'Idle');
       }
     })
     .catch(() => {
       if (lastBackupStatus_str !== 'No Backup Running') {
         lastBackupStatus_str = 'No Backup Running';
         const el = document.getElementById('vmbr-backup-status-text');
-        if (el) el.textContent = 'No Backup Running';
+        if (el) el.textContent = 'Idle';
+        vmbrSetDot('vmbr-backup-dot', false);
       }
     })
     .finally(() => {
@@ -1380,13 +1631,15 @@ async function vmbrValidateMountTypes(vmList_arr, dest_str) {
         lastRestoreStatus_str = data.status;
         const el = document.getElementById('vmbr-restore-status-text');
         if (el) el.textContent = data.status;
+        vmbrSetDot('vmbr-restore-dot', data.status && data.status !== 'No Restore Running' && data.status !== 'Idle');
       }
     })
     .catch(() => {
       if (lastRestoreStatus_str !== 'No Restore Running') {
         lastRestoreStatus_str = 'No Restore Running';
         const el = document.getElementById('vmbr-restore-status-text');
-        if (el) el.textContent = 'No Restore Running';
+        if (el) el.textContent = 'Idle';
+        vmbrSetDot('vmbr-restore-dot', false);
       }
     })
     .finally(() => {
@@ -1468,6 +1721,7 @@ async function vmbrValidateMountTypes(vmList_arr, dest_str) {
       logEl.dataset.raw = text_str;
       vmbrApplyLogSearch();
       if (logAutoScroll_bool) logEl.scrollTop = logEl.scrollHeight;
+      vmbrUpdateLastRun(text_str);
     })
     .catch(() => {
       const msg_str = 'Error loading VM backup & restore log';
@@ -1478,6 +1732,50 @@ async function vmbrValidateMountTypes(vmList_arr, dest_str) {
       }
     })
     .finally(() => setTimeout(vmbrLogPoller, POLL_FAST_INT));
+})();
+
+// ── Last Run display ───────────────────────────────────────────────────────
+function vmbrTimeAgo(date_obj) {
+  const diff_int = Math.floor((Date.now() - date_obj.getTime()) / 1000);
+  if (diff_int < 60)  return '< 1 minute ago';
+  const mins_int  = Math.floor(diff_int / 60);
+  if (mins_int  < 60)  return mins_int  + ' ' + (mins_int  === 1 ? 'minute'  : 'minutes')  + ' ago';
+  const hours_int = Math.floor(mins_int / 60);
+  if (hours_int < 24)  return hours_int + ' ' + (hours_int === 1 ? 'hour'    : 'hours')    + ' ago';
+  const days_int  = Math.floor(hours_int / 24);
+  if (days_int  <  7)  return days_int  + ' ' + (days_int  === 1 ? 'day'     : 'days')     + ' ago';
+  const weeks_int = Math.floor(days_int / 7);
+  if (weeks_int <  5)  return weeks_int + ' ' + (weeks_int === 1 ? 'week'    : 'weeks')    + ' ago';
+  const months_int = Math.floor(days_int / 30);
+  return months_int + ' ' + (months_int === 1 ? 'month' : 'months') + ' ago';
+}
+
+function vmbrUpdateLastRun(logText_str) {
+  const el = document.getElementById('vmbr-log-last-run');
+  if (!el) return;
+  if (!logText_str || logText_str.includes('log not found') || logText_str.includes('Error loading')) {
+    el.textContent = 'No last run available'; return;
+  }
+  // Lines are stored reversed (newest first); find first line with "Session finished"
+  const lines_arr = logText_str.split('\n');
+  let ts_str = null;
+  for (const line_str of lines_arr) {
+    if (/session finished/i.test(line_str)) {
+      const m_arr = line_str.match(/^\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]/);
+      if (m_arr) { ts_str = m_arr[1]; break; }
+    }
+  }
+  if (!ts_str) { el.textContent = 'No last run available'; return; }
+  const date_obj = new Date(ts_str.replace(' ', 'T'));
+  if (isNaN(date_obj.getTime())) { el.textContent = 'No last run available'; return; }
+  el.textContent = 'Last Run: ' + vmbrTimeAgo(date_obj);
+}
+
+// ── Last Run live refresh (re-renders time-ago string every second) ────────
+(function vmbrLastRunRefreshPoller() {
+  const el = document.getElementById('vmbr-log-last-run');
+  if (el && lastLogSnapshot_str) vmbrUpdateLastRun(lastLogSnapshot_str);
+  setTimeout(vmbrLastRunRefreshPoller, 1000);
 })();
 
 // ── Backup VM list refresh ─────────────────────────────────────────────────
@@ -1566,6 +1864,13 @@ function vmbrUpdateBackupVmLabel() {
 function vmbrLoadRestoreFolders() {
   if (restoreFolderLoadInFlight_bool) return;
   restoreFolderLoadInFlight_bool = true;
+
+  // Preserve whatever the user currently has checked before rebuilding the list
+  const currentChecked_arr = $('#vmbr-vm-dropdown-restore .vmbr-vm-dropdown-list input:checked')
+    .map(function(){ return $(this).val(); }).get();
+  if (currentChecked_arr.length) {
+    vmbrOriginalRestoreSelection_arr = currentChecked_arr;
+  }
 
   const dropdown_el     = $('#vmbr-vm-dropdown-restore');
   const list_el         = dropdown_el.find('.vmbr-vm-dropdown-list');
@@ -1657,9 +1962,9 @@ function vmbrDoRebuildVersionFields() {
 
           const field_el = $(`
             <div class="form-pair vmbr-version-field">
-              <label style="color:#ad57df !important;font-weight:bold;"
+              <label style="color:var(--c-label) !important;font-weight:600 !important;"
                      title="Select which backup version to restore for ${vm_str}">
-                Version for ${vm_str}:
+                Version (${vm_str}):
               </label>
               <span><select name="VERSION_${vm_str}" data-vm="${vm_str}" class="version-select"></select></span>
             </div>
@@ -1668,7 +1973,7 @@ function vmbrDoRebuildVersionFields() {
           const select_el = field_el.find('select');
           if (!valid_arr.length) {
             const msg_str = versions_arr.length ? 'No backups with all 3 files exist' : 'No backups found';
-            select_el.prop('disabled', true).append(`<option style="color:#999;">${msg_str}</option>`);
+            select_el.prop('disabled', true).append(`<option style="color:#888;">${msg_str}</option>`);
           } else {
             valid_arr.forEach((v_obj, idx_int) => {
               let lbl_str = v_obj.display;
@@ -1687,7 +1992,6 @@ function vmbrDoRebuildVersionFields() {
   });
 }
 
-// Refresh versions on focus
 $(document).on('focus', '.version-select', function() {
   const select_el   = $(this);
   const vm_str      = select_el.data('vm');
@@ -1701,7 +2005,7 @@ $(document).on('focus', '.version-select', function() {
       const valid_arr = (versions_arr || []).filter(v => !v.malformed);
       if (!valid_arr.length) {
         const msg_str = versions_arr.length ? 'No backups with all 3 files exist' : 'No backups found';
-        select_el.prop('disabled', true).append(`<option style="color:#999;">${msg_str}</option>`);
+        select_el.prop('disabled', true).append(`<option style="color:#888;">${msg_str}</option>`);
       } else {
         valid_arr.forEach((v_obj, idx_int) => {
           let lbl_str = v_obj.display;
@@ -1725,15 +2029,13 @@ function vmbrScanMalformed() {
       let msg_str = '';
       if (data_arr.length === 1) {
         const b = data_arr[0];
-        msg_str = `⚠ ${b.vm} - Backup ${b.backup} is missing ${vmbrFormatMissingList(b.missing)}<br>This backup will not be included to be restored`;
+        msg_str = `⚠ ${b.vm} — Backup ${b.backup} is missing ${vmbrFormatMissingList(b.missing)}<br>This backup will not be included to be restored`;
       } else {
         msg_str = '⚠ Missing files:<br>';
         data_arr.forEach(b => { msg_str += `${b.vm} - ${b.backup} - ${vmbrFormatMissingList(b.missing)}<br>`; });
         msg_str += 'These backups will not be included to be restored';
       }
-      $('#vmbr-malformed-container').html(`
-        <div style="background:#7f1d1d;color:#fff;padding:10px;border-radius:4px;margin-bottom:12px;font-weight:600;max-width:391px;white-space:normal;">${msg_str}</div>
-      `);
+      $('#vmbr-malformed-container').html(`<div>${msg_str}</div>`);
     });
 }
 
@@ -1807,10 +2109,10 @@ $('#vmbr-restore-now-btn').on('click', async function() {
   if (!location_str) { alert('Please set location of backups'); return; }
   if (!dest_str)     { alert('Please set a restore destination'); return; }
 
-  const resolvedSrc_str = await vmbrResolvePathServer(location_str);
-  const resolvedDst_str = await vmbrResolvePathServer(dest_str);
-  const srcClass_str    = vmbrClassifyPath(resolvedSrc_str);
-  const dstClass_str    = vmbrClassifyPath(resolvedDst_str);
+  // Classify raw paths — resolving symlinks via realpath() would turn
+  // /mnt/user paths into /mnt/cache and produce false mismatches.
+  const srcClass_str = vmbrClassifyPath(location_str);
+  const dstClass_str = vmbrClassifyPath(dest_str);
 
   if (srcClass_str !== dstClass_str) {
     alert(`Location of backups uses mount type (${srcClass_str}) but restore destination uses (${dstClass_str}). Both must use the same mount type.`);
@@ -1875,6 +2177,14 @@ function vmbrLoadSchedules(force_bool) {
   if (scheduleUILocked_bool && !force_bool) return $.Deferred().resolve().promise();
   return $.get(vmbrH('schedule_list.php'), function(html_str) {
     $('#vmbr-schedule-list').html(html_str);
+    // Strip inline styles from PHP-rendered table so our CSS takes over
+    const $tbl = $('#vmbr-schedule-list table');
+    $tbl.removeAttr('style');
+    $tbl.find('thead tr, th').removeAttr('style');
+    $tbl.find('tbody tr').each(function() {
+      $(this).removeAttr('style');
+      $(this).find('td').removeAttr('style');
+    });
   }).always(vmbrUnlockScheduleUI);
 }
 
@@ -1913,7 +2223,7 @@ async function vmbrScheduleJob(type_str) {
       vmbrResetScheduleUI();
       editingScheduleId_str = null;
       vmbrLoadSchedules(true);
-      vmbrShowPopup('vmbr-backup-popup', 'Schedule saved!');
+      vmbrShowPopup('vmbr-backup-popup', '✓ Schedule saved!');
     },
     error:function(xhr) {
       vmbrUnlockScheduleUI();
@@ -1970,7 +2280,7 @@ function runScheduleBackup(id_str, btn_el) {
   btn_el.disabled = true;
   const origText_str  = btn_el.textContent;
   const origTitle_str = btn_el.getAttribute('title') || 'Run schedule';
-  btn_el.textContent  = 'Running';
+  btn_el.textContent  = 'Running…';
 
   vmbrPost('run_schedule.php', { id:id_str })
     .done(function(res) {
@@ -2020,7 +2330,6 @@ function vmbrLoadFolders(path_str) {
       folderPickerPath_str     = data.current;
       folderPickerSelected_str = null;
 
-      // Breadcrumb
       const parts_arr = data.current.split('/').filter(p => p !== '');
       let buildPath_str = '';
       const bc_str = parts_arr.map((part_str, idx_int) => {
@@ -2030,14 +2339,13 @@ function vmbrLoadFolders(path_str) {
       }).join('');
       $('#vmbr-folder-breadcrumb').html(bc_str);
 
-      // List
       let html_str = '';
       if (data.parent) {
         html_str += `<div class="vmbr-folder-item vmbr-browse-row" data-path="${data.parent}" style="cursor:pointer;display:flex;align-items:center;">.. Up Directory</div>`;
       }
       data.folders.forEach(f_obj => {
         const dis_str = f_obj.selectable ? '' : 'disabled';
-        const ops_str = f_obj.selectable ? '' : 'style="opacity:0.4;"';
+        const ops_str = f_obj.selectable ? '' : 'style="opacity:0.35;"';
         html_str += `
           <div class="vmbr-folder-item vmbr-browse-row" data-path="${f_obj.path}" style="display:flex;align-items:center;gap:0px;">
             <label class="vmbr-folder-check-label" style="display:flex;align-items:center;cursor:pointer;padding:9px 2px 4px 4px;">
@@ -2067,20 +2375,10 @@ function vmbrLoadFolders(path_str) {
 }
 
 function vmbrResolveAndApplyPath(selectedPath_str, targetId_str) {
-  fetch(vmbrH('resolve_path.php'), {
-    method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body:new URLSearchParams({ path:selectedPath_str, csrf_token:csrfToken_str }).toString(),
-  })
-    .then(r => r.text())
-    .then(resolved_str => {
-      const $field = $('#' + targetId_str);
-      $field.val(resolved_str || selectedPath_str).trigger('input').trigger('change');
-      $('#vmbr-folder-picker-modal').hide();
-    })
-    .catch(() => {
-      $('#' + targetId_str).val(selectedPath_str).trigger('change');
-      $('#vmbr-folder-picker-modal').hide();
-    });
+  // Use the raw selected path directly — server-side realpath() would incorrectly
+  // resolve /mnt/user symlinks to /mnt/cache, causing false mount-type mismatches.
+  $('#' + targetId_str).val(selectedPath_str).trigger('input').trigger('change');
+  $('#vmbr-folder-picker-modal').hide();
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -2117,7 +2415,7 @@ function vmbrApplyLogSearch() {
 function vmbrFallbackCopy(text_str) {
   const ta_el = document.createElement('textarea'); ta_el.value = text_str;
   document.body.appendChild(ta_el); ta_el.select();
-  try { document.execCommand('copy'); vmbrShowLogToast('Log copied'); }
+  try { document.execCommand('copy'); vmbrShowLogToast('Copied'); }
   catch(e) { alert('Failed to copy log'); }
   document.body.removeChild(ta_el);
 }
@@ -2127,8 +2425,11 @@ function vmbrFallbackCopy(text_str) {
 // ════════════════════════════════════════════════════════════════════════════
 $(document).ready(function() {
 
+  // ── Mode switcher init (default: Backup) ──────────────────────────────
+  vmbrSwitchMode('backup');
+
   // ── Layout / margin zero ───────────────────────────────────────────────
-  const page_el   = document.getElementById('vm-backup-and-restore-page');
+  const page_el   = document.getElementById('vmbr-page');
   const layout_el = document.getElementById('vmbr-layout');
 
   function vmbrZeroMargins() {
@@ -2146,29 +2447,12 @@ $(document).ready(function() {
     if (++zeroAttempts_int >= 8) clearInterval(zeroInterval_id);
   }, 250);
 
-  let isScrolling_bool = false, scrollTimer_id = null;
-  window.addEventListener('scroll', function(){
-    isScrolling_bool = true;
-    clearTimeout(scrollTimer_id);
-    scrollTimer_id = setTimeout(() => { isScrolling_bool = false; }, 100);
-  }, true);
-
-  const marginObs = new MutationObserver(function(){ if (!isScrolling_bool) vmbrZeroMargins(); });
+  const marginObs = new MutationObserver(function(){ vmbrZeroMargins(); });
   let ancestor_el = page_el ? page_el.parentElement : null;
   while (ancestor_el && ancestor_el.id !== 'displaybox' && ancestor_el !== document.body) {
     marginObs.observe(ancestor_el, { attributes:true, attributeFilter:['style','class'] });
     ancestor_el = ancestor_el.parentElement;
   }
-
-  function vmbrApplyLayoutHeight() {
-    const wrapper_el = page_el ? page_el.parentElement : null;
-    if (!wrapper_el) return;
-    const sched_el  = document.getElementById('vmbr-schedule-section');
-    const schedH_int = sched_el ? sched_el.offsetHeight : 0;
-    const newH_int   = wrapper_el.clientHeight - schedH_int - 16;
-    if (newH_int > 100) layout_el.style.setProperty('height', newH_int + 'px', 'important');
-  }
-  setTimeout(vmbrApplyLayoutHeight, 300);
 
   // ── Backup owner dropdown ──────────────────────────────────────────────
   const ownerSel_el    = $('#vmbr-backup-owner');
@@ -2238,7 +2522,7 @@ $(document).ready(function() {
     vmbrUpdateNotifLabel(true); vmbrRebuildWebhookFields(true);
   });
 
-  // ── Notification toggle (backup) ───────────────────────────────────────
+  // ── Notification toggle ────────────────────────────────────────────────
   const notifBackup_el  = document.getElementById('vmbr-backup-notif');
   const notifRestore_el = document.getElementById('vmbr-restore-notif');
   function toggleBackup()  { vmbrApplyNotifToggle(notifBackup_el,  '#vmbr-backup-notif-service-row',  '#vmbr-webhook-container-backup',  false); }
@@ -2249,8 +2533,11 @@ $(document).ready(function() {
 
   // ── Location input change → reload restore folders ─────────────────────
   let locationChangeTimer_id = null;
+  let lastRestoreLocation_str = $('#vmbr-restore-location').val().trim();
   $('#vmbr-restore-location').on('input blur change', function(){
-    const currentPath_str = $(this).val().trim();
+    const newVal_str = $(this).val().trim();
+    if (newVal_str === lastRestoreLocation_str) return;
+    lastRestoreLocation_str = newVal_str;
     clearTimeout(locationChangeTimer_id);
     locationChangeTimer_id = setTimeout(function(){
       vmbrLoadRestoreFolders();
@@ -2305,29 +2592,42 @@ $(document).ready(function() {
       }, 'json');
   });
 
-  // Auto-resolve restore destination if it's a /mnt/user path
-  const $restDest = $('#vmbr-restore-destination');
-  if ($restDest.length && $restDest.val().startsWith('/mnt/user/')) {
-    vmbrResolveAndApplyPath($restDest.val(), 'vmbr-restore-destination');
-  }
-
   // ── Log control events ─────────────────────────────────────────────────
-  document.getElementById('vmbr-log-search').addEventListener('input', vmbrApplyLogSearch);
+  const logSearchEl_el  = document.getElementById('vmbr-log-search');
+  const logAutoBtn_el   = document.getElementById('vmbr-log-autoscroll-btn');
+  const logTopBtn_el    = document.getElementById('vmbr-log-scroll-top-btn');
 
-  document.getElementById('vmbr-log-autoscroll-btn').addEventListener('click', function(){
+  function vmbrSyncScrollTooltips() {
+    // Down button: always scrolls to bottom; when auto-scroll is on clicking disables it
+    logAutoBtn_el.title = 'Scroll to bottom / Disable auto scroll';
+    // Up button: always scrolls to top; when auto-scroll is off clicking to top also signals "enable auto scroll" on next down
+    logTopBtn_el.title  = 'Scroll to top / Enable auto scroll';
+  }
+  vmbrSyncScrollTooltips();
+
+  logSearchEl_el.addEventListener('input', function() {
+    vmbrApplyLogSearch();
+  });
+
+  logAutoBtn_el.addEventListener('click', function(){
     logAutoScroll_bool = !logAutoScroll_bool;
     if (logAutoScroll_bool) {
       const logEl = document.getElementById('vmbr-log-pre');
       logEl.scrollTop = logEl.scrollHeight;
     }
+    vmbrSyncScrollTooltips();
   });
-  document.getElementById('vmbr-log-scroll-top-btn').addEventListener('click', function(){
+  logTopBtn_el.addEventListener('click', function(){
     logAutoScroll_bool = false;
     document.getElementById('vmbr-log-pre').scrollTop = 0;
+    vmbrSyncScrollTooltips();
   });
   document.getElementById('vmbr-log-pre').addEventListener('scroll', function(){
     const atBottom_bool = this.scrollHeight - this.scrollTop - this.clientHeight < 8;
-    if (!atBottom_bool && logAutoScroll_bool) logAutoScroll_bool = false;
+    if (!atBottom_bool && logAutoScroll_bool) {
+      logAutoScroll_bool = false;
+      vmbrSyncScrollTooltips();
+    }
   });
 
   document.getElementById('vmbr-log-clear-btn').addEventListener('click', function(){
@@ -2355,16 +2655,14 @@ $(document).ready(function() {
     const text_str = logEl.dataset.raw || logEl.textContent || '';
     if (!text_str.trim() || text_str.includes('VM backup & restore log not found')) return;
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text_str).then(() => vmbrShowLogToast('Log copied')).catch(() => vmbrFallbackCopy(text_str));
+      navigator.clipboard.writeText(text_str).then(() => vmbrShowLogToast('Log Copied')).catch(() => vmbrFallbackCopy(text_str));
     } else { vmbrFallbackCopy(text_str); }
   });
 
-  // ── Init deferred calls ────────────────────────────────────────────────
   setTimeout(vmbrScheduleVersionRebuild, 50);
   setTimeout(vmbrScanMalformed, 100);
   vmbrLoadRestoreFolders();
 
-  // ── Plugin update check ────────────────────────────────────────────────
   if (typeof caPluginUpdateCheck === 'function') {
     caPluginUpdateCheck('vm-backup-and-restore.plg', { name:'vm-backup-and-restore' });
   }
@@ -2408,7 +2706,6 @@ $(document).ready(function() {
       const $span = $(this);
       if ($span.children('button').length) return;
       if ($span.hasClass('vmbr-status-label')) {
-        // Status labels get inline help (click to reveal) not tooltipster
         const helpText_str = $span.attr('title');
         if (!helpText_str || $span.hasClass('fbb-has-help')) return;
         $span.removeAttr('title');
@@ -2423,7 +2720,13 @@ $(document).ready(function() {
   window._fbbProcessLabels = processHelpLabels;
   processHelpLabels($(document));
 
-  // F1 toggle all
+  // Manually attach tooltips for mode-row labels (bypasses span auto-scan)
+  const $modeRow = $('#vmbr-mode-row');
+  if ($('#vmbr-plugin-label').length) {
+    attachHelp($('#vmbr-plugin-label'), 'Easily switch between your installed jcofer555 plugins', $modeRow);
+  }
+  attachHelp($('#vmbr-mode-label'), 'Switch between modes', $modeRow);
+
   $(document).on('keydown', function(e){
     if (e.key !== 'F1') return;
     e.preventDefault();
@@ -2440,14 +2743,12 @@ $(document).ready(function() {
     }
   });
 
-  // Click outside closes all help
   $(document).on('click', function(){
     if (Date.now() - _fbbLastClick_int < 150) return;
     $('.fbb-help-text').slideUp(150);
     _fbbF1Open_bool = false;
   });
 
-  // Tooltipster — init all buttons that have title= attributes
   function vmbrInitTooltipster($el_arr) {
     $el_arr.each(function() {
       const $el = $(this);
@@ -2459,7 +2760,6 @@ $(document).ready(function() {
     });
   }
 
-  // Init tooltipster for all named buttons and status labels immediately
   vmbrInitTooltipster($(
     '#vmbr-schedule-btn, #vmbr-backup-stop-btn, #vmbr-restore-stop-btn, ' +
     '#vmbr-backup-now-btn, #vmbr-restore-now-btn, ' +
@@ -2467,7 +2767,6 @@ $(document).ready(function() {
     '#vmbr-log-scroll-top-btn, #vmbr-log-autoscroll-btn'
   ));
 
-  // Delegate for dynamically-added table buttons
   $(document).on('mouseenter', 'table button[title], table [title]', function(){
     const $el = $(this);
     if ($el.hasClass('tooltipstered')) return;

@@ -43,7 +43,7 @@ format_duration() {
 }
 
 debug_log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] VM_SCHEDULED_BACKUP debug - $*" >> "$DEBUG_LOG"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Scheduled backup session started debug - $*" >> "$DEBUG_LOG"
 }
 
 set_status() { echo "$1" > "$STATUS_FILE"; }
@@ -143,7 +143,7 @@ cleanup() {
             done
         fi
 
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] VM_SCHEDULED_BACKUP stopped - Duration: $SCRIPT_DURATION_HUMAN"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Scheduled backup session finished - Duration: $SCRIPT_DURATION_HUMAN"
         notify_vm "warning" "VM Backup & Restore" "Backup was stopped early - Duration: $SCRIPT_DURATION_HUMAN"
         set_status "Backup stopped and cleaned up"
         rm -f "$STATUS_FILE"
@@ -160,7 +160,7 @@ cleanup() {
 
     if is_dry_run; then
         echo "Skipping VM restarts because dry run is enabled"
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] VM_SCHEDULED_BACKUP complete (dry run) - Duration: $SCRIPT_DURATION_HUMAN"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Scheduled backup session finished - Duration: $SCRIPT_DURATION_HUMAN"
         notify_vm "normal" "VM Backup & Restore" "Backup finished - Duration: $SCRIPT_DURATION_HUMAN"
         rm -f "$STATUS_FILE"
         debug_log "===== Session ended (dry run) ====="
@@ -175,7 +175,7 @@ cleanup() {
 
     (( ${#vms_all_stopped_arr[@]} == 0 )) && echo "No VMs were stopped this session"
 
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] VM_SCHEDULED_BACKUP complete - Duration: $SCRIPT_DURATION_HUMAN"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Scheduled backup session finished - Duration: $SCRIPT_DURATION_HUMAN"
     debug_log "Session finished duration=$SCRIPT_DURATION_HUMAN error_count=$error_count_int"
 
     if (( error_count_int > 0 )); then
@@ -257,7 +257,7 @@ PLG_FILE="/boot/config/plugins/vm-backup-and-restore.plg"
 [[ -f "$PLG_FILE" ]] && version_str=$(grep -oP 'version="\K[^"]+' "$PLG_FILE" | head -n1) || version_str="unknown"
 
 echo "--------------------------------------------------------------------------------------------------"
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] VM_SCHEDULED_BACKUP start - Plugin version: $version_str"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Scheduled backup session started - Plugin version: $version_str"
 
 is_dry_run() { [[ "$DRY_RUN" == "yes" ]]; }
 run_cmd() {
