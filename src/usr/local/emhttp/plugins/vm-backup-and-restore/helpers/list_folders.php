@@ -7,10 +7,11 @@ const BASE_PATH = '/mnt';
 $raw_path_str = $_GET['path']  ?? BASE_PATH;
 $field_str    = $_GET['field'] ?? '';
 
-$path_str = realpath($raw_path_str);
-
-// Constrain to /mnt
-if ($path_str === false || strpos($path_str, BASE_PATH) !== 0) {
+// Sanitize without realpath() so /mnt/user/... symlinks are NOT resolved
+// to their physical /mnt/cache/... equivalent — preserving correct mount-type
+// classification in the UI.
+$path_str = rtrim($raw_path_str, '/');
+if (!str_starts_with($path_str, BASE_PATH) || !is_dir($path_str)) {
     $path_str = BASE_PATH;
 }
 
@@ -28,14 +29,14 @@ if (is_dir($path_str)) {
             continue;
         }
 
-        // Compute depth relative to /mnt
+        // Compute depth relative to /mnt — count path segments, not realpath
         $relative_str = trim(str_replace(BASE_PATH, '', $full_path_str), '/');
         $depth_int    = $relative_str === '' ? 0 : count(explode('/', $relative_str));
 
         $selectable_bool = ($depth_int >= 3);
 
-        // restore_destination allows depth 2
-        if ($field_str === 'restore_destination' && $depth_int === 2) {
+        // restore_destination allows one level shallower (depth 2)
+        if ($field_str === 'vmbr-restore-destination' && $depth_int === 2) {
             $selectable_bool = true;
         }
 

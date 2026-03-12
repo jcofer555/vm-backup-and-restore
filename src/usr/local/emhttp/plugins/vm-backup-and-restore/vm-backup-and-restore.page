@@ -84,6 +84,12 @@ $sibling_plugin_checks_arr = [
         'label' => 'Flash Backup',
         'url'   => '/Settings/flash-backup',
     ],
+      'vm-backup-and-restore_beta' => [
+        'plg'   => '/boot/config/plugins/vm-backup-and-restore_beta.plg',
+        'page'  => '/usr/local/emhttp/plugins/vm-backup-and-restore_beta/vm-backup-and-restore_beta.page',
+        'label' => 'VM Backup & Restore (Beta)',
+        'url'   => '/Settings/vm-backup-and-restore_beta',
+    ],
     'automover_beta' => [
         'plg'   => '/boot/config/plugins/automover_beta.plg',
         'page'  => '/usr/local/emhttp/plugins/automover_beta/automover_beta.page',
@@ -96,12 +102,7 @@ $sibling_plugin_checks_arr = [
         'label' => 'Flash Backup (Beta)',
         'url'   => '/Settings/flash-backup_beta',
     ],
-    'vm-backup-and-restore_beta' => [
-        'plg'   => '/boot/config/plugins/vm-backup-and-restore_beta.plg',
-        'page'  => '/usr/local/emhttp/plugins/vm-backup-and-restore_beta/vm-backup-and-restore_beta.page',
-        'label' => 'VM Backup & Restore (Beta)',
-        'url'   => '/Settings/vm-backup-and-restore_beta',
-    ],
+
 ];
 $sibling_plugins_arr = [];
 $current_plugin_str  = basename(dirname(__FILE__)); // e.g. vm-backup-and-restore
@@ -211,8 +212,6 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     color:var(--c-text); margin-top:-31px;
   }
 
-  /* ── Header strip (removed) ── */
-
   /* ── 2-column grid ──────────────────────────────────────────────────────── */
   #vmbr-layout {
     display:grid;
@@ -230,8 +229,8 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     box-shadow:var(--shadow-card);
     display:flex; flex-direction:column;
     overflow:visible;
-    margin-top:-17px;
-    height:695px;
+    margin-top:-68px;
+    height:740px;
   }
 
   .vmbr-card-header {
@@ -554,8 +553,8 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     border-radius:var(--radius-card);
     box-shadow:var(--shadow-card);
     display:flex; flex-direction:column;
-    overflow:hidden; height:695px;
-    margin-top:-17px;
+    overflow:hidden; height:740px;
+    margin-top:-68px;
   }
 
   .vmbr-log-toolbar {
@@ -650,24 +649,47 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
   /* First col left-align */
   .vmbr-schedules-table th:first-child,
   .vmbr-schedules-table td:first-child { text-align:left !important; padding-left:10px !important; }
-  /* Ellipsis on VMs and Destination only */
-  .vmbr-schedules-table th:nth-child(2), .vmbr-schedules-table th:nth-child(3) { max-width:140px; }
-  .vmbr-schedules-table td:nth-child(2), .vmbr-schedules-table td:nth-child(3) {
-    max-width:140px; overflow:hidden; text-overflow:ellipsis;
-  }
-  /* Actions col — two buttons per row via fixed-width flex wrap */
-  .vmbr-schedules-table td:last-child,
-  .vmbr-schedules-table th:last-child { text-align:center; }
-  .vmbr-schedules-table td:last-child { padding:5px 4px !important; }
+
+  /* ── Column widths — min-widths only, auto layout fills the rest ── */
+  .vmbr-schedules-table th:nth-child(1), .vmbr-schedules-table td:nth-child(1) { min-width:130px; }
+  .vmbr-schedules-table th:nth-child(2), .vmbr-schedules-table td:nth-child(2) { min-width:90px;  max-width:160px; overflow:hidden; text-overflow:ellipsis; }
+  .vmbr-schedules-table th:nth-child(3), .vmbr-schedules-table td:nth-child(3) { min-width:90px;  max-width:160px; overflow:hidden; text-overflow:ellipsis; }
+  .vmbr-schedules-table th:nth-child(4), .vmbr-schedules-table td:nth-child(4) { min-width:70px;  white-space:nowrap; }
+  .vmbr-schedules-table th:nth-child(5), .vmbr-schedules-table td:nth-child(5) { min-width:60px;  white-space:nowrap; }
+  .vmbr-schedules-table th:nth-child(6), .vmbr-schedules-table td:nth-child(6) { min-width:60px;  white-space:nowrap; }
+  .vmbr-schedules-table th:nth-child(7), .vmbr-schedules-table td:nth-child(7) { min-width:60px;  white-space:nowrap; }
+
+  /* ── Actions col — 4-in-a-row by default, falls back to 2x2 when narrow ── */
+  .vmbr-schedules-table th:last-child,
+  .vmbr-schedules-table td:last-child { text-align:center; white-space:nowrap; width:auto; min-width:200px; }
+  .vmbr-schedules-table td:last-child { padding:5px 6px !important; }
   .vmbr-schedules-table td:last-child .vmbr-sched-actions {
-    display:flex; flex-wrap:wrap; gap:3px; width:122px; margin:0 auto;
+    display:flex !important;
+    flex-direction:row !important;
+    gap:4px !important;
+    justify-content:center !important;
+    align-items:center !important;
   }
   .vmbr-schedules-table td:last-child .vmbr-sched-actions button {
-    flex:0 0 59px !important; width:59px !important; text-align:center !important;
-    padding:4px 0 !important; font-size:11px !important;
+    text-align:center !important;
+    padding:4px 8px !important; font-size:11px !important;
     background:var(--c-accent) !important; border-radius:6px !important; color:#fff !important;
-    margin:0 !important; white-space:nowrap; box-sizing:border-box !important;
+    margin:0 !important; white-space:nowrap !important; box-sizing:border-box !important;
   }
+  /* Drop to 2x2 when the page is too narrow to fit 4-in-a-row comfortably */
+  @media (max-width:900px) {
+    .vmbr-schedules-table th:last-child,
+    .vmbr-schedules-table td:last-child { min-width:180px; width:180px; }
+    .vmbr-schedules-table td:last-child .vmbr-sched-actions {
+      display:grid !important;
+      grid-template-columns:1fr 1fr !important;
+      width:168px !important;
+    }
+    .vmbr-schedules-table td:last-child .vmbr-sched-actions button {
+      width:100% !important;
+    }
+  }
+
   /* Status dot */
   .vmbr-sched-dot {
     display:inline-block; width:8px; height:8px; border-radius:50%;
@@ -1216,7 +1238,6 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
   </div>
 </div>
 
-
 <script>
 'use strict';
 // ════════════════════════════════════════════════════════════════════════════
@@ -1272,12 +1293,9 @@ let vmbrOriginalRestoreSelection_arr = ($('#vmbr-hidden-vms-restore').val() || '
 // ════════════════════════════════════════════════════════════════════════════
 function vmbrSwitchMode(mode_str) {
   const isBackup_bool = (mode_str === 'backup');
-  // Toggle form panels
   $('#vmbr-backup-panel').toggle(isBackup_bool);
   $('#vmbr-restore-panel').toggle(!isBackup_bool);
-  // Update card title
   $('#vmbr-active-card-title').text(isBackup_bool ? 'Backup' : 'Restore');
-  // Toggle status dot/text
   $('#vmbr-backup-status-wrap').toggle(isBackup_bool);
   $('#vmbr-restore-status-wrap').toggle(!isBackup_bool);
 }
@@ -1363,14 +1381,12 @@ function vmbrSetAllButtonsDisabled(disabled_bool) {
   document.querySelectorAll('.run-schedule-btn').forEach(b => { b.disabled = disabled_bool; });
 }
 
-// ── Status dot helper ──────────────────────────────────────────────────────
 function vmbrSetDot(dotId_str, isActive_bool) {
   const el = document.getElementById(dotId_str);
   if (!el) return;
   el.classList.toggle('active', isActive_bool);
 }
 
-// ── Banners ────────────────────────────────────────────────────────────────
 function vmbrShowBanner(type_str, label_str) {
   if (type_str === 'restore') {
     $('#vmbr-restore-banner-text').text(label_str);
@@ -1404,7 +1420,6 @@ function vmbrStopFromBanner(type_str) {
     .fail(() => alert('Error sending stop request'));
 }
 
-// ── Webhook field builder ──────────────────────────────────────────────────
 function vmbrRebuildWebhookFields(isRestore_bool) {
   const containerId_str = isRestore_bool ? '#vmbr-webhook-container-restore' : '#vmbr-webhook-container-backup';
   const services_arr    = vmbrGetSelectedServices(isRestore_bool);
@@ -1470,7 +1485,6 @@ function vmbrRebuildWebhookFields(isRestore_bool) {
   if (window._fbbProcessLabels) window._fbbProcessLabels(container_el);
 }
 
-// ── Notification toggle ────────────────────────────────────────────────────
 function vmbrApplyNotifToggle(select_el, rowId_str, containerId_str, isRestore_bool) {
   const isYes_bool = select_el && select_el.value === 'yes';
   const $row = $(rowId_str);
@@ -1485,7 +1499,6 @@ function vmbrApplyNotifToggle(select_el, rowId_str, containerId_str, isRestore_b
   vmbrUpdateNotifLabel(isRestore_bool);
 }
 
-// ── Cron helpers ───────────────────────────────────────────────────────────
 function vmbrBuildCronFromUI() {
   const mode_str = $('#vmbr-cron-mode').val();
   switch(mode_str) {
@@ -1606,8 +1619,6 @@ async function vmbrFetchVdiskPaths(vmList_arr) {
 }
 
 async function vmbrValidateMountTypes(vmList_arr, dest_str) {
-  // Classify using the raw (pre-symlink) path so /mnt/user paths aren't
-  // incorrectly resolved to /mnt/cache by realpath() on the server.
   const destClass_str = vmbrClassifyPath(dest_str);
   const data_obj = await vmbrFetchVdiskPaths(vmList_arr);
   for (const vm_str of vmList_arr) {
@@ -1631,7 +1642,6 @@ async function vmbrValidateMountTypes(vmList_arr, dest_str) {
 // 4. POLLERS
 // ════════════════════════════════════════════════════════════════════════════
 
-// ── Backup status ──────────────────────────────────────────────────────────
 (function vmbrBackupStatusPoller() {
   fetch(vmbrH('backup_status_check.php'), {credentials:'same-origin'})
     .then(r => r.json())
@@ -1657,7 +1667,6 @@ async function vmbrValidateMountTypes(vmList_arr, dest_str) {
     });
 })();
 
-// ── Restore status ─────────────────────────────────────────────────────────
 (function vmbrRestoreStatusPoller() {
   fetch(vmbrH('restore_status_check.php'), {credentials:'same-origin'})
     .then(r => r.json())
@@ -1683,7 +1692,6 @@ async function vmbrValidateMountTypes(vmList_arr, dest_str) {
     });
 })();
 
-// ── Lock / banner poller ───────────────────────────────────────────────────
 (function vmbrLockPoller() {
   fetch(vmbrH('check_lock.php'))
     .then(r => r.json())
@@ -1726,7 +1734,6 @@ async function vmbrValidateMountTypes(vmList_arr, dest_str) {
     .finally(() => setTimeout(vmbrLockPoller, POLL_FAST_INT));
 })();
 
-// ── Backup running (button disable) ───────────────────────────────────────
 (function vmbrBackupRunningPoller() {
   vmbrGet('backup_status.php')
     .done(function(res) {
@@ -1739,12 +1746,10 @@ async function vmbrValidateMountTypes(vmList_arr, dest_str) {
     .always(() => setTimeout(vmbrBackupRunningPoller, POLL_FAST_INT));
 })();
 
-// ── Restore running ────────────────────────────────────────────────────────
 (function vmbrRestoreRunningPoller() {
   vmbrGet('restore_status.php').always(() => setTimeout(vmbrRestoreRunningPoller, POLL_FAST_INT));
 })();
 
-// ── Log poller ─────────────────────────────────────────────────────────────
 (function vmbrLogPoller() {
   fetch(vmbrH('fetch_last_run_log.php'))
     .then(r => r.text())
@@ -1769,7 +1774,6 @@ async function vmbrValidateMountTypes(vmList_arr, dest_str) {
     .finally(() => setTimeout(vmbrLogPoller, POLL_FAST_INT));
 })();
 
-// ── Last Run display ───────────────────────────────────────────────────────
 function vmbrTimeAgo(date_obj) {
   const diff_int = Math.floor((Date.now() - date_obj.getTime()) / 1000);
   if (diff_int < 60)  return '< 1 minute ago';
@@ -1791,7 +1795,6 @@ function vmbrUpdateLastRun(logText_str) {
   if (!logText_str || logText_str.includes('log not found') || logText_str.includes('Error loading')) {
     el.textContent = 'No last run available'; return;
   }
-  // Lines are stored reversed (newest first); find first line with "Session finished"
   const lines_arr = logText_str.split('\n');
   let ts_str = null;
   for (const line_str of lines_arr) {
@@ -1806,14 +1809,12 @@ function vmbrUpdateLastRun(logText_str) {
   el.textContent = 'Last Run: ' + vmbrTimeAgo(date_obj);
 }
 
-// ── Last Run live refresh (re-renders time-ago string every second) ────────
 (function vmbrLastRunRefreshPoller() {
   const el = document.getElementById('vmbr-log-last-run');
   if (el && lastLogSnapshot_str) vmbrUpdateLastRun(lastLogSnapshot_str);
   setTimeout(vmbrLastRunRefreshPoller, 1000);
 })();
 
-// ── Backup VM list refresh ─────────────────────────────────────────────────
 (function vmbrVmListPoller() {
   if ($('#vmbr-vm-dropdown-backup .vmbr-vm-dropdown-list').is(':visible')) {
     return setTimeout(vmbrVmListPoller, POLL_SLOW_INT);
@@ -1831,7 +1832,6 @@ function vmbrUpdateLastRun(logText_str) {
     .always(() => setTimeout(vmbrVmListPoller, POLL_SLOW_INT));
 })();
 
-// ── Restore folder refresh ─────────────────────────────────────────────────
 (function vmbrRestoreFolderPoller() {
   const restorePath_str = $('#vmbr-restore-location').val().trim();
   const dropdownOpen_bool = $('#vmbr-vm-dropdown-restore .vmbr-vm-dropdown-list').is(':visible');
@@ -1852,7 +1852,6 @@ function vmbrUpdateLastRun(logText_str) {
     .always(() => setTimeout(vmbrRestoreFolderPoller, POLL_FAST_INT));
 })();
 
-// ── Malformed backup poller ────────────────────────────────────────────────
 (function vmbrMalformedPoller() {
   vmbrScanMalformed();
   setTimeout(vmbrMalformedPoller, POLL_FAST_INT);
@@ -1900,7 +1899,6 @@ function vmbrLoadRestoreFolders() {
   if (restoreFolderLoadInFlight_bool) return;
   restoreFolderLoadInFlight_bool = true;
 
-  // Preserve whatever the user currently has checked before rebuilding the list
   const currentChecked_arr = $('#vmbr-vm-dropdown-restore .vmbr-vm-dropdown-list input:checked')
     .map(function(){ return $(this).val(); }).get();
   if (currentChecked_arr.length) {
@@ -2202,7 +2200,6 @@ function vmbrLoadSchedules(force_bool) {
   if (scheduleUILocked_bool && !force_bool) return $.Deferred().resolve().promise();
   return $.get(vmbrH('schedule_list.php'), function(html_str) {
     $('#vmbr-schedule-list').html(html_str);
-    // Strip inline styles from PHP-rendered table so our CSS takes over
     const $tbl = $('#vmbr-schedule-list table');
     $tbl.removeAttr('style');
     $tbl.find('thead tr, th').removeAttr('style');
@@ -2400,8 +2397,6 @@ function vmbrLoadFolders(path_str) {
 }
 
 function vmbrResolveAndApplyPath(selectedPath_str, targetId_str) {
-  // Use the raw selected path directly — server-side realpath() would incorrectly
-  // resolve /mnt/user symlinks to /mnt/cache, causing false mount-type mismatches.
   $('#' + targetId_str).val(selectedPath_str).trigger('input').trigger('change');
   $('#vmbr-folder-picker-modal').hide();
 }
@@ -2450,10 +2445,8 @@ function vmbrFallbackCopy(text_str) {
 // ════════════════════════════════════════════════════════════════════════════
 $(document).ready(function() {
 
-  // ── Mode switcher init (default: Backup) ──────────────────────────────
   vmbrSwitchMode('backup');
 
-  // ── Layout / margin zero ───────────────────────────────────────────────
   const page_el   = document.getElementById('vmbr-page');
   const layout_el = document.getElementById('vmbr-layout');
 
@@ -2479,7 +2472,6 @@ $(document).ready(function() {
     ancestor_el = ancestor_el.parentElement;
   }
 
-  // ── Backup owner dropdown ──────────────────────────────────────────────
   const ownerSel_el    = $('#vmbr-backup-owner');
   const ownerSelected_str = ownerSel_el.data('selected') || 'nobody';
   vmbrGet('list_users_group100.php').done(function(data) {
@@ -2489,7 +2481,6 @@ $(document).ready(function() {
     });
   });
 
-  // ── Backup VM dropdown events ──────────────────────────────────────────
   const backupDropdown_el = $('#vmbr-vm-dropdown-backup');
   const backupList_el     = backupDropdown_el.find('.vmbr-vm-dropdown-list');
 
@@ -2506,7 +2497,6 @@ $(document).ready(function() {
   backupList_el.on('change','input[type=checkbox]', vmbrUpdateBackupVmLabel);
   vmbrLoadBackupVMs();
 
-  // ── Restore VM dropdown events ─────────────────────────────────────────
   const restoreDropdown_el = $('#vmbr-vm-dropdown-restore');
   const restoreList_el     = restoreDropdown_el.find('.vmbr-vm-dropdown-list');
 
@@ -2528,7 +2518,6 @@ $(document).ready(function() {
     vmbrScheduleVersionRebuild();
   });
 
-  // ── Notification multiselect events ───────────────────────────────────
   $('#vmbr-notif-service-backup').on('click', function(e){
     e.stopPropagation(); $('#vmbr-backup-notif-list').toggle();
   });
@@ -2547,7 +2536,6 @@ $(document).ready(function() {
     vmbrUpdateNotifLabel(true); vmbrRebuildWebhookFields(true);
   });
 
-  // ── Notification toggle ────────────────────────────────────────────────
   const notifBackup_el  = document.getElementById('vmbr-backup-notif');
   const notifRestore_el = document.getElementById('vmbr-restore-notif');
   function toggleBackup()  { vmbrApplyNotifToggle(notifBackup_el,  '#vmbr-backup-notif-service-row',  '#vmbr-webhook-container-backup',  false); }
@@ -2556,7 +2544,6 @@ $(document).ready(function() {
   if (notifBackup_el)  notifBackup_el.addEventListener('change',  toggleBackup);
   if (notifRestore_el) notifRestore_el.addEventListener('change', toggleRestore);
 
-  // ── Location input change → reload restore folders ─────────────────────
   let locationChangeTimer_id = null;
   let lastRestoreLocation_str = $('#vmbr-restore-location').val().trim();
   $('#vmbr-restore-location').on('input blur change', function(){
@@ -2570,7 +2557,6 @@ $(document).ready(function() {
     }, 300);
   });
 
-  // ── Cron mode toggle ───────────────────────────────────────────────────
   const cronMode_el = document.getElementById('vmbr-cron-mode');
   if (cronMode_el) {
     vmbrToggleCronOptions(cronMode_el.value);
@@ -2582,12 +2568,10 @@ $(document).ready(function() {
     });
   }
 
-  // ── Schedule button ────────────────────────────────────────────────────
   vmbrLoadSchedules();
   $(document).on('click','#vmbr-schedule-btn', function(){ vmbrScheduleJob('backup'); });
   $('#vmbr-cancel-edit-btn').on('click', function(){ location.reload(); });
 
-  // ── Folder picker events ───────────────────────────────────────────────
   $('input[data-picker-title]').on('click', function(){
     folderPickerTargetId_str = $(this).attr('id');
     $('#vmbr-folder-picker-title').text($(this).data('picker-title'));
@@ -2617,7 +2601,6 @@ $(document).ready(function() {
       }, 'json');
   });
 
-  // ── Log control events ─────────────────────────────────────────────────
   const logSearchEl_el  = document.getElementById('vmbr-log-search');
   const logSearchClear_el = document.getElementById('vmbr-log-search-clear');
   function vmbrUpdateSearchClear() {
@@ -2634,9 +2617,7 @@ $(document).ready(function() {
   const logTopBtn_el    = document.getElementById('vmbr-log-scroll-top-btn');
 
   function vmbrSyncScrollTooltips() {
-    // Down button: always scrolls to bottom; when auto-scroll is on clicking disables it
     logAutoBtn_el.title = 'Scroll to bottom / Disable auto scroll';
-    // Up button: always scrolls to top; when auto-scroll is off clicking to top also signals "enable auto scroll" on next down
     logTopBtn_el.title  = 'Scroll to top / Enable auto scroll';
   }
   vmbrSyncScrollTooltips();
@@ -2757,7 +2738,6 @@ $(document).ready(function() {
   window._fbbProcessLabels = processHelpLabels;
   processHelpLabels($(document));
 
-  // Manually attach tooltips for mode-row labels (bypasses span auto-scan)
   const $modeRow = $('#vmbr-mode-row');
   if ($('#vmbr-plugin-label').length) {
     attachHelp($('#vmbr-plugin-label'), 'Easily switch between your installed jcofer555 plugins', $modeRow);
