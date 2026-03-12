@@ -96,7 +96,7 @@ $sibling_plugin_checks_arr = [
         'label' => 'Flash Backup (Beta)',
         'url'   => '/Settings/flash-backup_beta',
     ],
-      'vm-backup-and-restore_beta' => [
+    'vm-backup-and-restore_beta' => [
         'plg'   => '/boot/config/plugins/vm-backup-and-restore_beta.plg',
         'page'  => '/usr/local/emhttp/plugins/vm-backup-and-restore_beta/vm-backup-and-restore_beta.page',
         'label' => 'VM Backup & Restore (Beta)',
@@ -231,7 +231,7 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     display:flex; flex-direction:column;
     overflow:visible;
     margin-top:-17px;
-    height:695px;
+    height:690px;
   }
 
   .vmbr-card-header {
@@ -382,7 +382,8 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     border:1px solid var(--c-border-strong) !important;
     border-radius:var(--radius-input) !important;
     color:var(--c-text) !important;
-    padding:5px 8px !important; font-size:12px !important;
+    padding:0 8px !important; font-size:12px !important;
+    height:29px !important; box-sizing:border-box !important;
     transition:box-shadow .15s;
   }
   #vmbr-backup-destination:focus,
@@ -418,7 +419,9 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
   #vmbr-page button:focus-visible { outline:2px solid var(--c-accent-light); outline-offset:2px; }
 
   #vmbr-log-scroll-top-btn,
-  #vmbr-log-autoscroll-btn { padding:2px 8px !important; font-size:13px !important; }
+  #vmbr-log-autoscroll-btn { padding:7px 10px !important; font-size:14px !important; line-height:1 !important; min-width:0 !important; width:34px !important; }
+  .vmbr-scroll-group { display:flex; flex-direction:row; gap:6px; align-items:center; }
+  .vmbr-scroll-group button { margin:0 !important; }
 
   .vmbr-actions-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px; }
 
@@ -481,7 +484,9 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
   #vmbr-webhook-container-restore input,
   #vmbr-webhook-container-restore select {
     width:var(--input-w) !important; max-width:var(--input-w) !important;
-    height:auto !important; flex:none !important; box-sizing:border-box !important;
+    height:29px !important; box-sizing:border-box !important;
+    padding-top:0 !important; padding-bottom:0 !important;
+    flex:none !important;
   }
 
   /* ── In-progress banners ─────────────────────────────────────────────────── */
@@ -549,7 +554,7 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     border-radius:var(--radius-card);
     box-shadow:var(--shadow-card);
     display:flex; flex-direction:column;
-    overflow:hidden; height:695px;
+    overflow:hidden; height:690px;
     margin-top:-17px;
   }
 
@@ -578,12 +583,21 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     background:var(--c-bg);
     border:1px solid var(--c-border-strong); border-radius:6px;
     overflow:hidden; transition:box-shadow .15s;
-    flex-shrink:0;
+    flex-shrink:0; position:relative;
   }
   .vmbr-log-search-wrap:focus-within { box-shadow:0 0 0 2px var(--c-accent-glow); }
   #vmbr-log-search::placeholder { color:rgba(255,255,255,.2); }
   #vmbr-log-search-count { font-size:11px; color:var(--c-text); white-space:nowrap; width:68px; flex-shrink:0; display:inline-block; visibility:hidden; }
   #vmbr-log-search-count.visible { visibility:visible; }
+  #vmbr-log-search-clear {
+    display:none; align-items:center; justify-content:center;
+    position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    background:transparent; border:none; padding:0; margin:0; cursor:pointer;
+    color:var(--c-text-muted); line-height:0;
+    width:12px; height:12px;
+  }
+  #vmbr-log-search-clear:hover { color:var(--c-text); }
+  #vmbr-log-search-clear svg { display:block; pointer-events:none; width:12px; height:12px; }
 
   /* ── Schedule section ────────────────────────────────────────────────────── */
   #vmbr-schedule-section {
@@ -1138,7 +1152,12 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     </div>
     <div class="vmbr-log-toolbar">
       <div class="vmbr-log-search-wrap">
-        <input type="text" id="vmbr-log-search" placeholder="Search…" autocomplete="off">
+        <input type="text" id="vmbr-log-search" placeholder="Search…" autocomplete="off" style="padding-right:24px;">
+        <span id="vmbr-log-search-clear" role="button" aria-label="Clear search">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 1L11 11M11 1L1 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </span>
       </div>
       <span id="vmbr-log-search-count"></span>
       <div class="vmbr-log-toolbar-right">
@@ -2109,16 +2128,6 @@ $('#vmbr-restore-now-btn').on('click', async function() {
   if (!location_str) { alert('Please set location of backups'); return; }
   if (!dest_str)     { alert('Please set a restore destination'); return; }
 
-  // Classify raw paths — resolving symlinks via realpath() would turn
-  // /mnt/user paths into /mnt/cache and produce false mismatches.
-  const srcClass_str = vmbrClassifyPath(location_str);
-  const dstClass_str = vmbrClassifyPath(dest_str);
-
-  if (srcClass_str !== dstClass_str) {
-    alert(`Location of backups uses mount type (${srcClass_str}) but restore destination uses (${dstClass_str}). Both must use the same mount type.`);
-    return;
-  }
-
   const services_arr = vmbrGetSelectedServices(true);
   if (services_arr.includes('Pushover') && document.getElementById('vmbr-restore-notif')?.value === 'yes') {
     if (!$('#vmbr-pushover-key_restore').val().trim()) { alert('Please enter your Pushover user key'); return; }
@@ -2594,6 +2603,17 @@ $(document).ready(function() {
 
   // ── Log control events ─────────────────────────────────────────────────
   const logSearchEl_el  = document.getElementById('vmbr-log-search');
+  const logSearchClear_el = document.getElementById('vmbr-log-search-clear');
+  function vmbrUpdateSearchClear() {
+    logSearchClear_el.style.display = logSearchEl_el.value ? 'flex' : 'none';
+  }
+  logSearchClear_el.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    logSearchEl_el.value = '';
+    vmbrApplyLogSearch();
+    vmbrUpdateSearchClear();
+    logSearchEl_el.focus();
+  });
   const logAutoBtn_el   = document.getElementById('vmbr-log-autoscroll-btn');
   const logTopBtn_el    = document.getElementById('vmbr-log-scroll-top-btn');
 
@@ -2607,6 +2627,7 @@ $(document).ready(function() {
 
   logSearchEl_el.addEventListener('input', function() {
     vmbrApplyLogSearch();
+    vmbrUpdateSearchClear();
   });
 
   logAutoBtn_el.addEventListener('click', function(){
@@ -2655,7 +2676,7 @@ $(document).ready(function() {
     const text_str = logEl.dataset.raw || logEl.textContent || '';
     if (!text_str.trim() || text_str.includes('VM backup & restore log not found')) return;
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text_str).then(() => vmbrShowLogToast('Log Copied')).catch(() => vmbrFallbackCopy(text_str));
+      navigator.clipboard.writeText(text_str).then(() => vmbrShowLogToast('Copied')).catch(() => vmbrFallbackCopy(text_str));
     } else { vmbrFallbackCopy(text_str); }
   });
 
