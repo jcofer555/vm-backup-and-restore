@@ -231,7 +231,7 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     display:flex; flex-direction:column;
     overflow:visible;
     margin-top:-17px;
-    height:690px;
+    height:695px;
   }
 
   .vmbr-card-header {
@@ -554,7 +554,7 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     border-radius:var(--radius-card);
     box-shadow:var(--shadow-card);
     display:flex; flex-direction:column;
-    overflow:hidden; height:690px;
+    overflow:hidden; height:695px;
     margin-top:-17px;
   }
 
@@ -616,11 +616,11 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     width:100%; box-sizing:border-box;
     border:2px solid var(--c-border-strong);
     border-radius:var(--radius-card);
-    overflow-x:auto;
+    overflow-x:auto; display:block;
   }
   .vmbr-schedules-table {
     border-collapse:collapse; table-layout:auto;
-    width:100%; min-width:560px;
+    width:100%;
     background:var(--c-surface) !important;
   }
   .vmbr-schedules-table thead tr {
@@ -630,33 +630,51 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
   .vmbr-schedules-table thead tr th:first-child { border-radius:8px 0 0 0; }
   .vmbr-schedules-table thead tr th:last-child  { border-radius:0 8px 0 0; }
   .vmbr-schedules-table th {
-    padding:10px 12px; font-size:11px; font-weight:700;
+    padding:9px 8px; font-size:11px; font-weight:700;
     letter-spacing:.6px; text-transform:uppercase;
     color:var(--c-accent-light) !important;
     white-space:nowrap; text-align:center;
   }
   .vmbr-schedules-table td {
-    padding:9px 12px; vertical-align:middle !important;
-    white-space:normal; word-break:break-word;
+    padding:8px 8px; vertical-align:middle !important;
     color:var(--c-text) !important; font-size:12px;
     background:var(--c-surface) !important;
-    text-align:center;
+    text-align:center; white-space:nowrap;
   }
-  /* Actions column — keep buttons on one line */
-  .vmbr-schedules-table td:last-child,
-  .vmbr-schedules-table th:last-child { white-space:nowrap !important; text-align:center; }
-  .vmbr-schedules-table td:last-child {
-    display:table-cell !important;
-  }
-  .vmbr-schedules-table td:last-child button {
-    display:inline-block !important;
-    margin:2px 2px !important;
-    white-space:nowrap;
-    padding:5px 9px !important;
-    font-size:11px !important;
-  }
-  .vmbr-schedules-table tbody tr:hover td { background:var(--c-surface-raised) !important; }
+  /* Column dividers */
+  .vmbr-schedules-table th + th,
+  .vmbr-schedules-table td + td { border-left:1px solid var(--c-border) !important; }
+  /* Row dividers */
   .vmbr-schedules-table tbody tr + tr td { border-top:1px solid var(--c-border) !important; }
+  .vmbr-schedules-table tbody tr:hover td { background:var(--c-surface-raised) !important; }
+  /* First col left-align */
+  .vmbr-schedules-table th:first-child,
+  .vmbr-schedules-table td:first-child { text-align:left !important; padding-left:10px !important; }
+  /* Ellipsis on VMs and Destination only */
+  .vmbr-schedules-table th:nth-child(2), .vmbr-schedules-table th:nth-child(3) { max-width:140px; }
+  .vmbr-schedules-table td:nth-child(2), .vmbr-schedules-table td:nth-child(3) {
+    max-width:140px; overflow:hidden; text-overflow:ellipsis;
+  }
+  /* Actions col — two buttons per row via fixed-width flex wrap */
+  .vmbr-schedules-table td:last-child,
+  .vmbr-schedules-table th:last-child { text-align:center; }
+  .vmbr-schedules-table td:last-child { padding:5px 4px !important; }
+  .vmbr-schedules-table td:last-child .vmbr-sched-actions {
+    display:flex; flex-wrap:wrap; gap:3px; width:122px; margin:0 auto;
+  }
+  .vmbr-schedules-table td:last-child .vmbr-sched-actions button {
+    flex:0 0 59px !important; width:59px !important; text-align:center !important;
+    padding:4px 0 !important; font-size:11px !important;
+    background:var(--c-accent) !important; border-radius:6px !important; color:#fff !important;
+    margin:0 !important; white-space:nowrap; box-sizing:border-box !important;
+  }
+  /* Status dot */
+  .vmbr-sched-dot {
+    display:inline-block; width:8px; height:8px; border-radius:50%;
+    flex-shrink:0; vertical-align:middle; margin-right:5px;
+  }
+  .vmbr-sched-dot.enabled  { background:#22c55e; box-shadow:0 0 5px #22c55e; }
+  .vmbr-sched-dot.disabled { background:#ef4444; box-shadow:0 0 5px #ef4444; }
 
   /* ── Scrollbars ──────────────────────────────────────────────────────────── */
   #vmbr-backup-panel::-webkit-scrollbar,
@@ -740,13 +758,11 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     #vmbr-layout { grid-template-columns:1fr; }
     .vmbr-card-body { height:480px; }
     #vmbr-log-panel { grid-column:1; height:360px; }
-    .vmbr-schedules-table td:last-child button { padding:4px 7px !important; font-size:10px !important; }
   }
   @media (max-width:768px) {
     #vmbr-layout { grid-template-columns:1fr; }
     .vmbr-card-body { height:auto; min-height:400px; }
     #vmbr-log-panel { grid-column:1; height:360px; }
-    .vmbr-schedules-table td:last-child button { padding:3px 6px !important; font-size:10px !important; }
   }
 </style>
 
