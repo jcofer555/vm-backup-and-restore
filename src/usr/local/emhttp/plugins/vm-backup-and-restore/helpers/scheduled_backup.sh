@@ -6,7 +6,7 @@ LOCK_FILE="$LOG_DIR/lock.txt"
 STOP_FLAG="$LOG_DIR/stop_requested.txt"
 STATUS_FILE="$LOG_DIR/backup_status.txt"
 ROTATE_DIR="$LOG_DIR/archived_logs"
-DEBUG_LOG="$LOG_DIR/vm-scheduled-backup-debug.log"
+DEBUG_LOG="$LOG_DIR/vm-backup-and-restore-debug.log"
 
 mkdir -p "$LOG_DIR"
 mkdir -p "$ROTATE_DIR"

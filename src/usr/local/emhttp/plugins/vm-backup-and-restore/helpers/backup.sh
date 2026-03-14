@@ -10,7 +10,7 @@ LOG_DIR="/tmp/vm-backup-and-restore"
 LOCK_FILE="$LOG_DIR/lock.txt"
 LAST_RUN_FILE="$LOG_DIR/vm-backup-and-restore.log"
 ROTATE_DIR="$LOG_DIR/archived_logs"
-DEBUG_LOG="$LOG_DIR/vm-backup-debug.log"
+DEBUG_LOG="$LOG_DIR/vm-backup-and-restore-debug.log"
 STATUS_FILE="$LOG_DIR/backup_status.txt"
 
 mkdir -p "$LOG_DIR"

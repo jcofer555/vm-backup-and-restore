@@ -6,11 +6,9 @@ Tag="icon.png"
 Markdown="false"
 ---
 <?php
-// ── Constants ──────────────────────────────────────────────────────────────
 const CFG_PATH         = '/boot/config/plugins/vm-backup-and-restore/settings.cfg';
 const CFG_RESTORE_PATH = '/boot/config/plugins/vm-backup-and-restore/settings_restore.cfg';
 
-// ── Backup config defaults ─────────────────────────────────────────────────
 $backup_defaults_arr = [
     'VMS_TO_BACKUP'        => '',
     'BACKUP_DESTINATION'   => '',
@@ -26,21 +24,13 @@ $backup_defaults_arr = [
     'WEBHOOK_SLACK'        => '',
     'PUSHOVER_USER_KEY'    => '',
 ];
-
 $existing_arr = file_exists(CFG_PATH) ? (parse_ini_file(CFG_PATH) ?: []) : [];
-foreach ($backup_defaults_arr as $key_str => $val_str) {
-    if (!array_key_exists($key_str, $existing_arr)) {
-        $existing_arr[$key_str] = $val_str;
-    }
-}
+foreach ($backup_defaults_arr as $key_str => $val_str) { if (!array_key_exists($key_str, $existing_arr)) $existing_arr[$key_str] = $val_str; }
 $cfg_text_str = '';
-foreach ($backup_defaults_arr as $key_str => $default_str) {
-    $cfg_text_str .= $key_str . '="' . $existing_arr[$key_str] . '"' . "\n";
-}
+foreach ($backup_defaults_arr as $key_str => $default_str) { $cfg_text_str .= $key_str . '="' . $existing_arr[$key_str] . '"' . "\n"; }
 @file_put_contents(CFG_PATH, $cfg_text_str);
 $settings_arr = $existing_arr;
 
-// ── Restore config defaults ────────────────────────────────────────────────
 $restore_defaults_arr = [
     'LOCATION_OF_BACKUPS'          => '',
     'VMS_TO_RESTORE'               => '',
@@ -56,80 +46,37 @@ $restore_defaults_arr = [
     'WEBHOOK_SLACK_RESTORE'        => '',
     'PUSHOVER_USER_KEY_RESTORE'    => '',
 ];
-
 $existing_restore_arr = file_exists(CFG_RESTORE_PATH) ? (parse_ini_file(CFG_RESTORE_PATH) ?: []) : [];
-foreach ($restore_defaults_arr as $key_str => $val_str) {
-    if (!array_key_exists($key_str, $existing_restore_arr)) {
-        $existing_restore_arr[$key_str] = $val_str;
-    }
-}
+foreach ($restore_defaults_arr as $key_str => $val_str) { if (!array_key_exists($key_str, $existing_restore_arr)) $existing_restore_arr[$key_str] = $val_str; }
 $restore_cfg_text_str = '';
-foreach ($restore_defaults_arr as $key_str => $default_str) {
-    $restore_cfg_text_str .= $key_str . '="' . $existing_restore_arr[$key_str] . '"' . "\n";
-}
+foreach ($restore_defaults_arr as $key_str => $default_str) { $restore_cfg_text_str .= $key_str . '="' . $existing_restore_arr[$key_str] . '"' . "\n"; }
 @file_put_contents(CFG_RESTORE_PATH, $restore_cfg_text_str);
 $restore_settings_arr = $existing_restore_arr;
 
-// ── Sibling plugin detection ───────────────────────────────────────────────
 $sibling_plugin_checks_arr = [
-    'automover' => [
-        'plg'   => '/boot/config/plugins/automover.plg',
-        'page'  => '/usr/local/emhttp/plugins/automover/automover.page',
-        'label' => 'Automover',
-        'url'   => '/Settings/automover',
-    ],
-    'flash-backup' => [
-        'plg'   => '/boot/config/plugins/flash-backup.plg',
-        'page'  => '/usr/local/emhttp/plugins/flash-backup/flash-backup.page',
-        'label' => 'Flash Backup',
-        'url'   => '/Settings/flash-backup',
-    ],
-      'vm-backup-and-restore_beta' => [
-        'plg'   => '/boot/config/plugins/vm-backup-and-restore_beta.plg',
-        'page'  => '/usr/local/emhttp/plugins/vm-backup-and-restore_beta/vm-backup-and-restore_beta.page',
-        'label' => 'VM Backup & Restore (Beta)',
-        'url'   => '/Settings/vm-backup-and-restore_beta',
-    ],
-    'automover_beta' => [
-        'plg'   => '/boot/config/plugins/automover_beta.plg',
-        'page'  => '/usr/local/emhttp/plugins/automover_beta/automover_beta.page',
-        'label' => 'Automover (Beta)',
-        'url'   => '/Settings/automover_beta',
-    ],
-    'flash-backup_beta' => [
-        'plg'   => '/boot/config/plugins/flash-backup_beta.plg',
-        'page'  => '/usr/local/emhttp/plugins/flash-backup_beta/flash-backup_beta.page',
-        'label' => 'Flash Backup (Beta)',
-        'url'   => '/Settings/flash-backup_beta',
-    ],
-
+    'automover' => ['plg'=>'/boot/config/plugins/automover.plg','page'=>'/usr/local/emhttp/plugins/automover/automover.page','label'=>'Automover','url'=>'/Settings/automover'],
+    'flash-backup' => ['plg'=>'/boot/config/plugins/flash-backup.plg','page'=>'/usr/local/emhttp/plugins/flash-backup/flash-backup.page','label'=>'Flash Backup','url'=>'/Settings/flash-backup'],
+    'automover_beta' => ['plg'=>'/boot/config/plugins/automover_beta.plg','page'=>'/usr/local/emhttp/plugins/automover_beta/automover_beta.page','label'=>'Automover (Beta)','url'=>'/Settings/automover_beta'],
+    'flash-backup_beta' => ['plg'=>'/boot/config/plugins/flash-backup_beta.plg','page'=>'/usr/local/emhttp/plugins/flash-backup_beta/flash-backup_beta.page','label'=>'Flash Backup (Beta)','url'=>'/Settings/flash-backup_beta'],
+    'vm-backup-and-restore_beta' => ['plg'=>'/boot/config/plugins/vm-backup-and-restore_beta.plg','page'=>'/usr/local/emhttp/plugins/vm-backup-and-restore_beta/vm-backup-and-restore_beta.page','label'=>'VM Backup & Restore (Beta)','url'=>'/Settings/vm-backup-and-restore_beta'],
 ];
 $sibling_plugins_arr = [];
-$current_plugin_str  = basename(dirname(__FILE__)); // e.g. vm-backup-and-restore
+$current_plugin_str  = basename(dirname(__FILE__));
 foreach ($sibling_plugin_checks_arr as $key_str => $check_arr) {
-    // Skip self
     if ($key_str === $current_plugin_str) continue;
-    if (file_exists($check_arr['plg']) && file_exists($check_arr['page'])) {
-        $sibling_plugins_arr[$key_str] = $check_arr;
-    }
+    if (file_exists($check_arr['plg']) && file_exists($check_arr['page'])) $sibling_plugins_arr[$key_str] = $check_arr;
 }
 $has_siblings_bool = !empty($sibling_plugins_arr);
-
-// Sort siblings alphabetically by label — current plugin is never shown as an option.
 $all_plugin_options_arr = $sibling_plugins_arr;
-uasort($all_plugin_options_arr, fn($a, $b) => strcmp($a['label'], $b['label']));
-
+uasort($all_plugin_options_arr, fn($a,$b) => strcmp($a['label'],$b['label']));
 
 $unraid_version_str = '7.1';
 if (file_exists('/etc/unraid-version')) {
     $ver_data_arr = parse_ini_file('/etc/unraid-version');
-    if (!empty($ver_data_arr['version'])) {
-        $unraid_version_str = $ver_data_arr['version'];
-    }
+    if (!empty($ver_data_arr['version'])) $unraid_version_str = $ver_data_arr['version'];
 }
 $isResponsiveWebgui = version_compare($unraid_version_str, '7.2.0-beta', '>=');
 
-// ── Notification service list ──────────────────────────────────────────────
 $notif_services_arr            = ['Discord', 'Gotify', 'Ntfy', 'Pushover', 'Slack', 'Unraid'];
 $selected_services_arr         = array_filter(explode(',', $settings_arr['NOTIFICATION_SERVICE'] ?? ''));
 $selected_services_restore_arr = array_filter(explode(',', $restore_settings_arr['NOTIFICATION_SERVICE_RESTORE'] ?? ''));
@@ -179,7 +126,6 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
 </script>
 
 <style>
-  /* ── Design tokens ─────────────────────────────────────────────────────── */
   :root {
     --c-accent:        #7c3aed;
     --c-accent-light:  #a78bfa;
@@ -205,14 +151,12 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
 
   #unraid-api-modals-virtual { position:absolute !important; height:0 !important; overflow:visible !important; }
 
-  /* ── Page shell ─────────────────────────────────────────────────────────── */
   #vmbr-page {
     display:flex; flex-direction:column;
     width:100%; font-family:'Segoe UI',system-ui,sans-serif;
     color:var(--c-text); margin-top:-31px;
   }
 
-  /* ── 2-column grid ──────────────────────────────────────────────────────── */
   #vmbr-layout {
     display:grid;
     grid-template-columns:minmax(340px,0.85fr) minmax(0,2.4fr);
@@ -221,7 +165,6 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
   }
   .vmbr-panel-wrap { display:flex; flex-direction:column; min-width:0; overflow:visible; }
 
-  /* ── Cards ──────────────────────────────────────────────────────────────── */
   .vmbr-card {
     background:var(--c-surface);
     border:1px solid var(--c-border);
@@ -240,64 +183,22 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     border-bottom:1px solid var(--c-border);
     flex-shrink:0;
   }
-  .vmbr-card-icon {
-    width:28px; height:28px; border-radius:6px;
-    background:var(--c-accent-dim);
-    display:flex; align-items:center; justify-content:center;
-    font-size:14px; flex-shrink:0;
-  }
-  .vmbr-card-title {
-    font-size:13px; font-weight:700; letter-spacing:.4px;
-    text-transform:uppercase; color:var(--c-accent-light);
-    flex:1;
-  }
-  .vmbr-card-status {
-    display:flex; align-items:center; gap:6px;
-    font-size:11px; color:var(--c-text-muted);
-  }
-  .vmbr-status-dot {
-    width:7px; height:7px; border-radius:50%;
-    background:var(--c-text-muted); flex-shrink:0;
-    transition:background .4s;
-  }
+  .vmbr-card-icon { width:28px; height:28px; border-radius:6px; background:var(--c-accent-dim); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+  .vmbr-card-title { font-size:13px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:var(--c-accent-light); flex:1; }
+  .vmbr-card-status { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--c-text-muted); }
+  .vmbr-status-dot { width:7px; height:7px; border-radius:50%; background:var(--c-text-muted); flex-shrink:0; transition:background .4s; }
   .vmbr-status-dot.active { background:var(--c-success); box-shadow:0 0 6px var(--c-success); animation:vmbr-pulse 1.4s infinite; }
   @keyframes vmbr-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-  .vmbr-card-body {
-    padding:14px 16px 16px;
-    overflow-y:auto; flex:1;
-    container-type:inline-size;
-    container-name:plugin-panel;
-    border-radius:0 0 var(--radius-card) var(--radius-card);
-  }
+  .vmbr-card-body { padding:14px 16px 16px; overflow-y:auto; flex:1; container-type:inline-size; container-name:plugin-panel; border-radius:0 0 var(--radius-card) var(--radius-card); }
 
-  /* ── Form pairs ──────────────────────────────────────────────────────────── */
-  .form-pair {
-    display:flex !important; flex-direction:row !important;
-    align-items:center !important; flex-wrap:nowrap !important;
-    gap:0 10px !important; margin-bottom:10px !important; margin-top:4px !important;
-  }
-  .form-pair > label {
-    width:var(--label-w) !important; min-width:var(--label-w) !important;
-    flex:none !important; font-size:12px !important;
-    font-weight:600 !important; color:var(--c-label) !important;
-    letter-spacing:.2px;
-  }
+  .form-pair { display:flex !important; flex-direction:row !important; align-items:center !important; flex-wrap:nowrap !important; gap:0 10px !important; margin-bottom:10px !important; margin-top:4px !important; }
+  .form-pair > label { width:var(--label-w) !important; min-width:var(--label-w) !important; flex:none !important; font-size:12px !important; font-weight:600 !important; color:var(--c-label) !important; letter-spacing:.2px; }
   .form-pair > span { display:contents !important; }
-  .form-pair input[type="text"],
-  .form-pair input[type="password"],
-  .form-pair input[type="number"],
-  .form-pair select {
-    width:var(--input-w) !important; max-width:var(--input-w) !important;
-    height:auto !important; flex:none !important;
-  }
+  .form-pair input[type="text"], .form-pair input[type="password"], .form-pair input[type="number"], .form-pair select { width:var(--input-w) !important; max-width:var(--input-w) !important; height:auto !important; flex:none !important; }
   .form-pair input[type="checkbox"] { width:15px !important; height:15px !important; flex:none !important; }
   .form-pair > .input-wrapper { display:contents !important; }
-  #vmbr-webhook-container-backup .input-wrapper,
-  #vmbr-webhook-container-restore .input-wrapper {
-    display:flex !important; flex-direction:column !important;
-    gap:2px !important; width:var(--input-w) !important;
-  }
+  #vmbr-webhook-container-backup .input-wrapper, #vmbr-webhook-container-restore .input-wrapper { display:flex !important; flex-direction:column !important; gap:2px !important; width:var(--input-w) !important; }
   .input-wrapper { display:flex; flex-direction:column; flex:1; min-width:0; }
 
   @container plugin-panel (max-width:400px) {
@@ -309,91 +210,35 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     .form-pair > label { width:auto !important; min-width:unset !important; }
   }
 
-  /* ── Section dividers ────────────────────────────────────────────────────── */
-  .vmbr-section-label {
-    font-size:10px; font-weight:700; letter-spacing:1px;
-    text-transform:uppercase; color:var(--c-text-muted);
-    padding:6px 0 4px; margin-bottom:4px;
-    border-bottom:1px solid var(--c-border);
-  }
+  .vmbr-section-label { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--c-text-muted); padding:6px 0 4px; margin-bottom:4px; border-bottom:1px solid var(--c-border); }
 
-  /* ── Labels (override) ───────────────────────────────────────────────────── */
-  #vmbr-page label,
-  #vmbr-page label span { color:var(--c-label) !important; font-weight:600 !important; }
-
-  /* Dropdown item labels override */
-  #vmbr-page .vmbr-vm-dropdown-list label,
-  #vmbr-page .vmbr-vm-dropdown-list label span,
-  #vmbr-page .vmbr-vm-dropdown-list div,
-  #vmbr-vm-dropdown-backup .vmbr-vm-dropdown-list label,
-  #vmbr-vm-dropdown-restore .vmbr-vm-dropdown-list label,
-  #vmbr-notif-service-backup .vmbr-vm-dropdown-list label,
-  #vmbr-notif-service-restore .vmbr-vm-dropdown-list label {
-    color:var(--c-text) !important; font-weight:400 !important;
-  }
+  #vmbr-page label, #vmbr-page label span { color:var(--c-label) !important; font-weight:600 !important; }
+  #vmbr-page .vmbr-vm-dropdown-list label, #vmbr-page .vmbr-vm-dropdown-list label span, #vmbr-page .vmbr-vm-dropdown-list div,
+  #vmbr-vm-dropdown-backup .vmbr-vm-dropdown-list label, #vmbr-vm-dropdown-restore .vmbr-vm-dropdown-list label,
+  #vmbr-notif-service-backup .vmbr-vm-dropdown-list label, #vmbr-notif-service-restore .vmbr-vm-dropdown-list label { color:var(--c-text) !important; font-weight:400 !important; }
   .vmbr-version-field label { color:var(--c-label) !important; font-weight:600 !important; }
 
-  /* ── Inputs & selects ────────────────────────────────────────────────────── */
-  #vmbr-page input[type="text"],
-  #vmbr-page input[type="password"],
-  #vmbr-page input[type="number"],
-  #vmbr-page select,
-  #vmbr-backup-panel input[type="text"],
-  #vmbr-backup-panel input[type="password"],
-  #vmbr-backup-panel input[type="number"],
-  #vmbr-backup-panel select,
-  #vmbr-restore-panel input[type="text"],
-  #vmbr-restore-panel input[type="password"],
-  #vmbr-restore-panel input[type="number"],
-  #vmbr-restore-panel select {
-    background:var(--c-bg) !important;
-    border:1px solid var(--c-border-strong) !important;
-    border-radius:var(--radius-input) !important;
-    color:var(--c-text) !important;
-    padding:5px 8px !important;
-    font-size:12px !important;
-    transition:border-color .15s, box-shadow .15s;
-    width:var(--input-w) !important; max-width:var(--input-w) !important;
-    box-sizing:border-box !important;
+  #vmbr-page input[type="text"], #vmbr-page input[type="password"], #vmbr-page input[type="number"], #vmbr-page select,
+  #vmbr-backup-panel input[type="text"], #vmbr-backup-panel input[type="password"], #vmbr-backup-panel input[type="number"], #vmbr-backup-panel select,
+  #vmbr-restore-panel input[type="text"], #vmbr-restore-panel input[type="password"], #vmbr-restore-panel input[type="number"], #vmbr-restore-panel select {
+    background:var(--c-bg) !important; border:1px solid var(--c-border-strong) !important; border-radius:var(--radius-input) !important;
+    color:var(--c-text) !important; padding:5px 8px !important; font-size:12px !important;
+    transition:border-color .15s, box-shadow .15s; width:var(--input-w) !important; max-width:var(--input-w) !important; box-sizing:border-box !important;
   }
-  #vmbr-page input:focus,
-  #vmbr-page select:focus,
-  #vmbr-backup-panel input:focus,
-  #vmbr-backup-panel select:focus,
-  #vmbr-restore-panel input:focus,
-  #vmbr-restore-panel select:focus {
-    outline:none !important;
-    border-color:var(--c-accent-light) !important;
-    box-shadow:0 0 0 3px var(--c-accent-glow) !important;
-  }
-  #vmbr-page input:hover,
-  #vmbr-page select:hover { border-color:var(--c-accent-light) !important; }
-  #vmbr-page select:disabled,
-  #vmbr-page input:disabled { opacity:.45; cursor:not-allowed; }
+  #vmbr-page input:focus, #vmbr-page select:focus, #vmbr-backup-panel input:focus, #vmbr-backup-panel select:focus, #vmbr-restore-panel input:focus, #vmbr-restore-panel select:focus { outline:none !important; border-color:var(--c-accent-light) !important; box-shadow:0 0 0 3px var(--c-accent-glow) !important; }
+  #vmbr-page input:hover, #vmbr-page select:hover { border-color:var(--c-accent-light) !important; }
+  #vmbr-page select:disabled, #vmbr-page input:disabled { opacity:.45; cursor:not-allowed; }
   #vmbr-page select option { background:var(--c-surface); color:var(--c-text); }
   #vmbr-page input[type="checkbox"] { accent-color:var(--c-accent); cursor:pointer; }
 
-  /* Path fields */
-  #vmbr-backup-destination,
-  #vmbr-restore-location,
-  #vmbr-restore-destination {
-    background:var(--c-bg) !important;
-    border:1px solid var(--c-border-strong) !important;
-    border-radius:var(--radius-input) !important;
-    color:var(--c-text) !important;
-    padding:0 8px !important; font-size:12px !important;
-    height:29px !important; box-sizing:border-box !important;
-    transition:box-shadow .15s;
+  #vmbr-backup-destination, #vmbr-restore-location, #vmbr-restore-destination {
+    background:var(--c-bg) !important; border:1px solid var(--c-border-strong) !important; border-radius:var(--radius-input) !important;
+    color:var(--c-text) !important; padding:0 8px !important; font-size:12px !important;
+    height:29px !important; box-sizing:border-box !important; transition:box-shadow .15s;
   }
-  #vmbr-backup-destination:focus,
-  #vmbr-restore-location:focus,
-  #vmbr-restore-destination:focus { outline:none !important; box-shadow:0 0 0 3px var(--c-accent-glow) !important; }
+  #vmbr-backup-destination:focus, #vmbr-restore-location:focus, #vmbr-restore-destination:focus { outline:none !important; box-shadow:0 0 0 3px var(--c-accent-glow) !important; }
 
-  /* Search override */
-  #vmbr-backup-panel #vmbr-log-search,
-  #vmbr-restore-panel #vmbr-log-search,
-  #vmbr-page #vmbr-log-search,
-  #vmbr-log-search {
+  #vmbr-backup-panel #vmbr-log-search, #vmbr-restore-panel #vmbr-log-search, #vmbr-page #vmbr-log-search, #vmbr-log-search {
     border:none !important; box-shadow:none !important; outline:none !important;
     width:200px !important; max-width:200px !important; background:transparent !important;
     padding:4px 6px !important; font-size:12px !important;
@@ -403,207 +248,80 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
 
   input[type="number"] { padding-right:0; }
   input[type="number"].short-input { -moz-appearance:auto; -webkit-appearance:auto; appearance:auto; }
-
   select.version-select:disabled { pointer-events:none; opacity:.45; cursor:default; }
   input.state-error { border-color:var(--c-danger) !important; color:var(--c-danger) !important; }
 
-  /* ── Buttons ─────────────────────────────────────────────────────────────── */
-  #vmbr-page button {
-    border:none; border-radius:6px; color:#fff;
-    cursor:pointer; padding:7px 14px; font-size:12px;
-    font-weight:600; letter-spacing:.3px; transition:background .15s, box-shadow .15s;
-    background:var(--c-accent);
-  }
+  #vmbr-page button { border:none; border-radius:6px; color:#fff; cursor:pointer; padding:7px 14px; font-size:12px; font-weight:600; letter-spacing:.3px; transition:background .15s, box-shadow .15s; background:var(--c-accent); }
   #vmbr-page button:hover { filter:brightness(1.12); }
   #vmbr-page button:focus-visible { outline:2px solid var(--c-accent-light); outline-offset:2px; }
 
-  #vmbr-log-scroll-top-btn,
-  #vmbr-log-autoscroll-btn { padding:7px 10px !important; font-size:14px !important; line-height:1 !important; min-width:0 !important; width:34px !important; }
+  #vmbr-log-scroll-top-btn, #vmbr-log-autoscroll-btn { padding:7px 10px !important; font-size:14px !important; line-height:1 !important; min-width:0 !important; width:34px !important; }
   .vmbr-scroll-group { display:flex; flex-direction:row; gap:6px; align-items:center; }
   .vmbr-scroll-group button { margin:0 !important; }
 
   .vmbr-actions-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px; }
 
-  /* ── Multiselect dropdowns ───────────────────────────────────────────────── */
-  .vmbr-multiselect {
-    position:relative; width:var(--input-w); max-width:var(--input-w);
-    border:1px solid var(--c-border-strong) !important;
-    padding:5px 8px; background:var(--c-bg); cursor:pointer;
-    border-radius:var(--radius-input); color:var(--c-text);
-    transition:box-shadow .15s; box-sizing:border-box; font-size:12px;
-  }
-  #vmbr-vm-dropdown-backup,
-  #vmbr-vm-dropdown-restore,
-  #vmbr-notif-service-backup,
-  #vmbr-notif-service-restore {
-    border:1px solid var(--c-border-strong) !important;
-    border-radius:var(--radius-input) !important;
-    background:var(--c-bg) !important;
-    width:var(--input-w) !important; max-width:var(--input-w) !important;
-    height:auto !important; min-height:unset !important;
-    flex:none !important; box-sizing:border-box !important;
-  }
-  .vmbr-multiselect:hover,
-  #vmbr-vm-dropdown-backup:hover,
-  #vmbr-vm-dropdown-restore:hover,
-  #vmbr-notif-service-backup:hover,
-  #vmbr-notif-service-restore:hover { border-color:var(--c-accent-light) !important; }
-  .vmbr-multiselect:focus,
-  .vmbr-multiselect.active,
-  #vmbr-vm-dropdown-backup.active,
-  #vmbr-vm-dropdown-restore.active,
-  #vmbr-notif-service-backup.active,
-  #vmbr-notif-service-restore.active { box-shadow:0 0 0 3px var(--c-accent-glow) !important; outline:none; }
+  .vmbr-multiselect { position:relative; width:var(--input-w); max-width:var(--input-w); border:1px solid var(--c-border-strong) !important; padding:5px 8px; background:var(--c-bg); cursor:pointer; border-radius:var(--radius-input); color:var(--c-text); transition:box-shadow .15s; box-sizing:border-box; font-size:12px; }
+  #vmbr-vm-dropdown-backup, #vmbr-vm-dropdown-restore, #vmbr-notif-service-backup, #vmbr-notif-service-restore { border:1px solid var(--c-border-strong) !important; border-radius:var(--radius-input) !important; background:var(--c-bg) !important; width:var(--input-w) !important; max-width:var(--input-w) !important; height:auto !important; min-height:unset !important; flex:none !important; box-sizing:border-box !important; }
+  .vmbr-multiselect:hover, #vmbr-vm-dropdown-backup:hover, #vmbr-vm-dropdown-restore:hover, #vmbr-notif-service-backup:hover, #vmbr-notif-service-restore:hover { border-color:var(--c-accent-light) !important; }
+  .vmbr-multiselect:focus, .vmbr-multiselect.active, #vmbr-vm-dropdown-backup.active, #vmbr-vm-dropdown-restore.active, #vmbr-notif-service-backup.active, #vmbr-notif-service-restore.active { box-shadow:0 0 0 3px var(--c-accent-glow) !important; outline:none; }
 
   .vmbr-dropdown-label { color:var(--c-text) !important; user-select:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px; }
-
-  .vmbr-vm-dropdown-list {
-    padding:4px; display:none; position:absolute; top:100%; left:0;
-    width:100%; max-height:200px; overflow-y:auto;
-    border:1px solid var(--c-border-strong); background:var(--c-surface);
-    color:var(--c-text); z-index:10; border-radius:0 0 6px 6px;
-  }
+  .vmbr-vm-dropdown-list { padding:4px; display:none; position:absolute; top:100%; left:0; width:100%; max-height:200px; overflow-y:auto; border:1px solid var(--c-border-strong); background:var(--c-surface); color:var(--c-text); z-index:10; border-radius:0 0 6px 6px; }
   .vmbr-vm-dropdown-list div { padding:3px 2px; line-height:1.5; height:26px; display:flex; align-items:center; color:var(--c-text) !important; }
   .vmbr-vm-dropdown-list label { display:flex; align-items:center; gap:6px; color:var(--c-text) !important; font-weight:400; font-size:12px; }
-  .vmbr-vm-dropdown-list input[type="checkbox"] {
-    appearance:none; width:14px; height:14px; border:1px solid var(--c-text-muted);
-    background:var(--c-bg); cursor:pointer; position:relative;
-    accent-color:var(--c-accent); flex:none !important;
-    transition:border-color .15s, box-shadow .15s;
-  }
+  .vmbr-vm-dropdown-list input[type="checkbox"] { appearance:none; width:14px; height:14px; border:1px solid var(--c-text-muted); background:var(--c-bg); cursor:pointer; position:relative; accent-color:var(--c-accent); flex:none !important; transition:border-color .15s, box-shadow .15s; }
   .vmbr-vm-dropdown-list input[type="checkbox"]:hover { border-color:var(--c-accent-light); }
   .vmbr-vm-dropdown-list input[type="checkbox"]:checked::after { content:'✔'; position:absolute; top:-2px; left:2px; font-size:12px; color:#fff; }
   .vmbr-vm-dropdown-list div:hover { background:var(--c-surface-raised); }
-  #vmbr-vm-dropdown-backup.disabled,
-  #vmbr-vm-dropdown-restore.disabled { pointer-events:none; opacity:.45; cursor:default; }
+  #vmbr-vm-dropdown-backup.disabled, #vmbr-vm-dropdown-restore.disabled { pointer-events:none; opacity:.45; cursor:default; }
 
-  /* Webhook injected fields */
-  #vmbr-webhook-container-backup input,
-  #vmbr-webhook-container-backup select,
-  #vmbr-webhook-container-restore input,
-  #vmbr-webhook-container-restore select {
-    width:var(--input-w) !important; max-width:var(--input-w) !important;
-    height:29px !important; box-sizing:border-box !important;
-    padding-top:0 !important; padding-bottom:0 !important;
-    flex:none !important;
-  }
+  #vmbr-webhook-container-backup input, #vmbr-webhook-container-backup select, #vmbr-webhook-container-restore input, #vmbr-webhook-container-restore select { width:var(--input-w) !important; max-width:var(--input-w) !important; height:29px !important; box-sizing:border-box !important; padding-top:0 !important; padding-bottom:0 !important; flex:none !important; }
 
-  /* ── In-progress banners ─────────────────────────────────────────────────── */
-  .vmbr-banner {
-    display:none; margin-bottom:10px;
-    background:var(--c-accent-dim);
-    border:1px solid var(--c-border-strong);
-    border-radius:8px; padding:8px 12px;
-    max-width:calc(var(--label-w) + 10px + var(--input-w));
-    box-sizing:border-box;
-  }
+  .vmbr-banner { display:none; margin-bottom:10px; background:var(--c-accent-dim); border:1px solid var(--c-border-strong); border-radius:8px; padding:8px 12px; max-width:calc(var(--label-w) + 10px + var(--input-w)); box-sizing:border-box; }
   .vmbr-banner-inner { display:flex; align-items:center; gap:10px; }
   .vmbr-banner-text { color:var(--c-text); font-weight:700; font-size:12px; }
   .vmbr-stop-toast { font-size:11px; color:var(--c-accent-light); white-space:nowrap; pointer-events:none; visibility:hidden; }
   .vmbr-stop-toast.visible { visibility:visible; }
   .vmbr-banner button { font-size:11px !important; padding:4px 10px !important; background:var(--c-accent) !important; }
-
   .vmbr-notif-row:hover { background:var(--c-surface-raised); }
 
-  /* ── Popups ─────────────────────────────────────────────────────────────── */
-  .vmbr-popup {
-    display:none;
-    background:rgba(34,197,94,0.15); color:var(--c-success);
-    border:1px solid rgba(34,197,94,0.35);
-    padding:6px 10px; border-radius:6px; margin-top:8px;
-    font-weight:600; font-size:12px;
-  }
+  .vmbr-popup { display:none; background:rgba(34,197,94,0.15); color:var(--c-success); border:1px solid rgba(34,197,94,0.35); padding:6px 10px; border-radius:6px; margin-top:8px; font-weight:600; font-size:12px; }
 
-  /* ── Plugin / Mode switcher row (inside card header) ────────────────────── */
-  #vmbr-mode-row {
-    display:flex; align-items:center; gap:10px;
-    padding:7px 12px;
-    background:var(--c-surface-raised);
-    border-bottom:1px solid var(--c-border);
-    border-radius:var(--radius-card) var(--radius-card) 0 0;
-    flex-shrink:0; flex-wrap:nowrap;
-    box-sizing:border-box; width:100%;
-  }
-  .vmbr-topbar-group {
-    display:flex; align-items:center; gap:5px; flex-shrink:0;
-  }
-  .vmbr-topbar-label {
-    font-size:12px; font-weight:600; color:var(--c-label);
-    letter-spacing:.2px; white-space:nowrap;
-  }
-  #vmbr-mode-row select,
-  #vmbr-mode-row .vmbr-topbar-select {
-    height:auto !important; font-size:11px !important;
-    background:var(--c-bg) !important;
-    color:var(--c-text) !important;
-    border:1px solid var(--c-border-strong) !important;
-    border-radius:var(--radius-input) !important;
-    padding:4px 7px !important;
-    cursor:pointer !important;
-    width:150px !important; max-width:150px !important;
-    min-width:0 !important; box-sizing:border-box !important;
-  }
-  #vmbr-mode-row select:focus,
-  #vmbr-mode-row .vmbr-topbar-select:focus { outline:none !important; box-shadow:0 0 0 2px var(--c-accent-glow) !important; }
+  #vmbr-mode-row { display:flex; align-items:center; gap:10px; padding:7px 12px; background:var(--c-surface-raised); border-bottom:1px solid var(--c-border); border-radius:var(--radius-card) var(--radius-card) 0 0; flex-shrink:0; flex-wrap:nowrap; box-sizing:border-box; width:100%; }
+  .vmbr-topbar-group { display:flex; align-items:center; gap:5px; flex-shrink:0; }
+  .vmbr-topbar-label { font-size:12px; font-weight:600; color:var(--c-label); letter-spacing:.2px; white-space:nowrap; }
+  #vmbr-mode-row select, #vmbr-mode-row .vmbr-topbar-select { height:auto !important; font-size:11px !important; background:var(--c-bg) !important; color:var(--c-text) !important; border:1px solid var(--c-border-strong) !important; border-radius:var(--radius-input) !important; padding:4px 7px !important; cursor:pointer !important; width:150px !important; max-width:150px !important; min-width:0 !important; box-sizing:border-box !important; }
+  #vmbr-mode-row select:focus, #vmbr-mode-row .vmbr-topbar-select:focus { outline:none !important; box-shadow:0 0 0 2px var(--c-accent-glow) !important; }
 
-
-  #vmbr-log-panel {
-    background:var(--c-surface);
-    border:1px solid var(--c-border);
-    border-radius:var(--radius-card);
-    box-shadow:var(--shadow-card);
-    display:flex; flex-direction:column;
-    overflow:hidden; height:740px;
-    margin-top:-68px;
-  }
-
-  .vmbr-log-toolbar {
-    display:flex; align-items:center; gap:6px; padding:4px 12px;
-    background:var(--c-surface-raised);
-    border-bottom:1px solid var(--c-border);
-    flex-shrink:0;
-  }
-  /* search on the left, buttons flush right */
+  #vmbr-log-panel { background:var(--c-surface); border:1px solid var(--c-border); border-radius:var(--radius-card); box-shadow:var(--shadow-card); display:flex; flex-direction:column; overflow:hidden; height:740px; margin-top:-68px; }
+  .vmbr-log-toolbar { display:flex; align-items:center; gap:6px; padding:4px 12px; background:var(--c-surface-raised); border-bottom:1px solid var(--c-border); flex-shrink:0; }
   .vmbr-log-toolbar-right { display:flex; align-items:center; gap:6px; margin-left:auto; }
   #vmbr-log-toast { font-size:11px; color:var(--c-accent-light); white-space:nowrap; pointer-events:none; min-width:60px; visibility:hidden; }
   #vmbr-log-toast.visible { visibility:visible; }
 
-  #vmbr-log-pre {
-    background:var(--c-bg); border:none; border-radius:0 0 10px 10px;
-    color:#b0b8d0; font-family:'Consolas','JetBrains Mono',monospace;
-    font-size:12px; line-height:1.65;
-    overflow-y:auto; padding:10px 14px 12px; white-space:pre-wrap;
-    word-break:break-word; flex:1 1 0; margin:0; min-height:0;
-  }
+  /* ── Toggle slider (debug log) ───────────────────────────────────────────── */
+  .fbb-toggle-wrap { display:inline-flex; align-items:center; gap:6px; user-select:none; }
+  .fbb-toggle { position:relative; display:inline-block; width:38px; height:20px; flex-shrink:0; }
+  .fbb-toggle input { opacity:0; width:0; height:0; position:absolute; }
+  .fbb-toggle-slider { position:absolute; cursor:pointer; inset:0; background:var(--c-bg); border:1px solid var(--c-border-strong); border-radius:20px; transition:background .2s, border-color .2s; }
+  .fbb-toggle-slider:before { content:''; position:absolute; width:14px; height:14px; left:2px; top:2px; background:var(--c-text-muted); border-radius:50%; transition:transform .2s, background .2s; }
+  .fbb-toggle input:checked + .fbb-toggle-slider { background:var(--c-accent-dim); border-color:var(--c-accent-light); }
+  .fbb-toggle input:checked + .fbb-toggle-slider:before { transform:translateX(18px); background:var(--c-accent-light); }
+
+  #vmbr-log-pre { background:var(--c-bg); border:none; border-radius:0 0 10px 10px; color:#b0b8d0; font-family:'Consolas','JetBrains Mono',monospace; font-size:12px; line-height:1.65; overflow-y:auto; padding:10px 14px 12px; white-space:pre-wrap; word-break:break-word; flex:1 1 0; margin:0; min-height:0; }
   #vmbr-log-pre .log-highlight { background:rgba(124,58,237,.22); border-radius:2px; color:var(--c-success); }
 
-  .vmbr-log-search-wrap {
-    display:flex; align-items:center;
-    background:var(--c-bg);
-    border:1px solid var(--c-border-strong); border-radius:6px;
-    overflow:hidden; transition:box-shadow .15s;
-    flex-shrink:0; position:relative;
-  }
+  .vmbr-log-search-wrap { display:flex; align-items:center; background:var(--c-bg); border:1px solid var(--c-border-strong); border-radius:6px; overflow:hidden; transition:box-shadow .15s; flex-shrink:0; position:relative; }
   .vmbr-log-search-wrap:focus-within { box-shadow:0 0 0 2px var(--c-accent-glow); }
   #vmbr-log-search::placeholder { color:rgba(255,255,255,.2); }
   #vmbr-log-search-count { font-size:11px; color:var(--c-text); white-space:nowrap; width:68px; flex-shrink:0; display:inline-block; visibility:hidden; }
   #vmbr-log-search-count.visible { visibility:visible; }
-  #vmbr-log-search-clear {
-    display:none; align-items:center; justify-content:center;
-    position:absolute; right:6px; top:50%; transform:translateY(-50%);
-    background:transparent; border:none; padding:0; margin:0; cursor:pointer;
-    color:var(--c-text-muted); line-height:0;
-    width:12px; height:12px;
-  }
+  #vmbr-log-search-clear { display:none; align-items:center; justify-content:center; position:absolute; right:6px; top:50%; transform:translateY(-50%); background:transparent; border:none; padding:0; margin:0; cursor:pointer; color:var(--c-text-muted); line-height:0; width:12px; height:12px; }
   #vmbr-log-search-clear:hover { color:var(--c-text); }
   #vmbr-log-search-clear svg { display:block; pointer-events:none; width:12px; height:12px; }
 
-  /* ── Schedule section ────────────────────────────────────────────────────── */
-  #vmbr-schedule-section {
-    width:100%; box-sizing:border-box; padding-bottom:16px;
-    color:var(--c-text) !important; overflow:visible !important;
-    margin-top:18px !important;
-  }
+  #vmbr-schedule-section { width:100%; box-sizing:border-box; padding-bottom:16px; color:var(--c-text) !important; overflow:visible !important; margin-top:18px !important; }
   #vmbr-schedule-list { color:var(--c-text) !important; width:100%; overflow:visible !important; }
 
   @media (min-width:1201px) {
@@ -611,46 +329,18 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     #vmbr-page.unraid-72 #vmbr-schedule-section { margin-top:2px !important; }
   }
 
-  #vmbr-schedule-list .TableContainer {
-    width:100%; box-sizing:border-box;
-    border:2px solid var(--c-border-strong);
-    border-radius:var(--radius-card);
-    overflow-x:auto; display:block;
-  }
-  .vmbr-schedules-table {
-    border-collapse:collapse; table-layout:auto;
-    width:100%;
-    background:var(--c-surface) !important;
-  }
-  .vmbr-schedules-table thead tr {
-    background:var(--c-surface-raised) !important;
-    border-bottom:2px solid var(--c-border-strong) !important;
-  }
+  #vmbr-schedule-list .TableContainer { width:100%; box-sizing:border-box; border:2px solid var(--c-border-strong); border-radius:var(--radius-card); overflow-x:auto; display:block; }
+  .vmbr-schedules-table { border-collapse:collapse; table-layout:auto; width:100%; background:var(--c-surface) !important; }
+  .vmbr-schedules-table thead tr { background:var(--c-surface-raised) !important; border-bottom:2px solid var(--c-border-strong) !important; }
   .vmbr-schedules-table thead tr th:first-child { border-radius:8px 0 0 0; }
   .vmbr-schedules-table thead tr th:last-child  { border-radius:0 8px 0 0; }
-  .vmbr-schedules-table th {
-    padding:9px 8px; font-size:11px; font-weight:700;
-    letter-spacing:.6px; text-transform:uppercase;
-    color:var(--c-accent-light) !important;
-    white-space:nowrap; text-align:center;
-  }
-  .vmbr-schedules-table td {
-    padding:8px 8px; vertical-align:middle !important;
-    color:var(--c-text) !important; font-size:12px;
-    background:var(--c-surface) !important;
-    text-align:center; white-space:nowrap;
-  }
-  /* Column dividers */
-  .vmbr-schedules-table th + th,
-  .vmbr-schedules-table td + td { border-left:1px solid var(--c-border) !important; }
-  /* Row dividers */
+  .vmbr-schedules-table th { padding:9px 8px; font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--c-accent-light) !important; white-space:nowrap; text-align:center; }
+  .vmbr-schedules-table td { padding:8px 8px; vertical-align:middle !important; color:var(--c-text) !important; font-size:12px; background:var(--c-surface) !important; text-align:center; white-space:nowrap; }
+  .vmbr-schedules-table th + th, .vmbr-schedules-table td + td { border-left:1px solid var(--c-border) !important; }
   .vmbr-schedules-table tbody tr + tr td { border-top:1px solid var(--c-border) !important; }
   .vmbr-schedules-table tbody tr:hover td { background:var(--c-surface-raised) !important; }
-  /* First col left-align */
-  .vmbr-schedules-table th:first-child,
-  .vmbr-schedules-table td:first-child { text-align:left !important; padding-left:10px !important; }
+  .vmbr-schedules-table th:first-child, .vmbr-schedules-table td:first-child { text-align:left !important; padding-left:10px !important; }
 
-  /* ── Column widths — min-widths only, auto layout fills the rest ── */
   .vmbr-schedules-table th:nth-child(1), .vmbr-schedules-table td:nth-child(1) { min-width:130px; }
   .vmbr-schedules-table th:nth-child(2), .vmbr-schedules-table td:nth-child(2) { min-width:90px;  max-width:160px; overflow:hidden; text-overflow:ellipsis; }
   .vmbr-schedules-table th:nth-child(3), .vmbr-schedules-table td:nth-child(3) { min-width:90px;  max-width:160px; overflow:hidden; text-overflow:ellipsis; }
@@ -658,86 +348,31 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
   .vmbr-schedules-table th:nth-child(5), .vmbr-schedules-table td:nth-child(5) { min-width:60px;  white-space:nowrap; }
   .vmbr-schedules-table th:nth-child(6), .vmbr-schedules-table td:nth-child(6) { min-width:60px;  white-space:nowrap; }
   .vmbr-schedules-table th:nth-child(7), .vmbr-schedules-table td:nth-child(7) { min-width:60px;  white-space:nowrap; }
-
-  /* ── Actions col — 4-in-a-row by default, falls back to 2x2 when narrow ── */
-  .vmbr-schedules-table th:last-child,
-  .vmbr-schedules-table td:last-child { text-align:center; white-space:nowrap; width:auto; min-width:200px; }
+  .vmbr-schedules-table th:last-child, .vmbr-schedules-table td:last-child { text-align:center; white-space:nowrap; width:auto; min-width:200px; }
   .vmbr-schedules-table td:last-child { padding:5px 6px !important; }
-  .vmbr-schedules-table td:last-child .vmbr-sched-actions {
-    display:flex !important;
-    flex-direction:row !important;
-    gap:4px !important;
-    justify-content:center !important;
-    align-items:center !important;
-  }
-  .vmbr-schedules-table td:last-child .vmbr-sched-actions button {
-    text-align:center !important;
-    padding:4px 8px !important; font-size:11px !important;
-    background:var(--c-accent) !important; border-radius:6px !important; color:#fff !important;
-    margin:0 !important; white-space:nowrap !important; box-sizing:border-box !important;
-  }
-  /* Drop to 2x2 when the page is too narrow to fit 4-in-a-row comfortably */
+  .vmbr-schedules-table td:last-child .vmbr-sched-actions { display:flex !important; flex-direction:row !important; gap:4px !important; justify-content:center !important; align-items:center !important; }
+  .vmbr-schedules-table td:last-child .vmbr-sched-actions button { text-align:center !important; padding:4px 8px !important; font-size:11px !important; background:var(--c-accent) !important; border-radius:6px !important; color:#fff !important; margin:0 !important; white-space:nowrap !important; box-sizing:border-box !important; }
   @media (max-width:900px) {
-    .vmbr-schedules-table th:last-child,
-    .vmbr-schedules-table td:last-child { min-width:180px; width:180px; }
-    .vmbr-schedules-table td:last-child .vmbr-sched-actions {
-      display:grid !important;
-      grid-template-columns:1fr 1fr !important;
-      width:168px !important;
-    }
-    .vmbr-schedules-table td:last-child .vmbr-sched-actions button {
-      width:100% !important;
-    }
+    .vmbr-schedules-table th:last-child, .vmbr-schedules-table td:last-child { min-width:180px; width:180px; }
+    .vmbr-schedules-table td:last-child .vmbr-sched-actions { display:grid !important; grid-template-columns:1fr 1fr !important; width:168px !important; }
+    .vmbr-schedules-table td:last-child .vmbr-sched-actions button { width:100% !important; }
   }
 
-  /* Status dot */
-  .vmbr-sched-dot {
-    display:inline-block; width:8px; height:8px; border-radius:50%;
-    flex-shrink:0; vertical-align:middle; margin-right:5px;
-  }
+  .vmbr-sched-dot { display:inline-block; width:8px; height:8px; border-radius:50%; flex-shrink:0; vertical-align:middle; margin-right:5px; }
   .vmbr-sched-dot.enabled  { background:#22c55e; box-shadow:0 0 5px #22c55e; }
   .vmbr-sched-dot.disabled { background:#ef4444; box-shadow:0 0 5px #ef4444; }
 
-  /* ── Scrollbars ──────────────────────────────────────────────────────────── */
-  #vmbr-backup-panel::-webkit-scrollbar,
-  #vmbr-restore-panel::-webkit-scrollbar,
-  #vmbr-log-pre::-webkit-scrollbar,
-  .vmbr-vm-dropdown-list::-webkit-scrollbar,
-  .vmbr-folder-list::-webkit-scrollbar { width:6px !important; display:block !important; }
-  #vmbr-backup-panel::-webkit-scrollbar-thumb,
-  #vmbr-restore-panel::-webkit-scrollbar-thumb,
-  #vmbr-log-pre::-webkit-scrollbar-thumb,
-  .vmbr-vm-dropdown-list::-webkit-scrollbar-thumb,
-  .vmbr-folder-list::-webkit-scrollbar-thumb { background:var(--c-accent) !important; border-radius:3px !important; }
-  #vmbr-backup-panel::-webkit-scrollbar-track,
-  #vmbr-restore-panel::-webkit-scrollbar-track,
-  #vmbr-log-pre::-webkit-scrollbar-track,
-  .vmbr-vm-dropdown-list::-webkit-scrollbar-track,
-  .vmbr-folder-list::-webkit-scrollbar-track { background:var(--c-bg) !important; }
-  #vmbr-backup-panel,
-  #vmbr-restore-panel,
-  #vmbr-log-pre { scrollbar-width:thin !important; scrollbar-color:var(--c-accent) var(--c-bg) !important; }
+  #vmbr-backup-panel::-webkit-scrollbar, #vmbr-restore-panel::-webkit-scrollbar, #vmbr-log-pre::-webkit-scrollbar, .vmbr-vm-dropdown-list::-webkit-scrollbar, .vmbr-folder-list::-webkit-scrollbar { width:6px !important; display:block !important; }
+  #vmbr-backup-panel::-webkit-scrollbar-thumb, #vmbr-restore-panel::-webkit-scrollbar-thumb, #vmbr-log-pre::-webkit-scrollbar-thumb, .vmbr-vm-dropdown-list::-webkit-scrollbar-thumb, .vmbr-folder-list::-webkit-scrollbar-thumb { background:var(--c-accent) !important; border-radius:3px !important; }
+  #vmbr-backup-panel::-webkit-scrollbar-track, #vmbr-restore-panel::-webkit-scrollbar-track, #vmbr-log-pre::-webkit-scrollbar-track, .vmbr-vm-dropdown-list::-webkit-scrollbar-track, .vmbr-folder-list::-webkit-scrollbar-track { background:var(--c-bg) !important; }
+  #vmbr-backup-panel, #vmbr-restore-panel, #vmbr-log-pre { scrollbar-width:thin !important; scrollbar-color:var(--c-accent) var(--c-bg) !important; }
 
-  /* ── Shake ──────────────────────────────────────────────────────────────── */
   @keyframes vmbr-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 50%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
   #vmbr-backup-panel.state-error { animation:vmbr-shake .3s; }
 
-  /* ── Modal ───────────────────────────────────────────────────────────────── */
   .vmbr-modal { display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,.75); backdrop-filter:blur(3px); }
-  .vmbr-modal-content {
-    width:90%; max-width:580px; margin:8% auto;
-    background:var(--c-surface) !important;
-    border:1px solid var(--c-border-strong) !important;
-    border-radius:10px; color:var(--c-text) !important;
-    padding:0; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.7);
-  }
-  .vmbr-modal-header {
-    display:flex; justify-content:space-between; align-items:center;
-    padding:12px 16px;
-    background:var(--c-surface-raised) !important;
-    border-bottom:1px solid var(--c-border-strong);
-    font-weight:700; font-size:13px; color:var(--c-text) !important;
-  }
+  .vmbr-modal-content { width:90%; max-width:580px; margin:8% auto; background:var(--c-surface) !important; border:1px solid var(--c-border-strong) !important; border-radius:10px; color:var(--c-text) !important; padding:0; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.7); }
+  .vmbr-modal-header { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:var(--c-surface-raised) !important; border-bottom:1px solid var(--c-border-strong); font-weight:700; font-size:13px; color:var(--c-text) !important; }
   #vmbr-folder-picker-title { color:var(--c-accent-light) !important; }
   .vmbr-folder-list { max-height:300px; overflow-y:auto; padding:6px; font-size:13px; }
   .vmbr-folder-item { padding:6px 8px; cursor:pointer; color:var(--c-text) !important; border-radius:4px; }
@@ -745,37 +380,14 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
   .vmbr-folder-item label { cursor:pointer; color:var(--c-text) !important; font-size:13px; position:relative; top:-3px; }
   .vmbr-breadcrumb { margin:10px 16px 6px; font-size:12px; color:var(--c-text-muted) !important; }
   .vmbr-modal-footer { padding:10px 16px; text-align:right; border-top:1px solid var(--c-border); background:var(--c-surface-raised); }
-  .vmbr-modal-footer button,
-  .vmbr-modal-header button {
-    border:none; border-radius:6px; color:#fff;
-    cursor:pointer; padding:7px 14px; font-size:12px;
-    font-weight:600; letter-spacing:.3px;
-    background:var(--c-accent); transition:background .15s, box-shadow .15s;
-  }
-  .vmbr-modal-footer button:hover,
-  .vmbr-modal-header button:hover { filter:brightness(1.12); }
+  .vmbr-modal-footer button, .vmbr-modal-header button { border:none; border-radius:6px; color:#fff; cursor:pointer; padding:7px 14px; font-size:12px; font-weight:600; letter-spacing:.3px; background:var(--c-accent); transition:background .15s, box-shadow .15s; }
+  .vmbr-modal-footer button:hover, .vmbr-modal-header button:hover { filter:brightness(1.12); }
 
-  /* ── Inline help ─────────────────────────────────────────────────────────── */
   label.fbb-has-help, span.fbb-has-help { cursor:help; }
-  .fbb-help-text {
-    background:var(--c-surface-raised);
-    border-left:3px solid var(--c-accent);
-    border-radius:4px; color:var(--c-text-muted);
-    font-size:11px; line-height:1.5;
-    margin-bottom:8px; padding:6px 10px;
-    max-width:500px; box-sizing:border-box;
-  }
+  .fbb-help-text { background:var(--c-surface-raised); border-left:3px solid var(--c-accent); border-radius:4px; color:var(--c-text-muted); font-size:11px; line-height:1.5; margin-bottom:8px; padding:6px 10px; max-width:500px; box-sizing:border-box; }
 
-  /* ── Malformed warning ────────────────────────────────────────────────────── */
-  #vmbr-malformed-container > div {
-    background:rgba(239,68,68,0.12) !important;
-    color:var(--c-danger) !important;
-    border:1px solid rgba(239,68,68,.35) !important;
-    padding:9px 12px !important; border-radius:6px !important;
-    margin-bottom:10px !important; font-size:12px !important;
-  }
+  #vmbr-malformed-container > div { background:rgba(239,68,68,0.12) !important; color:var(--c-danger) !important; border:1px solid rgba(239,68,68,.35) !important; padding:9px 12px !important; border-radius:6px !important; margin-bottom:10px !important; font-size:12px !important; }
 
-  /* ── Responsive ──────────────────────────────────────────────────────────── */
   @media (max-width:1200px) {
     #vmbr-layout { grid-template-columns:1fr; }
     .vmbr-card-body { height:480px; }
@@ -789,15 +401,10 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
 </style>
 
 <div id="vmbr-page" class="<?php echo $isResponsiveWebgui ? 'unraid-72' : 'unraid-71'; ?>">
-
-<!-- ══ LAYOUT ════════════════════════════════════════════════════════════ -->
 <div id="vmbr-layout" style="margin-top:0;">
 
-  <!-- ══ BACKUP / RESTORE CARD ════════════════════════════════════════════ -->
   <div id="vmbr-backup-wrap" class="vmbr-panel-wrap">
     <div class="vmbr-card">
-
-      <!-- Plugin / Mode row — always visible -->
       <div id="vmbr-mode-row">
         <?php if ($has_siblings_bool): ?>
         <div class="vmbr-topbar-group">
@@ -819,7 +426,6 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
         </div>
       </div>
 
-      <!-- Card header — title + status dot update per mode -->
       <div class="vmbr-card-header">
         <span id="vmbr-active-card-title" class="vmbr-card-title">Backup</span>
         <div id="vmbr-backup-status-wrap" class="vmbr-card-status">
@@ -831,56 +437,36 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
           <span id="vmbr-restore-status-text">Idle</span>
         </div>
       </div>
-      <form id="vmbr-backup-panel" class="vmbr-card-body">
 
+      <form id="vmbr-backup-panel" class="vmbr-card-body">
         <div class="vmbr-section-label">Configuration</div>
 
-        <!-- VM(s) To Backup -->
         <div class="form-pair">
           <label title="Choose which VM(s) to backup">VM(s) To Backup:</label>
-          <div id="vmbr-vm-dropdown-backup" class="vmbr-multiselect" tabindex="0"
-               data-selected="<?php echo htmlspecialchars($settings_arr['VMS_TO_BACKUP'] ?? '') ?>">
+          <div id="vmbr-vm-dropdown-backup" class="vmbr-multiselect" tabindex="0" data-selected="<?php echo htmlspecialchars($settings_arr['VMS_TO_BACKUP'] ?? '') ?>">
             <div class="vmbr-dropdown-label">Select VM(s)</div>
             <div class="vmbr-vm-dropdown-list"></div>
           </div>
-          <input type="hidden" id="vmbr-hidden-vms-backup" name="VMS_TO_BACKUP"
-                 value="<?php echo htmlspecialchars($settings_arr['VMS_TO_BACKUP'] ?? '') ?>">
+          <input type="hidden" id="vmbr-hidden-vms-backup" name="VMS_TO_BACKUP" value="<?php echo htmlspecialchars($settings_arr['VMS_TO_BACKUP'] ?? '') ?>">
         </div>
 
-        <!-- Backup Destination -->
         <div class="form-pair">
           <label title="Choose destination for backup. Each VM saved to a subdirectory named after the VM">Destination:</label>
-          <input type="text" id="vmbr-backup-destination" name="BACKUP_DESTINATION"
-                 data-picker-title="Select Backup Destination"
-                 placeholder="Click to browse…" readonly style="cursor:pointer;"
-                 value="<?php echo htmlspecialchars($settings_arr['BACKUP_DESTINATION'] ?? '') ?>">
+          <input type="text" id="vmbr-backup-destination" name="BACKUP_DESTINATION" data-picker-title="Select Backup Destination" placeholder="Click to browse…" readonly style="cursor:pointer;" value="<?php echo htmlspecialchars($settings_arr['BACKUP_DESTINATION'] ?? '') ?>">
         </div>
 
-        <!-- Backups To Keep -->
         <div class="form-pair">
           <label for="vmbr-backup-keep" title="Choose the amount of backups to keep for each VM selected">Backups To Keep:</label>
           <select id="vmbr-backup-keep" class="short-input" name="BACKUPS_TO_KEEP">
-            <?php
-            $keep_int = (int)($settings_arr['BACKUPS_TO_KEEP'] ?? 0);
-            for ($i_int = 0; $i_int <= 99; $i_int++) {
-                $sel_str = ($keep_int === $i_int) ? 'selected' : '';
-                if ($i_int === 0)     echo "<option value=\"0\" $sel_str>Unlimited</option>";
-                elseif ($i_int === 1) echo "<option value=\"1\" $sel_str>Only Latest</option>";
-                else                  echo "<option value=\"$i_int\" $sel_str>$i_int</option>";
-            }
-            ?>
+            <?php $keep_int = (int)($settings_arr['BACKUPS_TO_KEEP'] ?? 0); for ($i_int = 0; $i_int <= 99; $i_int++) { $sel_str = ($keep_int === $i_int) ? 'selected' : ''; if ($i_int === 0) echo "<option value=\"0\" $sel_str>Unlimited</option>"; elseif ($i_int === 1) echo "<option value=\"1\" $sel_str>Only Latest</option>"; else echo "<option value=\"$i_int\" $sel_str>$i_int</option>"; } ?>
           </select>
         </div>
 
-        <!-- Backup Owner -->
         <div class="form-pair">
           <label title="Choose the owner for the backup files">Backup Owner:</label>
-          <select id="vmbr-backup-owner" name="BACKUP_OWNER"
-                  data-selected="<?php echo htmlspecialchars($settings_arr['BACKUP_OWNER'] ?? 'nobody') ?>">
-          </select>
+          <select id="vmbr-backup-owner" name="BACKUP_OWNER" data-selected="<?php echo htmlspecialchars($settings_arr['BACKUP_OWNER'] ?? 'nobody') ?>"></select>
         </div>
 
-        <!-- Dry Run -->
         <div class="form-pair">
           <label for="vmbr-backup-dry-run" title="Enable to simulate a backup without making changes">Dry Run:</label>
           <select id="vmbr-backup-dry-run" class="short-input" name="DRY_RUN">
@@ -891,7 +477,6 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
 
         <div class="vmbr-section-label" style="margin-top:8px;">Notifications</div>
 
-        <!-- Notifications -->
         <div class="form-pair">
           <label for="vmbr-backup-notif" title="Send notifications when VM backup starts and finishes">Notifications:</label>
           <select id="vmbr-backup-notif" class="short-input" name="NOTIFICATIONS">
@@ -900,25 +485,19 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
           </select>
         </div>
 
-        <!-- Notification Service -->
         <div id="vmbr-backup-notif-service-row" style="display:none;">
           <div class="form-pair">
             <label title="Choose which notification service(s) to use">Service:</label>
             <div style="display:flex;flex-direction:column;gap:4px;">
               <select id="vmbr-backup-notif-hidden" name="NOTIFICATION_SERVICE" multiple style="display:none;">
-                <?php foreach ($notif_services_arr as $svc_str): ?>
-                <option value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_arr, true) ? 'selected' : '' ?>><?= $svc_str ?></option>
-                <?php endforeach; ?>
+                <?php foreach ($notif_services_arr as $svc_str): ?><option value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_arr, true) ? 'selected' : '' ?>><?= $svc_str ?></option><?php endforeach; ?>
               </select>
               <div id="vmbr-notif-service-backup" class="vmbr-multiselect" tabindex="0">
                 <div class="vmbr-dropdown-label" id="vmbr-backup-notif-label">Select service(s)</div>
                 <div class="vmbr-vm-dropdown-list" id="vmbr-backup-notif-list" style="display:none;">
                   <?php foreach ($notif_services_arr as $svc_str): ?>
                   <div class="vmbr-notif-row" style="cursor:pointer;padding:4px 6px;border-radius:4px;" onclick="(function(r){var cb=r.querySelector('input[type=checkbox]');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change',{bubbles:true}));})(this)">
-                    <label style="pointer-events:none;">
-                      <input type="checkbox" value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_arr, true) ? 'checked' : '' ?> onclick="event.stopPropagation()">
-                      <?= $svc_str ?>
-                    </label>
+                    <label style="pointer-events:none;"><input type="checkbox" value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_arr, true) ? 'checked' : '' ?> onclick="event.stopPropagation()"><?= $svc_str ?></label>
                   </div>
                   <?php endforeach; ?>
                 </div>
@@ -927,12 +506,10 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
           </div>
         </div>
 
-        <!-- Webhook fields -->
         <div id="vmbr-webhook-container-backup"></div>
 
         <div class="vmbr-section-label" style="margin-top:8px;">Schedule</div>
 
-        <!-- Scheduling -->
         <div class="form-pair" id="vmbr-cron-mode-row">
           <label for="vmbr-cron-mode" title="Select scheduling mode">Frequency:</label>
           <div class="input-wrapper">
@@ -945,113 +522,24 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
           </div>
         </div>
 
-        <!-- Hourly -->
         <div id="vmbr-hourly-options" style="display:none;">
-          <div class="form-pair">
-            <label for="vmbr-hourly-freq" title="Select how often to run per day">Interval:</label>
-            <div class="input-wrapper">
-              <select id="vmbr-hourly-freq" name="HOURLY_FREQUENCY" class="short-input">
-                <?php foreach ([4, 6, 8] as $freq_int): ?>
-                <option value="<?= $freq_int ?>" <?= ($settings_arr['HOURLY_FREQUENCY'] ?? '') === (string)$freq_int ? 'selected' : '' ?>>Every <?= $freq_int ?> Hours</option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-          </div>
+          <div class="form-pair"><label for="vmbr-hourly-freq" title="Select how often to run per day">Interval:</label><div class="input-wrapper"><select id="vmbr-hourly-freq" name="HOURLY_FREQUENCY" class="short-input"><?php foreach ([4,6,8] as $freq_int): ?><option value="<?= $freq_int ?>" <?= ($settings_arr['HOURLY_FREQUENCY'] ?? '') === (string)$freq_int ? 'selected' : '' ?>>Every <?= $freq_int ?> Hours</option><?php endforeach; ?></select></div></div>
         </div>
-
-        <!-- Daily -->
         <div id="vmbr-daily-options" style="display:none;">
-          <div class="form-pair">
-            <label for="vmbr-daily-hour" title="Select the hour for daily execution">Hour:</label>
-            <div class="input-wrapper">
-              <select id="vmbr-daily-hour" name="DAILY_TIME" class="short-input">
-                <?php for ($h_int = 0; $h_int < 24; $h_int++): $h_str = str_pad($h_int, 2, '0', STR_PAD_LEFT); ?>
-                <option value="<?= $h_str ?>" <?= ($settings_arr['DAILY_TIME'] ?? '00') === $h_str ? 'selected' : '' ?>><?= $h_str ?></option>
-                <?php endfor; ?>
-              </select>
-            </div>
-          </div>
-          <div class="form-pair">
-            <label for="vmbr-daily-min" title="Select the minute for daily execution">Minute:</label>
-            <div class="input-wrapper">
-              <select id="vmbr-daily-min" name="DAILY_MINUTE" class="short-input">
-                <?php for ($m_int = 0; $m_int < 60; $m_int++): $m_str = str_pad($m_int, 2, '0', STR_PAD_LEFT); ?>
-                <option value="<?= $m_str ?>" <?= ($settings_arr['DAILY_MINUTE'] ?? '00') === $m_str ? 'selected' : '' ?>><?= $m_str ?></option>
-                <?php endfor; ?>
-              </select>
-            </div>
-          </div>
+          <div class="form-pair"><label for="vmbr-daily-hour" title="Select the hour for daily execution">Hour:</label><div class="input-wrapper"><select id="vmbr-daily-hour" name="DAILY_TIME" class="short-input"><?php for ($h_int=0;$h_int<24;$h_int++):$h_str=str_pad($h_int,2,'0',STR_PAD_LEFT);?><option value="<?=$h_str?>" <?=($settings_arr['DAILY_TIME']??'00')===$h_str?'selected':''?>><?=$h_str?></option><?php endfor;?></select></div></div>
+          <div class="form-pair"><label for="vmbr-daily-min" title="Select the minute for daily execution">Minute:</label><div class="input-wrapper"><select id="vmbr-daily-min" name="DAILY_MINUTE" class="short-input"><?php for ($m_int=0;$m_int<60;$m_int++):$m_str=str_pad($m_int,2,'0',STR_PAD_LEFT);?><option value="<?=$m_str?>" <?=($settings_arr['DAILY_MINUTE']??'00')===$m_str?'selected':''?>><?=$m_str?></option><?php endfor;?></select></div></div>
         </div>
-
-        <!-- Weekly -->
         <div id="vmbr-weekly-options" style="display:none;">
-          <div class="form-pair">
-            <label for="vmbr-weekly-day" title="Select day of the week">Day:</label>
-            <div class="input-wrapper">
-              <select id="vmbr-weekly-day" name="WEEKLY_DAY" class="short-input">
-                <?php foreach (['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as $day_str): ?>
-                <option value="<?= $day_str ?>" <?= ($settings_arr['WEEKLY_DAY'] ?? '') === $day_str ? 'selected' : '' ?>><?= $day_str ?></option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-          </div>
-          <div class="form-pair">
-            <label for="vmbr-weekly-hour" title="Hour">Hour:</label>
-            <div class="input-wrapper">
-              <select id="vmbr-weekly-hour" name="WEEKLY_TIME" class="short-input">
-                <?php for ($h_int = 0; $h_int < 24; $h_int++): $h_str = str_pad($h_int, 2, '0', STR_PAD_LEFT); ?>
-                <option value="<?= $h_str ?>" <?= ($settings_arr['WEEKLY_TIME'] ?? '00') === $h_str ? 'selected' : '' ?>><?= $h_str ?></option>
-                <?php endfor; ?>
-              </select>
-            </div>
-          </div>
-          <div class="form-pair">
-            <label for="vmbr-weekly-min" title="Minute">Minute:</label>
-            <div class="input-wrapper">
-              <select id="vmbr-weekly-min" name="WEEKLY_MINUTE" class="short-input">
-                <?php for ($m_int = 0; $m_int < 60; $m_int++): $m_str = str_pad($m_int, 2, '0', STR_PAD_LEFT); ?>
-                <option value="<?= $m_str ?>" <?= ($settings_arr['WEEKLY_MINUTE'] ?? '00') === $m_str ? 'selected' : '' ?>><?= $m_str ?></option>
-                <?php endfor; ?>
-              </select>
-            </div>
-          </div>
+          <div class="form-pair"><label for="vmbr-weekly-day" title="Select day of the week">Day:</label><div class="input-wrapper"><select id="vmbr-weekly-day" name="WEEKLY_DAY" class="short-input"><?php foreach(['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as $day_str):?><option value="<?=$day_str?>" <?=($settings_arr['WEEKLY_DAY']??'')===$day_str?'selected':''?>><?=$day_str?></option><?php endforeach;?></select></div></div>
+          <div class="form-pair"><label for="vmbr-weekly-hour" title="Hour">Hour:</label><div class="input-wrapper"><select id="vmbr-weekly-hour" name="WEEKLY_TIME" class="short-input"><?php for($h_int=0;$h_int<24;$h_int++):$h_str=str_pad($h_int,2,'0',STR_PAD_LEFT);?><option value="<?=$h_str?>" <?=($settings_arr['WEEKLY_TIME']??'00')===$h_str?'selected':''?>><?=$h_str?></option><?php endfor;?></select></div></div>
+          <div class="form-pair"><label for="vmbr-weekly-min" title="Minute">Minute:</label><div class="input-wrapper"><select id="vmbr-weekly-min" name="WEEKLY_MINUTE" class="short-input"><?php for($m_int=0;$m_int<60;$m_int++):$m_str=str_pad($m_int,2,'0',STR_PAD_LEFT);?><option value="<?=$m_str?>" <?=($settings_arr['WEEKLY_MINUTE']??'00')===$m_str?'selected':''?>><?=$m_str?></option><?php endfor;?></select></div></div>
         </div>
-
-        <!-- Monthly -->
         <div id="vmbr-monthly-options" style="display:none;">
-          <div class="form-pair">
-            <label for="vmbr-monthly-day" title="Select day of the month">Day:</label>
-            <div class="input-wrapper">
-              <select id="vmbr-monthly-day" name="MONTHLY_DAY" class="short-input">
-                <?php for ($d_int = 1; $d_int <= 31; $d_int++): $d_str = str_pad($d_int, 2, '0', STR_PAD_LEFT); ?>
-                <option value="<?= $d_str ?>" <?= ($settings_arr['MONTHLY_DAY'] ?? '') === $d_str ? 'selected' : '' ?>><?= $d_str ?></option>
-                <?php endfor; ?>
-              </select>
-            </div>
-          </div>
-          <div class="form-pair">
-            <label for="vmbr-monthly-hour" title="Hour">Hour:</label>
-            <div class="input-wrapper">
-              <select id="vmbr-monthly-hour" name="MONTHLY_TIME" class="short-input">
-                <?php for ($h_int = 0; $h_int < 24; $h_int++): $h_str = str_pad($h_int, 2, '0', STR_PAD_LEFT); ?>
-                <option value="<?= $h_str ?>" <?= ($settings_arr['MONTHLY_TIME'] ?? '00') === $h_str ? 'selected' : '' ?>><?= $h_str ?></option>
-                <?php endfor; ?>
-              </select>
-            </div>
-          </div>
-          <div class="form-pair">
-            <label for="vmbr-monthly-min" title="Minute">Minute:</label>
-            <div class="input-wrapper">
-              <select id="vmbr-monthly-min" name="MONTHLY_MINUTE" class="short-input">
-                <?php for ($m_int = 0; $m_int < 60; $m_int++): $m_str = str_pad($m_int, 2, '0', STR_PAD_LEFT); ?>
-                <option value="<?= $m_str ?>" <?= ($settings_arr['MONTHLY_MINUTE'] ?? '00') === $m_str ? 'selected' : '' ?>><?= $m_str ?></option>
-                <?php endfor; ?>
-              </select>
-            </div>
-          </div>
+          <div class="form-pair"><label for="vmbr-monthly-day" title="Select day of the month">Day:</label><div class="input-wrapper"><select id="vmbr-monthly-day" name="MONTHLY_DAY" class="short-input"><?php for($d_int=1;$d_int<=31;$d_int++):$d_str=str_pad($d_int,2,'0',STR_PAD_LEFT);?><option value="<?=$d_str?>" <?=($settings_arr['MONTHLY_DAY']??'')===$d_str?'selected':''?>><?=$d_str?></option><?php endfor;?></select></div></div>
+          <div class="form-pair"><label for="vmbr-monthly-hour" title="Hour">Hour:</label><div class="input-wrapper"><select id="vmbr-monthly-hour" name="MONTHLY_TIME" class="short-input"><?php for($h_int=0;$h_int<24;$h_int++):$h_str=str_pad($h_int,2,'0',STR_PAD_LEFT);?><option value="<?=$h_str?>" <?=($settings_arr['MONTHLY_TIME']??'00')===$h_str?'selected':''?>><?=$h_str?></option><?php endfor;?></select></div></div>
+          <div class="form-pair"><label for="vmbr-monthly-min" title="Minute">Minute:</label><div class="input-wrapper"><select id="vmbr-monthly-min" name="MONTHLY_MINUTE" class="short-input"><?php for($m_int=0;$m_int<60;$m_int++):$m_str=str_pad($m_int,2,'0',STR_PAD_LEFT);?><option value="<?=$m_str?>" <?=($settings_arr['MONTHLY_MINUTE']??'00')===$m_str?'selected':''?>><?=$m_str?></option><?php endfor;?></select></div></div>
         </div>
 
-        <!-- Backup in-progress banner -->
         <div id="vmbr-backup-banner" class="vmbr-banner">
           <div class="vmbr-banner-inner">
             <span id="vmbr-backup-banner-text" class="vmbr-banner-text"></span>
@@ -1060,43 +548,31 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
           </div>
         </div>
 
-        <!-- Actions -->
         <div class="vmbr-actions-row">
           <button type="button" id="vmbr-backup-now-btn" title="Run backup of selected VM(s)">Backup Now</button>
           <button type="button" id="vmbr-schedule-btn" class="button schedule-button" title="Create a backup schedule using the settings shown above">Schedule It</button>
           <button type="button" id="vmbr-cancel-edit-btn" style="display:none;">Cancel</button>
         </div>
-
         <div id="vmbr-backup-popup" class="vmbr-popup"></div>
       </form>
 
-      <!-- ══ RESTORE PANEL (same card, hidden by default) ════════════════ -->
       <form id="vmbr-restore-panel" class="vmbr-card-body" style="display:none;">
-
         <div class="vmbr-section-label">Source</div>
 
-        <!-- Location Of Backups -->
         <div class="form-pair">
           <label title="Choose location where backups are stored">Backups Location:</label>
-          <input type="text" id="vmbr-restore-location" name="LOCATION_OF_BACKUPS"
-                 data-picker-title="Select Location Of Backups"
-                 placeholder="Click to browse…" readonly style="cursor:pointer;"
-                 value="<?php echo htmlspecialchars($restore_settings_arr['LOCATION_OF_BACKUPS'] ?? '') ?>">
+          <input type="text" id="vmbr-restore-location" name="LOCATION_OF_BACKUPS" data-picker-title="Select Location Of Backups" placeholder="Click to browse…" readonly style="cursor:pointer;" value="<?php echo htmlspecialchars($restore_settings_arr['LOCATION_OF_BACKUPS'] ?? '') ?>">
         </div>
 
-        <!-- VM(s) To Restore -->
         <div class="form-pair">
           <label title="Choose which VM(s) to restore">VM(s) To Restore:</label>
-          <div id="vmbr-vm-dropdown-restore" class="vmbr-multiselect" tabindex="0"
-               data-selected="<?php echo htmlspecialchars($restore_settings_arr['VMS_TO_RESTORE'] ?? '') ?>">
+          <div id="vmbr-vm-dropdown-restore" class="vmbr-multiselect" tabindex="0" data-selected="<?php echo htmlspecialchars($restore_settings_arr['VMS_TO_RESTORE'] ?? '') ?>">
             <div class="vmbr-dropdown-label">Select VM(s)</div>
             <div class="vmbr-vm-dropdown-list"></div>
           </div>
-          <input type="hidden" id="vmbr-hidden-vms-restore" name="VMS_TO_RESTORE"
-                 value="<?php echo htmlspecialchars($restore_settings_arr['VMS_TO_RESTORE'] ?? '') ?>">
+          <input type="hidden" id="vmbr-hidden-vms-restore" name="VMS_TO_RESTORE" value="<?php echo htmlspecialchars($restore_settings_arr['VMS_TO_RESTORE'] ?? '') ?>">
         </div>
 
-        <!-- Malformed warnings + version fields -->
         <div id="vmbr-malformed-container"></div>
         <div id="vmbr-version-wrapper" style="display:none;">
           <div id="vmbr-version-container"></div>
@@ -1104,16 +580,11 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
 
         <div class="vmbr-section-label" style="margin-top:4px;">Destination</div>
 
-        <!-- Restore Destination -->
         <div class="form-pair">
           <label title="Choose destination to restore VM(s) to">Restore To:</label>
-          <input type="text" id="vmbr-restore-destination" name="RESTORE_DESTINATION"
-                 data-picker-title="Select Restore Destination"
-                 placeholder="Click to browse…" readonly style="cursor:pointer;"
-                 value="<?php echo htmlspecialchars($restore_settings_arr['RESTORE_DESTINATION'] ?? '') ?>">
+          <input type="text" id="vmbr-restore-destination" name="RESTORE_DESTINATION" data-picker-title="Select Restore Destination" placeholder="Click to browse…" readonly style="cursor:pointer;" value="<?php echo htmlspecialchars($restore_settings_arr['RESTORE_DESTINATION'] ?? '') ?>">
         </div>
 
-        <!-- Dry Run Restore -->
         <div class="form-pair">
           <label for="vmbr-restore-dry-run" title="Enable to simulate a restore without making changes">Dry Run:</label>
           <select id="vmbr-restore-dry-run" class="short-input" name="DRY_RUN_RESTORE">
@@ -1124,7 +595,6 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
 
         <div class="vmbr-section-label" style="margin-top:8px;">Notifications</div>
 
-        <!-- Notifications Restore -->
         <div class="form-pair">
           <label for="vmbr-restore-notif" title="Send notifications when VM restore starts and finishes">Notifications:</label>
           <select id="vmbr-restore-notif" class="short-input" name="NOTIFICATIONS_RESTORE">
@@ -1133,25 +603,19 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
           </select>
         </div>
 
-        <!-- Notification Service Restore -->
         <div id="vmbr-restore-notif-service-row" style="display:none;">
           <div class="form-pair">
             <label title="Choose which notification service(s) to use">Service:</label>
             <div style="display:flex;flex-direction:column;gap:4px;">
               <select id="vmbr-restore-notif-hidden" name="NOTIFICATION_SERVICE_RESTORE" multiple style="display:none;">
-                <?php foreach ($notif_services_arr as $svc_str): ?>
-                <option value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_restore_arr, true) ? 'selected' : '' ?>><?= $svc_str ?></option>
-                <?php endforeach; ?>
+                <?php foreach ($notif_services_arr as $svc_str): ?><option value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_restore_arr, true) ? 'selected' : '' ?>><?= $svc_str ?></option><?php endforeach; ?>
               </select>
               <div id="vmbr-notif-service-restore" class="vmbr-multiselect" tabindex="0">
                 <div class="vmbr-dropdown-label" id="vmbr-restore-notif-label">Select service(s)</div>
                 <div class="vmbr-vm-dropdown-list" id="vmbr-restore-notif-list" style="display:none;">
                   <?php foreach ($notif_services_arr as $svc_str): ?>
                   <div class="vmbr-notif-row" style="cursor:pointer;padding:4px 6px;border-radius:4px;" onclick="(function(r){var cb=r.querySelector('input[type=checkbox]');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change',{bubbles:true}));})(this)">
-                    <label style="pointer-events:none;">
-                      <input type="checkbox" value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_restore_arr, true) ? 'checked' : '' ?> onclick="event.stopPropagation()">
-                      <?= $svc_str ?>
-                    </label>
+                    <label style="pointer-events:none;"><input type="checkbox" value="<?= $svc_str ?>" <?= in_array($svc_str, $selected_services_restore_arr, true) ? 'checked' : '' ?> onclick="event.stopPropagation()"><?= $svc_str ?></label>
                   </div>
                   <?php endforeach; ?>
                 </div>
@@ -1160,10 +624,8 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
           </div>
         </div>
 
-        <!-- Restore webhook fields -->
         <div id="vmbr-webhook-container-restore"></div>
 
-        <!-- Restore in-progress banner -->
         <div id="vmbr-restore-banner" class="vmbr-banner">
           <div class="vmbr-banner-inner">
             <span id="vmbr-restore-banner-text" class="vmbr-banner-text"></span>
@@ -1175,20 +637,24 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
         <div class="vmbr-actions-row">
           <button type="button" id="vmbr-restore-now-btn" title="Run restore of selected VM(s)">Restore Now</button>
         </div>
-
         <div id="vmbr-restore-popup" class="vmbr-popup"></div>
       </form>
+    </div>
+  </div>
 
-    </div><!-- /.vmbr-card -->
-  </div><!-- /#vmbr-backup-wrap -->
-
-  <!-- ══ LOG PANEL ═══════════════════════════════════════════════════════ -->
   <div id="vmbr-log-panel">
     <div class="vmbr-card-header" style="border-radius:10px 10px 0 0;">
       <span class="vmbr-card-title">Activity Log</span>
       <span id="vmbr-log-last-run" style="font-size:11px;color:var(--c-text-muted);margin-left:10px;">No last run available</span>
     </div>
     <div class="vmbr-log-toolbar">
+      <span id="vmbr-debug-log-label" style="font-size:12px;font-weight:600;color:var(--c-label);white-space:nowrap;cursor:help;">Debug Log:</span>
+      <span class="fbb-toggle-wrap">
+        <label class="fbb-toggle">
+          <input type="checkbox" id="vmbr-log-debug-toggle" onchange="vmbrSwitchLog(this.checked)">
+          <span class="fbb-toggle-slider"></span>
+        </label>
+      </span>
       <div class="vmbr-log-search-wrap">
         <input type="text" id="vmbr-log-search" placeholder="Search…" autocomplete="off" style="padding-right:24px;">
         <span id="vmbr-log-search-clear" role="button" aria-label="Clear search">
@@ -1209,15 +675,13 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
     <pre id="vmbr-log-pre">VM backup &amp; restore log not found</pre>
   </div>
 
-</div><!-- /#vmbr-layout -->
+</div>
 
 <div id="vmbr-schedule-section">
   <div id="vmbr-schedule-list"></div>
 </div>
+</div>
 
-</div><!-- /#vmbr-page -->
-
-<!-- ── Folder picker modal ──────────────────────────────────────────────── -->
 <div id="vmbr-folder-picker-modal" class="vmbr-modal">
   <div class="vmbr-modal-content">
     <div class="vmbr-modal-header">
@@ -1240,12 +704,9 @@ const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_a
 
 <script>
 'use strict';
-// ════════════════════════════════════════════════════════════════════════════
-// 1. CONSTANTS
-// ════════════════════════════════════════════════════════════════════════════
-const H                = HELPERS_BASE_STR;
-const POLL_FAST_INT    = POLL_FAST_MS_INT;
-const POLL_SLOW_INT    = POLL_SLOW_MS_INT;
+const H             = HELPERS_BASE_STR;
+const POLL_FAST_INT = POLL_FAST_MS_INT;
+const POLL_SLOW_INT = POLL_SLOW_MS_INT;
 
 const SERVICE_CONFIG_OBJ = {
   Discord:  { label:'Discord Webhook URL',    prefix:'https://discord.com/api/webhooks/',          needsKey_bool:false, needsUrl_bool:true  },
@@ -1255,42 +716,30 @@ const SERVICE_CONFIG_OBJ = {
   Slack:    { label:'Slack Webhook URL',      prefix:'https://hooks.slack.com/services/',          needsKey_bool:false, needsUrl_bool:true  },
   Unraid:   { label:null,                     prefix:null,                                          needsKey_bool:false, needsUrl_bool:false },
 };
-
 const DAY_MAP_OBJ = { Sunday:0, Monday:1, Tuesday:2, Wednesday:3, Thursday:4, Friday:5, Saturday:6 };
 
-// ════════════════════════════════════════════════════════════════════════════
-// 2. STATE
-// ════════════════════════════════════════════════════════════════════════════
-let lastBackupStatus_str     = null;
-let lastRestoreStatus_str    = null;
-let lastLockSnapshot_str     = null;
-let lastLogSnapshot_str      = null;
-let lastVmList_str           = '';
+let lastBackupStatus_str      = null;
+let lastRestoreStatus_str     = null;
+let lastLockSnapshot_str      = null;
+let lastLogSnapshot_str       = null;
+let lastVmList_str            = '';
 let lastRestoreFolderList_str = '';
-
 let backupRunning_bool        = false;
 let backupReqInFlight_bool    = false;
 let scheduleUILocked_bool     = false;
 let prevBackupBanner_bool     = false;
 let prevRestoreBanner_bool    = false;
-
 let restoreFolderLoadInFlight_bool = false;
 let versionRebuildInFlight_bool    = false;
 let versionRebuildTimer_id         = null;
-
 let folderPickerPath_str     = '/mnt';
 let folderPickerSelected_str = null;
 let folderPickerTargetId_str = null;
-
 let logAutoScroll_bool = false;
+let logDebugMode_bool  = false;
 let editingScheduleId_str = null;
+let vmbrOriginalRestoreSelection_arr = ($('#vmbr-hidden-vms-restore').val() || '').split(',').map(s => s.trim()).filter(Boolean);
 
-let vmbrOriginalRestoreSelection_arr = ($('#vmbr-hidden-vms-restore').val() || '')
-  .split(',').map(s => s.trim()).filter(Boolean);
-
-// ════════════════════════════════════════════════════════════════════════════
-// 3. MODE SWITCHER
-// ════════════════════════════════════════════════════════════════════════════
 function vmbrSwitchMode(mode_str) {
   const isBackup_bool = (mode_str === 'backup');
   $('#vmbr-backup-panel').toggle(isBackup_bool);
@@ -1300,22 +749,14 @@ function vmbrSwitchMode(mode_str) {
   $('#vmbr-restore-status-wrap').toggle(!isBackup_bool);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// 4. UTILITIES
-// ════════════════════════════════════════════════════════════════════════════
 function vmbrH(path_str) { return H + '/' + path_str; }
 function vmbrGet(ep_str, data_obj)  { return $.getJSON(vmbrH(ep_str), data_obj || {}); }
 function vmbrPost(ep_str, data_obj) { return $.post(vmbrH(ep_str), data_obj); }
 
 async function vmbrResolvePathServer(path_str) {
   try {
-    const res = await fetch(vmbrH('resolve_path.php'), {
-      method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body:'path='+encodeURIComponent(path_str)+'&csrf_token='+encodeURIComponent(csrfToken_str),
-    });
-    const text_str = await res.text();
-    return text_str.trim() || path_str;
+    const res = await fetch(vmbrH('resolve_path.php'), { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'path='+encodeURIComponent(path_str)+'&csrf_token='+encodeURIComponent(csrfToken_str) });
+    return (await res.text()).trim() || path_str;
   } catch(e) { return path_str; }
 }
 
@@ -1326,442 +767,154 @@ function vmbrClassifyPath(path_str) {
   if (path_str.startsWith('/mnt/addons/')  || path_str === '/mnt/addons')  return 'EXEMPT';
   return 'OTHER';
 }
-
-function vmbrFormatMissingList(arr) {
-  if (arr.length === 1) return arr[0];
-  if (arr.length === 2) return arr[0] + ' and ' + arr[1];
-  return arr.slice(0,-1).join(', ') + ', and ' + arr[arr.length-1];
-}
-
-function vmbrNormalizeWebhookUrl(val_str, svc_str) {
-  val_str = val_str.trim();
-  if (!val_str || val_str.startsWith('https://')) return val_str;
-  const cfg = SERVICE_CONFIG_OBJ[svc_str];
-  return (cfg && cfg.prefix) ? cfg.prefix + val_str : val_str;
-}
-
-function vmbrValidateWebhookUrl(val_str, svc_str) {
-  if (!val_str) return true;
-  const cfg = SERVICE_CONFIG_OBJ[svc_str];
-  if (!cfg || !cfg.prefix) return true;
-  return val_str.startsWith(cfg.prefix);
-}
-
-function vmbrGetSelectedServices(isRestore_bool) {
-  const listId_str = isRestore_bool ? '#vmbr-restore-notif-list' : '#vmbr-backup-notif-list';
-  return $(listId_str).find('input:checked').map(function(){ return $(this).val(); }).get();
-}
-
-function vmbrUpdateNotifLabel(isRestore_bool) {
-  const services_arr = vmbrGetSelectedServices(isRestore_bool);
-  const labelId_str  = isRestore_bool ? '#vmbr-restore-notif-label' : '#vmbr-backup-notif-label';
-  $(labelId_str).text(services_arr.length ? services_arr.join(', ') : 'Select service(s)');
-}
-
-function vmbrShowPopup(id_str, msg_str) {
-  const $p = $('#' + id_str);
-  $p.text(msg_str).fadeIn(150);
-  setTimeout(() => $p.fadeOut(200, () => $p.text('').hide()), 3000);
-}
-
-function vmbrShowLogToast(msg_str) {
-  const el = document.getElementById('vmbr-log-toast');
-  if (!el) return;
-  el.textContent = msg_str;
-  el.classList.add('visible');
-  clearTimeout(el._hideTimer);
-  el._hideTimer = setTimeout(() => el.classList.remove('visible'), 2000);
-}
-
-function vmbrLockScheduleUI()   { scheduleUILocked_bool = true;  $('.schedule-action-btn').prop('disabled', true);  }
-function vmbrUnlockScheduleUI() { scheduleUILocked_bool = false; $('.schedule-action-btn').prop('disabled', false); }
-
-function vmbrSetAllButtonsDisabled(disabled_bool) {
-  $('#vmbr-backup-now-btn, #vmbr-restore-now-btn').prop('disabled', disabled_bool);
-  document.querySelectorAll('.run-schedule-btn').forEach(b => { b.disabled = disabled_bool; });
-}
-
-function vmbrSetDot(dotId_str, isActive_bool) {
-  const el = document.getElementById(dotId_str);
-  if (!el) return;
-  el.classList.toggle('active', isActive_bool);
-}
-
-function vmbrShowBanner(type_str, label_str) {
-  if (type_str === 'restore') {
-    $('#vmbr-restore-banner-text').text(label_str);
-    $('#vmbr-restore-stop-toast').removeClass('visible');
-    $('#vmbr-restore-banner').show();
-  } else {
-    $('#vmbr-backup-banner-text').text(label_str);
-    $('#vmbr-backup-stop-toast').removeClass('visible');
-    $('#vmbr-backup-banner').show();
-  }
-}
-
-function vmbrHideBanner(type_str) {
-  if (type_str === 'restore') {
-    $('#vmbr-restore-banner').hide();
-    $('#vmbr-restore-stop-toast').removeClass('visible');
-  } else {
-    $('#vmbr-backup-banner').hide();
-    $('#vmbr-backup-stop-toast').removeClass('visible');
-  }
-}
-
-function vmbrStopFromBanner(type_str) {
-  const ep_str = type_str === 'restore' ? 'stop_restore.php' : 'stop_backup.php';
-  vmbrPost(ep_str, { csrf_token: csrfToken_str })
-    .done(function() {
-      const toastId_str = type_str === 'restore' ? '#vmbr-restore-stop-toast' : '#vmbr-backup-stop-toast';
-      $(toastId_str).addClass('visible');
-      setTimeout(() => $(toastId_str).removeClass('visible'), 3000);
-    })
-    .fail(() => alert('Error sending stop request'));
-}
+function vmbrFormatMissingList(arr) { if (arr.length===1) return arr[0]; if (arr.length===2) return arr[0]+' and '+arr[1]; return arr.slice(0,-1).join(', ')+', and '+arr[arr.length-1]; }
+function vmbrNormalizeWebhookUrl(val_str, svc_str) { val_str=val_str.trim(); if (!val_str||val_str.startsWith('https://')) return val_str; const cfg=SERVICE_CONFIG_OBJ[svc_str]; return (cfg&&cfg.prefix)?cfg.prefix+val_str:val_str; }
+function vmbrValidateWebhookUrl(val_str, svc_str) { if (!val_str) return true; const cfg=SERVICE_CONFIG_OBJ[svc_str]; if (!cfg||!cfg.prefix) return true; return val_str.startsWith(cfg.prefix); }
+function vmbrGetSelectedServices(isRestore_bool) { const listId_str=isRestore_bool?'#vmbr-restore-notif-list':'#vmbr-backup-notif-list'; return $(listId_str).find('input:checked').map(function(){ return $(this).val(); }).get(); }
+function vmbrUpdateNotifLabel(isRestore_bool) { const services_arr=vmbrGetSelectedServices(isRestore_bool); const labelId_str=isRestore_bool?'#vmbr-restore-notif-label':'#vmbr-backup-notif-label'; $(labelId_str).text(services_arr.length?services_arr.join(', '):'Select service(s)'); }
+function vmbrShowPopup(id_str, msg_str) { const $p=$('#'+id_str); $p.text(msg_str).fadeIn(150); setTimeout(()=>$p.fadeOut(200,()=>$p.text('').hide()),3000); }
+function vmbrShowLogToast(msg_str) { const el=document.getElementById('vmbr-log-toast'); if(!el)return; el.textContent=msg_str; el.classList.add('visible'); clearTimeout(el._hideTimer); el._hideTimer=setTimeout(()=>el.classList.remove('visible'),2000); }
+function vmbrLockScheduleUI()   { scheduleUILocked_bool=true;  $('.schedule-action-btn').prop('disabled',true);  }
+function vmbrUnlockScheduleUI() { scheduleUILocked_bool=false; $('.schedule-action-btn').prop('disabled',false); }
+function vmbrSetAllButtonsDisabled(disabled_bool) { $('#vmbr-backup-now-btn, #vmbr-restore-now-btn').prop('disabled',disabled_bool); document.querySelectorAll('.run-schedule-btn').forEach(b=>{b.disabled=disabled_bool;}); }
+function vmbrSetDot(dotId_str, isActive_bool) { const el=document.getElementById(dotId_str); if(el) el.classList.toggle('active',isActive_bool); }
+function vmbrShowBanner(type_str, label_str) { if(type_str==='restore'){$('#vmbr-restore-banner-text').text(label_str);$('#vmbr-restore-stop-toast').removeClass('visible');$('#vmbr-restore-banner').show();}else{$('#vmbr-backup-banner-text').text(label_str);$('#vmbr-backup-stop-toast').removeClass('visible');$('#vmbr-backup-banner').show();} }
+function vmbrHideBanner(type_str) { if(type_str==='restore'){$('#vmbr-restore-banner').hide();$('#vmbr-restore-stop-toast').removeClass('visible');}else{$('#vmbr-backup-banner').hide();$('#vmbr-backup-stop-toast').removeClass('visible');} }
+function vmbrStopFromBanner(type_str) { const ep_str=type_str==='restore'?'stop_restore.php':'stop_backup.php'; vmbrPost(ep_str,{csrf_token:csrfToken_str}).done(function(){ const toastId_str=type_str==='restore'?'#vmbr-restore-stop-toast':'#vmbr-backup-stop-toast'; $(toastId_str).addClass('visible'); setTimeout(()=>$(toastId_str).removeClass('visible'),3000); }).fail(()=>alert('Error sending stop request')); }
 
 function vmbrRebuildWebhookFields(isRestore_bool) {
-  const containerId_str = isRestore_bool ? '#vmbr-webhook-container-restore' : '#vmbr-webhook-container-backup';
-  const services_arr    = vmbrGetSelectedServices(isRestore_bool);
-  const container_el    = $(containerId_str);
-  container_el.empty();
-
-  const savedWebhooks_obj   = isRestore_bool ? SAVED_WEBHOOKS_RESTORE_OBJ : SAVED_WEBHOOKS_OBJ;
-  const savedKey_str        = isRestore_bool ? SAVED_PUSHOVER_KEY_RESTORE_STR : SAVED_PUSHOVER_KEY_STR;
-  const sfx_dash_str        = isRestore_bool ? '-restore' : '';
-  const sfx_under_str       = isRestore_bool ? '_restore' : '';
-
-  services_arr.forEach(function(svc_str) {
-    const cfg = SERVICE_CONFIG_OBJ[svc_str];
-    if (!cfg) return;
-
-    if (cfg.needsUrl_bool) {
-      const fldId_str = 'vmbr-webhook-' + svc_str.toLowerCase() + sfx_dash_str;
-      const errId_str = 'vmbr-webhook-err-' + svc_str.toLowerCase() + sfx_dash_str;
-      const saved_str = savedWebhooks_obj[svc_str.toUpperCase()] || '';
-
-      container_el.append($(`
-        <div class="form-pair" id="vmbr-webhook-row-${svc_str.toLowerCase()}${sfx_dash_str}">
-          <label title="${cfg.label}">${cfg.label}:</label>
-          <div class="input-wrapper">
-            <input type="text" id="${fldId_str}" class="short-input vmbr-webhook-input"
-                   data-service="${svc_str}" data-restore="${isRestore_bool ? '1' : '0'}"
-                   placeholder="${cfg.prefix || ''}" value="${saved_str}">
-            <div id="${errId_str}" style="color:#f59e0b;font-size:11px;display:none;">* Invalid ${svc_str} webhook URL</div>
-          </div>
-        </div>
-      `));
+  const containerId_str=isRestore_bool?'#vmbr-webhook-container-restore':'#vmbr-webhook-container-backup';
+  const services_arr=vmbrGetSelectedServices(isRestore_bool);
+  const container_el=$(containerId_str); container_el.empty();
+  const savedWebhooks_obj=isRestore_bool?SAVED_WEBHOOKS_RESTORE_OBJ:SAVED_WEBHOOKS_OBJ;
+  const savedKey_str=isRestore_bool?SAVED_PUSHOVER_KEY_RESTORE_STR:SAVED_PUSHOVER_KEY_STR;
+  const sfx_dash_str=isRestore_bool?'-restore':''; const sfx_under_str=isRestore_bool?'_restore':'';
+  services_arr.forEach(function(svc_str){
+    const cfg=SERVICE_CONFIG_OBJ[svc_str]; if(!cfg) return;
+    if(cfg.needsUrl_bool){
+      const fldId_str='vmbr-webhook-'+svc_str.toLowerCase()+sfx_dash_str;
+      const errId_str='vmbr-webhook-err-'+svc_str.toLowerCase()+sfx_dash_str;
+      const saved_str=savedWebhooks_obj[svc_str.toUpperCase()]||'';
+      container_el.append($(`<div class="form-pair" id="vmbr-webhook-row-${svc_str.toLowerCase()}${sfx_dash_str}"><label title="${cfg.label}">${cfg.label}:</label><div class="input-wrapper"><input type="text" id="${fldId_str}" class="short-input vmbr-webhook-input" data-service="${svc_str}" data-restore="${isRestore_bool?'1':'0'}" placeholder="${cfg.prefix||''}" value="${saved_str}"><div id="${errId_str}" style="color:#f59e0b;font-size:11px;display:none;">* Invalid ${svc_str} webhook URL</div></div></div>`));
     }
-
-    if (cfg.needsKey_bool) {
-      const pkId_str  = 'vmbr-pushover-key' + sfx_under_str;
-      const pkErr_str = 'vmbr-pushover-key-err' + sfx_dash_str;
-      container_el.append($(`
-        <div class="form-pair" id="vmbr-pushover-row${sfx_dash_str}">
-          <label title="Your Pushover user key from pushover.net/dashboard">Pushover User Key:</label>
-          <div class="input-wrapper">
-            <input type="text" id="${pkId_str}" name="PUSHOVER_USER_KEY${isRestore_bool ? '_RESTORE' : ''}"
-                   class="short-input" placeholder="user key from pushover.net/dashboard" value="${savedKey_str}">
-            <div id="${pkErr_str}" style="color:#f59e0b;font-size:11px;display:none;">* Pushover user key is required</div>
-          </div>
-        </div>
-      `));
+    if(cfg.needsKey_bool){
+      const pkId_str='vmbr-pushover-key'+sfx_under_str; const pkErr_str='vmbr-pushover-key-err'+sfx_dash_str;
+      container_el.append($(`<div class="form-pair" id="vmbr-pushover-row${sfx_dash_str}"><label title="Your Pushover user key from pushover.net/dashboard">Pushover User Key:</label><div class="input-wrapper"><input type="text" id="${pkId_str}" name="PUSHOVER_USER_KEY${isRestore_bool?'_RESTORE':''}" class="short-input" placeholder="user key from pushover.net/dashboard" value="${savedKey_str}"><div id="${pkErr_str}" style="color:#f59e0b;font-size:11px;display:none;">* Pushover user key is required</div></div></div>`));
     }
   });
-
-  container_el.find('.vmbr-webhook-input')
-    .on('input', function() {
-      const svc_str  = $(this).data('service');
-      const val_str  = $(this).val().trim();
-      const rest_bool = $(this).data('restore') === '1' || $(this).data('restore') === 1;
-      const errId_str = '#vmbr-webhook-err-' + svc_str.toLowerCase() + (rest_bool ? '-restore' : '');
-      $(errId_str).toggle(val_str !== '' && !vmbrValidateWebhookUrl(val_str, svc_str));
-    })
-    .on('blur', function() {
-      const svc_str = $(this).data('service');
-      $(this).val(vmbrNormalizeWebhookUrl($(this).val(), svc_str)).trigger('input');
-    });
-
-  if (window._fbbProcessLabels) window._fbbProcessLabels(container_el);
+  container_el.find('.vmbr-webhook-input').on('input',function(){ const svc_str=$(this).data('service'); const val_str=$(this).val().trim(); const rest_bool=$(this).data('restore')==='1'||$(this).data('restore')===1; const errId_str='#vmbr-webhook-err-'+svc_str.toLowerCase()+(rest_bool?'-restore':''); $(errId_str).toggle(val_str!==''&&!vmbrValidateWebhookUrl(val_str,svc_str)); }).on('blur',function(){ const svc_str=$(this).data('service'); $(this).val(vmbrNormalizeWebhookUrl($(this).val(),svc_str)).trigger('input'); });
+  if(window._fbbProcessLabels) window._fbbProcessLabels(container_el);
 }
 
 function vmbrApplyNotifToggle(select_el, rowId_str, containerId_str, isRestore_bool) {
-  const isYes_bool = select_el && select_el.value === 'yes';
-  const $row = $(rowId_str);
-  if (isYes_bool) {
-    $row.show();
-    if (window._fbbProcessLabels) window._fbbProcessLabels($row);
-    vmbrRebuildWebhookFields(isRestore_bool);
-  } else {
-    $row.hide();
-    $(containerId_str).empty();
-  }
+  const isYes_bool=select_el&&select_el.value==='yes'; const $row=$(rowId_str);
+  if(isYes_bool){$row.show();if(window._fbbProcessLabels)window._fbbProcessLabels($row);vmbrRebuildWebhookFields(isRestore_bool);}else{$row.hide();$(containerId_str).empty();}
   vmbrUpdateNotifLabel(isRestore_bool);
 }
 
 function vmbrBuildCronFromUI() {
-  const mode_str = $('#vmbr-cron-mode').val();
-  switch(mode_str) {
-    case 'hourly': {
-      const v_int = parseInt($('#vmbr-hourly-freq').val(), 10);
-      return { valid_bool:true, expr_str:`0 */${v_int} * * *` };
-    }
-    case 'daily': {
-      const h_int = parseInt($('#vmbr-daily-hour').val(), 10);
-      const m_int = parseInt($('#vmbr-daily-min').val(), 10);
-      return { valid_bool:true, expr_str:`${m_int} ${h_int} * * *` };
-    }
-    case 'weekly': {
-      const d_int = DAY_MAP_OBJ[$('#vmbr-weekly-day').val()];
-      const h_int = parseInt($('#vmbr-weekly-hour').val(), 10);
-      const m_int = parseInt($('#vmbr-weekly-min').val(), 10);
-      return { valid_bool:true, expr_str:`${m_int} ${h_int} * * ${d_int}` };
-    }
-    case 'monthly': {
-      const d_int = parseInt($('#vmbr-monthly-day').val(), 10);
-      const h_int = parseInt($('#vmbr-monthly-hour').val(), 10);
-      const m_int = parseInt($('#vmbr-monthly-min').val(), 10);
-      return { valid_bool:true, expr_str:`${m_int} ${h_int} ${d_int} * *` };
-    }
-    default: return { valid_bool:false };
+  const mode_str=$('#vmbr-cron-mode').val();
+  switch(mode_str){
+    case 'hourly': return{valid_bool:true,expr_str:`0 */${parseInt($('#vmbr-hourly-freq').val(),10)} * * *`};
+    case 'daily':  return{valid_bool:true,expr_str:`${parseInt($('#vmbr-daily-min').val(),10)} ${parseInt($('#vmbr-daily-hour').val(),10)} * * *`};
+    case 'weekly': {const d_int=DAY_MAP_OBJ[$('#vmbr-weekly-day').val()];return{valid_bool:true,expr_str:`${parseInt($('#vmbr-weekly-min').val(),10)} ${parseInt($('#vmbr-weekly-hour').val(),10)} * * ${d_int}`};}
+    case 'monthly':return{valid_bool:true,expr_str:`${parseInt($('#vmbr-monthly-min').val(),10)} ${parseInt($('#vmbr-monthly-hour').val(),10)} ${parseInt($('#vmbr-monthly-day').val(),10)} * *`};
+    default: return{valid_bool:false};
   }
 }
-
-function vmbrUpdateCronHidden() {
-  const cron_obj = vmbrBuildCronFromUI();
-  let hidden_el = document.getElementById('vmbr-cron-hidden');
-  if (!hidden_el) {
-    hidden_el = document.createElement('input');
-    hidden_el.type = 'hidden'; hidden_el.id = 'vmbr-cron-hidden'; hidden_el.name = 'CRON_EXPRESSION';
-    document.getElementById('vmbr-cron-mode-row').appendChild(hidden_el);
-  }
-  hidden_el.value = cron_obj.valid_bool ? cron_obj.expr_str : '';
-}
-
-function vmbrToggleCronOptions(mode_str) {
-  $('#vmbr-hourly-options').toggle(mode_str === 'hourly');
-  $('#vmbr-daily-options').toggle(mode_str === 'daily');
-  $('#vmbr-weekly-options').toggle(mode_str === 'weekly');
-  $('#vmbr-monthly-options').toggle(mode_str === 'monthly');
-  vmbrUpdateCronHidden();
-}
-
-function vmbrDetectCronMode(cron_str) {
-  if (!cron_str) return 'daily';
-  if (/^0 \/\d+ \* \* \*$/.test(cron_str))  return 'hourly';
-  if (/^\d+ \d+ \* \* \*$/.test(cron_str))     return 'daily';
-  if (/^\d+ \d+ \* \* [0-6]$/.test(cron_str))  return 'weekly';
-  if (/^\d+ \d+ \d+ \* \*$/.test(cron_str))    return 'monthly';
-  return 'daily';
-}
+function vmbrUpdateCronHidden() { const cron_obj=vmbrBuildCronFromUI(); let hidden_el=document.getElementById('vmbr-cron-hidden'); if(!hidden_el){hidden_el=document.createElement('input');hidden_el.type='hidden';hidden_el.id='vmbr-cron-hidden';hidden_el.name='CRON_EXPRESSION';document.getElementById('vmbr-cron-mode-row').appendChild(hidden_el);} hidden_el.value=cron_obj.valid_bool?cron_obj.expr_str:''; }
+function vmbrToggleCronOptions(mode_str) { $('#vmbr-hourly-options').toggle(mode_str==='hourly');$('#vmbr-daily-options').toggle(mode_str==='daily');$('#vmbr-weekly-options').toggle(mode_str==='weekly');$('#vmbr-monthly-options').toggle(mode_str==='monthly');vmbrUpdateCronHidden(); }
+function vmbrDetectCronMode(cron_str) { if(!cron_str)return'daily'; if(/^0 \/\d+ \* \* \*$/.test(cron_str))return'hourly'; if(/^\d+ \d+ \* \* \*$/.test(cron_str))return'daily'; if(/^\d+ \d+ \* \* [0-6]$/.test(cron_str))return'weekly'; if(/^\d+ \d+ \d+ \* \*$/.test(cron_str))return'monthly'; return'daily'; }
 
 function vmbrCronToMinutesOfWeek(expr_str) {
-  const parts_arr = expr_str.trim().split(/\s+/);
-  if (parts_arr.length !== 5) return [];
-  const [min_s, hour_s, dom_s, month_s, dow_s] = parts_arr;
-  const mins_arr = [];
-  const WK_INT = 7*24*60;
-  const hInterval_arr = hour_s.match(/^\*\/(\d+)$/);
-
-  if (min_s==='0' && hInterval_arr && dom_s==='*' && month_s==='*' && dow_s==='*') {
-    const n_int = parseInt(hInterval_arr[1],10);
-    for (let h=0; h<7*24; h+=n_int) mins_arr.push(h*60);
-    return mins_arr;
-  }
-  if (min_s==='0' && /^\d+$/.test(hour_s) && dom_s==='*' && month_s==='*' && dow_s==='*') {
-    const h_int = parseInt(hour_s,10);
-    for (let d=0;d<7;d++) mins_arr.push(d*24*60+h_int*60);
-    return mins_arr;
-  }
-  if (min_s==='0' && /^\d+$/.test(hour_s) && dom_s==='*' && month_s==='*' && /^\d+$/.test(dow_s)) {
-    mins_arr.push(parseInt(dow_s,10)*24*60 + parseInt(hour_s,10)*60);
-    return mins_arr;
-  }
-  if (min_s==='0' && /^\d+$/.test(hour_s) && /^\d+$/.test(dom_s) && month_s==='*' && dow_s==='*') {
-    const d_int = (parseInt(dom_s,10)-1)%7;
-    mins_arr.push(d_int*24*60 + parseInt(hour_s,10)*60);
-    return mins_arr;
-  }
-  return [];
+  const parts_arr=expr_str.trim().split(/\s+/); if(parts_arr.length!==5)return[];
+  const[min_s,hour_s,dom_s,month_s,dow_s]=parts_arr; const mins_arr=[]; const WK_INT=7*24*60;
+  const hInterval_arr=hour_s.match(/^\*\/(\d+)$/);
+  if(min_s==='0'&&hInterval_arr&&dom_s==='*'&&month_s==='*'&&dow_s==='*'){const n_int=parseInt(hInterval_arr[1],10);for(let h=0;h<7*24;h+=n_int)mins_arr.push(h*60);return mins_arr;}
+  if(min_s==='0'&&/^\d+$/.test(hour_s)&&dom_s==='*'&&month_s==='*'&&dow_s==='*'){const h_int=parseInt(hour_s,10);for(let d=0;d<7;d++)mins_arr.push(d*24*60+h_int*60);return mins_arr;}
+  if(min_s==='0'&&/^\d+$/.test(hour_s)&&dom_s==='*'&&month_s==='*'&&/^\d+$/.test(dow_s)){mins_arr.push(parseInt(dow_s,10)*24*60+parseInt(hour_s,10)*60);return mins_arr;}
+  if(min_s==='0'&&/^\d+$/.test(hour_s)&&/^\d+$/.test(dom_s)&&month_s==='*'&&dow_s==='*'){const d_int=(parseInt(dom_s,10)-1)%7;mins_arr.push(d_int*24*60+parseInt(hour_s,10)*60);return mins_arr;}
+  return[];
 }
-
 function vmbrCheckCronConflicts(newCron_str, existing_arr, excludeId_str, threshold_int) {
-  const newTimes_arr = vmbrCronToMinutesOfWeek(newCron_str);
-  if (!newTimes_arr.length) return null;
-  const WK_INT = 7*24*60;
-  for (const entry of existing_arr) {
-    if (entry.id === excludeId_str) continue;
-    const exTimes_arr = vmbrCronToMinutesOfWeek(entry.cron);
-    for (const nt of newTimes_arr) {
-      for (const et of exTimes_arr) {
-        const diff_int = Math.min(Math.abs(nt-et), WK_INT-Math.abs(nt-et));
-        if (diff_int < threshold_int) return entry.cron;
-      }
-    }
-  }
+  const newTimes_arr=vmbrCronToMinutesOfWeek(newCron_str); if(!newTimes_arr.length)return null;
+  const WK_INT=7*24*60;
+  for(const entry of existing_arr){if(entry.id===excludeId_str)continue;const exTimes_arr=vmbrCronToMinutesOfWeek(entry.cron);for(const nt of newTimes_arr){for(const et of exTimes_arr){const diff_int=Math.min(Math.abs(nt-et),WK_INT-Math.abs(nt-et));if(diff_int<threshold_int)return entry.cron;}}}
   return null;
 }
 
 function vmbrValidatePrereqs() {
-  const vms_str  = $('#vmbr-hidden-vms-backup').val()?.trim();
-  const dest_str = $('#vmbr-backup-destination').val()?.trim();
-  if (!vms_str)  { alert('Please select at least one VM for the schedule'); return false; }
-  if (!dest_str) { alert('Please select a backup destination for the schedule'); return false; }
-  const services_arr = vmbrGetSelectedServices(false);
-  if (services_arr.includes('Pushover') && document.getElementById('vmbr-backup-notif')?.value === 'yes') {
-    if (!$('#vmbr-pushover-key').val().trim()) { alert('Please enter your Pushover user key'); return false; }
-  }
+  const vms_str=$('#vmbr-hidden-vms-backup').val()?.trim(); const dest_str=$('#vmbr-backup-destination').val()?.trim();
+  if(!vms_str){alert('Please select at least one VM for the schedule');return false;}
+  if(!dest_str){alert('Please select a backup destination for the schedule');return false;}
+  const services_arr=vmbrGetSelectedServices(false);
+  if(services_arr.includes('Pushover')&&document.getElementById('vmbr-backup-notif')?.value==='yes'){if(!$('#vmbr-pushover-key').val().trim()){alert('Please enter your Pushover user key');return false;}}
   return true;
 }
 
-async function vmbrFetchVdiskPaths(vmList_arr) {
-  return $.ajax({ url:vmbrH('get_vdisk_paths.php'), method:'POST', data:{vms:vmList_arr}, dataType:'json' });
-}
-
+async function vmbrFetchVdiskPaths(vmList_arr) { return $.ajax({url:vmbrH('get_vdisk_paths.php'),method:'POST',data:{vms:vmList_arr},dataType:'json'}); }
 async function vmbrValidateMountTypes(vmList_arr, dest_str) {
-  const destClass_str = vmbrClassifyPath(dest_str);
-  const data_obj = await vmbrFetchVdiskPaths(vmList_arr);
-  for (const vm_str of vmList_arr) {
-    const disks_arr = data_obj[vm_str];
-    if (!Array.isArray(disks_arr)) { alert(`Could not read vdisk paths for ${vm_str}`); return false; }
-    for (const disk_str of disks_arr) {
-      const diskClass_str = vmbrClassifyPath(disk_str);
-      if (diskClass_str !== destClass_str && diskClass_str !== 'EXEMPT' && destClass_str !== 'EXEMPT') {
-        alert(`${vm_str}'s vdisk ${disk_str} uses mount type (${diskClass_str}) but backup destination uses (${destClass_str}).\n\nBoth must use the same mount type.`);
-        return false;
-      }
-    }
-  }
+  const destClass_str=vmbrClassifyPath(dest_str);
+  const data_obj=await vmbrFetchVdiskPaths(vmList_arr);
+  for(const vm_str of vmList_arr){const disks_arr=data_obj[vm_str];if(!Array.isArray(disks_arr)){alert(`Could not read vdisk paths for ${vm_str}`);return false;}for(const disk_str of disks_arr){const diskClass_str=vmbrClassifyPath(disk_str);if(diskClass_str!==destClass_str&&diskClass_str!=='EXEMPT'&&destClass_str!=='EXEMPT'){alert(`${vm_str}'s vdisk ${disk_str} uses mount type (${diskClass_str}) but backup destination uses (${destClass_str}).\n\nBoth must use the same mount type.`);return false;}}}
   return true;
 }
 </script>
 
 <script>
 'use strict';
-// ════════════════════════════════════════════════════════════════════════════
-// 4. POLLERS
-// ════════════════════════════════════════════════════════════════════════════
 
 (function vmbrBackupStatusPoller() {
-  fetch(vmbrH('backup_status_check.php'), {credentials:'same-origin'})
-    .then(r => r.json())
-    .then(data => {
-      if (data.status !== lastBackupStatus_str) {
-        lastBackupStatus_str = data.status;
-        const el = document.getElementById('vmbr-backup-status-text');
-        if (el) el.textContent = data.status;
-        vmbrSetDot('vmbr-backup-dot', data.status && data.status !== 'No Backup Running' && data.status !== 'Idle');
-      }
-    })
-    .catch(() => {
-      if (lastBackupStatus_str !== 'No Backup Running') {
-        lastBackupStatus_str = 'No Backup Running';
-        const el = document.getElementById('vmbr-backup-status-text');
-        if (el) el.textContent = 'Idle';
-        vmbrSetDot('vmbr-backup-dot', false);
-      }
-    })
-    .finally(() => {
-      const delay_int = (lastBackupStatus_str && lastBackupStatus_str.includes('Running')) ? POLL_FAST_INT : POLL_SLOW_INT;
-      setTimeout(vmbrBackupStatusPoller, delay_int);
-    });
+  fetch(vmbrH('backup_status_check.php'),{credentials:'same-origin'}).then(r=>r.json()).then(data=>{if(data.status!==lastBackupStatus_str){lastBackupStatus_str=data.status;const el=document.getElementById('vmbr-backup-status-text');if(el)el.textContent=data.status;vmbrSetDot('vmbr-backup-dot',data.status&&data.status!=='No Backup Running'&&data.status!=='Idle');}}).catch(()=>{if(lastBackupStatus_str!=='No Backup Running'){lastBackupStatus_str='No Backup Running';const el=document.getElementById('vmbr-backup-status-text');if(el)el.textContent='Idle';vmbrSetDot('vmbr-backup-dot',false);}}).finally(()=>{const delay_int=(lastBackupStatus_str&&lastBackupStatus_str.includes('Running'))?POLL_FAST_INT:POLL_SLOW_INT;setTimeout(vmbrBackupStatusPoller,delay_int);});
 })();
 
 (function vmbrRestoreStatusPoller() {
-  fetch(vmbrH('restore_status_check.php'), {credentials:'same-origin'})
-    .then(r => r.json())
-    .then(data => {
-      if (data.status !== lastRestoreStatus_str) {
-        lastRestoreStatus_str = data.status;
-        const el = document.getElementById('vmbr-restore-status-text');
-        if (el) el.textContent = data.status;
-        vmbrSetDot('vmbr-restore-dot', data.status && data.status !== 'No Restore Running' && data.status !== 'Idle');
-      }
-    })
-    .catch(() => {
-      if (lastRestoreStatus_str !== 'No Restore Running') {
-        lastRestoreStatus_str = 'No Restore Running';
-        const el = document.getElementById('vmbr-restore-status-text');
-        if (el) el.textContent = 'Idle';
-        vmbrSetDot('vmbr-restore-dot', false);
-      }
-    })
-    .finally(() => {
-      const delay_int = (lastRestoreStatus_str && lastRestoreStatus_str.includes('Running')) ? POLL_FAST_INT : POLL_SLOW_INT;
-      setTimeout(vmbrRestoreStatusPoller, delay_int);
-    });
+  fetch(vmbrH('restore_status_check.php'),{credentials:'same-origin'}).then(r=>r.json()).then(data=>{if(data.status!==lastRestoreStatus_str){lastRestoreStatus_str=data.status;const el=document.getElementById('vmbr-restore-status-text');if(el)el.textContent=data.status;vmbrSetDot('vmbr-restore-dot',data.status&&data.status!=='No Restore Running'&&data.status!=='Idle');}}).catch(()=>{if(lastRestoreStatus_str!=='No Restore Running'){lastRestoreStatus_str='No Restore Running';const el=document.getElementById('vmbr-restore-status-text');if(el)el.textContent='Idle';vmbrSetDot('vmbr-restore-dot',false);}}).finally(()=>{const delay_int=(lastRestoreStatus_str&&lastRestoreStatus_str.includes('Running'))?POLL_FAST_INT:POLL_SLOW_INT;setTimeout(vmbrRestoreStatusPoller,delay_int);});
 })();
 
 (function vmbrLockPoller() {
-  fetch(vmbrH('check_lock.php'))
-    .then(r => r.json())
-    .then(data => {
-      const snapshot_str = JSON.stringify(data);
-      if (snapshot_str === lastLockSnapshot_str) return;
-      lastLockSnapshot_str = snapshot_str;
-
-      const backupLocked_bool   = data.locked && data.mode === 'manual';
-      const scheduleLocked_bool = data.locked && data.mode === 'schedule';
-      const restoreLocked_bool  = data.locked && data.mode === 'restore';
-      const anyLocked_bool      = !!data.locked;
-
-      document.querySelectorAll('.run-schedule-btn').forEach(b => {
-        b.disabled = anyLocked_bool;
-        b.classList.toggle('disabled', anyLocked_bool);
-      });
-
-      if ((backupLocked_bool || scheduleLocked_bool) && !prevBackupBanner_bool) {
-        vmbrShowBanner('backup', scheduleLocked_bool ? '⚠ Scheduled backup in progress' : '⚠ Backup in progress');
-        vmbrSetAllButtonsDisabled(true);
-        prevBackupBanner_bool = true;
-      } else if (!backupLocked_bool && !scheduleLocked_bool && prevBackupBanner_bool) {
-        vmbrHideBanner('backup');
-        if (!prevRestoreBanner_bool) vmbrSetAllButtonsDisabled(false);
-        prevBackupBanner_bool = false;
-      }
-
-      if (restoreLocked_bool && !prevRestoreBanner_bool) {
-        vmbrShowBanner('restore', '⚠ Restore in progress');
-        vmbrSetAllButtonsDisabled(true);
-        prevRestoreBanner_bool = true;
-      } else if (!restoreLocked_bool && prevRestoreBanner_bool) {
-        vmbrHideBanner('restore');
-        if (!prevBackupBanner_bool) vmbrSetAllButtonsDisabled(false);
-        prevRestoreBanner_bool = false;
-      }
-    })
-    .catch(err => console.error('[vm-backup] lock poller:', err))
-    .finally(() => setTimeout(vmbrLockPoller, POLL_FAST_INT));
+  fetch(vmbrH('check_lock.php')).then(r=>r.json()).then(data=>{
+    const snapshot_str=JSON.stringify(data); if(snapshot_str===lastLockSnapshot_str)return; lastLockSnapshot_str=snapshot_str;
+    const backupLocked_bool=data.locked&&data.mode==='manual'; const scheduleLocked_bool=data.locked&&data.mode==='schedule'; const restoreLocked_bool=data.locked&&data.mode==='restore'; const anyLocked_bool=!!data.locked;
+    document.querySelectorAll('.run-schedule-btn').forEach(b=>{b.disabled=anyLocked_bool;b.classList.toggle('disabled',anyLocked_bool);});
+    if((backupLocked_bool||scheduleLocked_bool)&&!prevBackupBanner_bool){vmbrShowBanner('backup',scheduleLocked_bool?'⚠ Scheduled backup in progress':'⚠ Backup in progress');vmbrSetAllButtonsDisabled(true);prevBackupBanner_bool=true;}else if(!backupLocked_bool&&!scheduleLocked_bool&&prevBackupBanner_bool){vmbrHideBanner('backup');if(!prevRestoreBanner_bool)vmbrSetAllButtonsDisabled(false);prevBackupBanner_bool=false;}
+    if(restoreLocked_bool&&!prevRestoreBanner_bool){vmbrShowBanner('restore','⚠ Restore in progress');vmbrSetAllButtonsDisabled(true);prevRestoreBanner_bool=true;}else if(!restoreLocked_bool&&prevRestoreBanner_bool){vmbrHideBanner('restore');if(!prevBackupBanner_bool)vmbrSetAllButtonsDisabled(false);prevRestoreBanner_bool=false;}
+  }).catch(err=>console.error('[vm-backup] lock poller:',err)).finally(()=>setTimeout(vmbrLockPoller,POLL_FAST_INT));
 })();
 
 (function vmbrBackupRunningPoller() {
-  vmbrGet('backup_status.php')
-    .done(function(res) {
-      const running_bool = res.running === true;
-      if (running_bool !== backupRunning_bool) {
-        backupRunning_bool = running_bool;
-        document.getElementById('vmbr-backup-now-btn').disabled = running_bool;
-      }
-    })
-    .always(() => setTimeout(vmbrBackupRunningPoller, POLL_FAST_INT));
+  vmbrGet('backup_status.php').done(function(res){const running_bool=res.running===true;if(running_bool!==backupRunning_bool){backupRunning_bool=running_bool;document.getElementById('vmbr-backup-now-btn').disabled=running_bool;}}).always(()=>setTimeout(vmbrBackupRunningPoller,POLL_FAST_INT));
 })();
 
 (function vmbrRestoreRunningPoller() {
-  vmbrGet('restore_status.php').always(() => setTimeout(vmbrRestoreRunningPoller, POLL_FAST_INT));
+  vmbrGet('restore_status.php').always(()=>setTimeout(vmbrRestoreRunningPoller,POLL_FAST_INT));
 })();
 
+// ── Log switcher ─────────────────────────────────────────────────────────
+function vmbrSwitchLog(isDebug_bool) {
+  logDebugMode_bool = isDebug_bool;
+  logAutoScroll_bool = false;
+  document.getElementById('vmbr-log-pre').scrollTop = 0;
+  lastLogSnapshot_str = null;
+}
+
+// ── Log poller — displays lines in reverse order (newest first) ──────────
 (function vmbrLogPoller() {
-  fetch(vmbrH('fetch_last_run_log.php'))
+  fetch(vmbrH('fetch_last_run_log.php') + '?debug=' + (logDebugMode_bool ? '1' : '0'))
     .then(r => r.text())
     .then(data_str => {
-      const text_str = data_str || 'VM backup & restore log not found';
-      if (text_str === lastLogSnapshot_str) return;
-      lastLogSnapshot_str = text_str;
+      const emptyMsg_str = logDebugMode_bool ? 'VM backup & restore debug log not found' : 'VM backup & restore log not found';
+      const reversed_str = data_str
+        ? data_str.split('\n').filter(l => l.trim()).reverse().join('\n')
+        : '';
+      const display_str = reversed_str || emptyMsg_str;
+      if (display_str === lastLogSnapshot_str) return;
+      lastLogSnapshot_str = display_str;
       const logEl = document.getElementById('vmbr-log-pre');
-      logEl.dataset.raw = text_str;
+      logEl.dataset.raw = display_str;
       vmbrApplyLogSearch();
       if (logAutoScroll_bool) logEl.scrollTop = logEl.scrollHeight;
-      vmbrUpdateLastRun(text_str);
+      vmbrUpdateLastRun(data_str);
     })
     .catch(() => {
       const msg_str = 'Error loading VM backup & restore log';
@@ -1775,1023 +928,375 @@ async function vmbrValidateMountTypes(vmList_arr, dest_str) {
 })();
 
 function vmbrTimeAgo(date_obj) {
-  const diff_int = Math.floor((Date.now() - date_obj.getTime()) / 1000);
-  if (diff_int < 60)  return '< 1 minute ago';
-  const mins_int  = Math.floor(diff_int / 60);
-  if (mins_int  < 60)  return mins_int  + ' ' + (mins_int  === 1 ? 'minute'  : 'minutes')  + ' ago';
-  const hours_int = Math.floor(mins_int / 60);
-  if (hours_int < 24)  return hours_int + ' ' + (hours_int === 1 ? 'hour'    : 'hours')    + ' ago';
-  const days_int  = Math.floor(hours_int / 24);
-  if (days_int  <  7)  return days_int  + ' ' + (days_int  === 1 ? 'day'     : 'days')     + ' ago';
-  const weeks_int = Math.floor(days_int / 7);
-  if (weeks_int <  5)  return weeks_int + ' ' + (weeks_int === 1 ? 'week'    : 'weeks')    + ' ago';
-  const months_int = Math.floor(days_int / 30);
-  return months_int + ' ' + (months_int === 1 ? 'month' : 'months') + ' ago';
+  const diff_int=Math.floor((Date.now()-date_obj.getTime())/1000);
+  if(diff_int<60)return'< 1 minute ago';
+  const mins_int=Math.floor(diff_int/60); if(mins_int<60)return mins_int+' '+(mins_int===1?'minute':'minutes')+' ago';
+  const hours_int=Math.floor(mins_int/60); if(hours_int<24)return hours_int+' '+(hours_int===1?'hour':'hours')+' ago';
+  const days_int=Math.floor(hours_int/24); if(days_int<7)return days_int+' '+(days_int===1?'day':'days')+' ago';
+  const weeks_int=Math.floor(days_int/7); if(weeks_int<5)return weeks_int+' '+(weeks_int===1?'week':'weeks')+' ago';
+  const months_int=Math.floor(days_int/30); return months_int+' '+(months_int===1?'month':'months')+' ago';
 }
 
 function vmbrUpdateLastRun(logText_str) {
-  const el = document.getElementById('vmbr-log-last-run');
-  if (!el) return;
-  if (!logText_str || logText_str.includes('log not found') || logText_str.includes('Error loading')) {
-    el.textContent = 'No last run available'; return;
-  }
-  const lines_arr = logText_str.split('\n');
-  let ts_str = null;
-  for (const line_str of lines_arr) {
-    if (/session finished/i.test(line_str)) {
-      const m_arr = line_str.match(/^\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]/);
-      if (m_arr) { ts_str = m_arr[1]; break; }
-    }
-  }
-  if (!ts_str) { el.textContent = 'No last run available'; return; }
-  const date_obj = new Date(ts_str.replace(' ', 'T'));
-  if (isNaN(date_obj.getTime())) { el.textContent = 'No last run available'; return; }
-  el.textContent = 'Last Run: ' + vmbrTimeAgo(date_obj);
+  const el=document.getElementById('vmbr-log-last-run'); if(!el)return;
+  if(!logText_str||logText_str.includes('log not found')||logText_str.includes('Error loading')){el.textContent='No last run available';return;}
+  const lines_arr=logText_str.split('\n'); let ts_str=null;
+  for(const line_str of lines_arr){if(/session finished/i.test(line_str)){const m_arr=line_str.match(/^\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]/);if(m_arr){ts_str=m_arr[1];break;}}}
+  if(!ts_str){el.textContent='No last run available';return;}
+  const date_obj=new Date(ts_str.replace(' ','T')); if(isNaN(date_obj.getTime())){el.textContent='No last run available';return;}
+  el.textContent='Last Run: '+vmbrTimeAgo(date_obj);
 }
 
 (function vmbrLastRunRefreshPoller() {
-  const el = document.getElementById('vmbr-log-last-run');
-  if (el && lastLogSnapshot_str) vmbrUpdateLastRun(lastLogSnapshot_str);
-  setTimeout(vmbrLastRunRefreshPoller, 1000);
+  const el=document.getElementById('vmbr-log-last-run');
+  if(el&&lastLogSnapshot_str)vmbrUpdateLastRun(lastLogSnapshot_str);
+  setTimeout(vmbrLastRunRefreshPoller,1000);
 })();
 
 (function vmbrVmListPoller() {
-  if ($('#vmbr-vm-dropdown-backup .vmbr-vm-dropdown-list').is(':visible')) {
-    return setTimeout(vmbrVmListPoller, POLL_SLOW_INT);
-  }
-  vmbrGet('list_vms.php')
-    .done(function(data) {
-      const newList_str = (data.vms || []).slice().sort().join(',');
-      if (newList_str !== lastVmList_str) {
-        lastVmList_str = newList_str;
-        const currentSel_str = $('#vmbr-hidden-vms-backup').val() || '';
-        $('#vmbr-vm-dropdown-backup').attr('data-selected', currentSel_str);
-        vmbrLoadBackupVMs();
-      }
-    })
-    .always(() => setTimeout(vmbrVmListPoller, POLL_SLOW_INT));
+  if($('#vmbr-vm-dropdown-backup .vmbr-vm-dropdown-list').is(':visible'))return setTimeout(vmbrVmListPoller,POLL_SLOW_INT);
+  vmbrGet('list_vms.php').done(function(data){const newList_str=(data.vms||[]).slice().sort().join(',');if(newList_str!==lastVmList_str){lastVmList_str=newList_str;const currentSel_str=$('#vmbr-hidden-vms-backup').val()||'';$('#vmbr-vm-dropdown-backup').attr('data-selected',currentSel_str);vmbrLoadBackupVMs();}}).always(()=>setTimeout(vmbrVmListPoller,POLL_SLOW_INT));
 })();
 
 (function vmbrRestoreFolderPoller() {
-  const restorePath_str = $('#vmbr-restore-location').val().trim();
-  const dropdownOpen_bool = $('#vmbr-vm-dropdown-restore .vmbr-vm-dropdown-list').is(':visible');
-
-  if (dropdownOpen_bool || !restorePath_str) {
-    return setTimeout(vmbrRestoreFolderPoller, POLL_FAST_INT);
-  }
-  const currentSel_str = $('#vmbr-hidden-vms-restore').val() || '';
-  vmbrGet('list_restore_folders.php', { restore_path: restorePath_str })
-    .done(function(data) {
-      const newList_str = (data.folders || []).slice().sort().join(',');
-      if (newList_str !== lastRestoreFolderList_str) {
-        lastRestoreFolderList_str = newList_str;
-        vmbrOriginalRestoreSelection_arr = currentSel_str.split(',').map(s=>s.trim()).filter(Boolean);
-        vmbrLoadRestoreFolders();
-      }
-    })
-    .always(() => setTimeout(vmbrRestoreFolderPoller, POLL_FAST_INT));
+  const restorePath_str=$('#vmbr-restore-location').val().trim();
+  const dropdownOpen_bool=$('#vmbr-vm-dropdown-restore .vmbr-vm-dropdown-list').is(':visible');
+  if(dropdownOpen_bool||!restorePath_str)return setTimeout(vmbrRestoreFolderPoller,POLL_FAST_INT);
+  const currentSel_str=$('#vmbr-hidden-vms-restore').val()||'';
+  vmbrGet('list_restore_folders.php',{restore_path:restorePath_str}).done(function(data){const newList_str=(data.folders||[]).slice().sort().join(',');if(newList_str!==lastRestoreFolderList_str){lastRestoreFolderList_str=newList_str;vmbrOriginalRestoreSelection_arr=currentSel_str.split(',').map(s=>s.trim()).filter(Boolean);vmbrLoadRestoreFolders();}}).always(()=>setTimeout(vmbrRestoreFolderPoller,POLL_FAST_INT));
 })();
 
-(function vmbrMalformedPoller() {
-  vmbrScanMalformed();
-  setTimeout(vmbrMalformedPoller, POLL_FAST_INT);
-})();
+(function vmbrMalformedPoller() { vmbrScanMalformed(); setTimeout(vmbrMalformedPoller,POLL_FAST_INT); })();
 
-// ════════════════════════════════════════════════════════════════════════════
-// 5. VM DROPDOWNS
-// ════════════════════════════════════════════════════════════════════════════
 function vmbrLoadBackupVMs() {
-  const dropdown_el  = $('#vmbr-vm-dropdown-backup');
-  const label_el     = dropdown_el.find('.vmbr-dropdown-label');
-  const list_el      = dropdown_el.find('.vmbr-vm-dropdown-list');
-  const selected_arr = (dropdown_el.attr('data-selected') || '').split(',').map(s=>s.trim()).filter(Boolean);
-
-  dropdown_el.removeClass('disabled');
-  list_el.hide();
-
-  vmbrGet('list_vms.php').done(function(data) {
+  const dropdown_el=$('#vmbr-vm-dropdown-backup'); const label_el=dropdown_el.find('.vmbr-dropdown-label'); const list_el=dropdown_el.find('.vmbr-vm-dropdown-list');
+  const selected_arr=(dropdown_el.attr('data-selected')||'').split(',').map(s=>s.trim()).filter(Boolean);
+  dropdown_el.removeClass('disabled'); list_el.hide();
+  vmbrGet('list_vms.php').done(function(data){
     list_el.empty();
-    if (!data.vms || !data.vms.length) {
-      list_el.append('<div>No VMs found</div>');
-      label_el.text('No VMs available');
-      dropdown_el.addClass('disabled');
-      $('#vmbr-hidden-vms-backup').val('');
-      return;
-    }
-    data.vms.forEach(vm_str => {
-      const id_str  = 'vmchk-' + vm_str.replace(/\s+/g,'_');
-      const item_el = $(`<div><label><input type="checkbox" value="${vm_str}" id="${id_str}"> ${vm_str}</label></div>`);
-      if (selected_arr.includes(vm_str)) item_el.find('input').prop('checked', true);
-      list_el.append(item_el);
-    });
+    if(!data.vms||!data.vms.length){list_el.append('<div>No VMs found</div>');label_el.text('No VMs available');dropdown_el.addClass('disabled');$('#vmbr-hidden-vms-backup').val('');return;}
+    data.vms.forEach(vm_str=>{const id_str='vmchk-'+vm_str.replace(/\s+/g,'_');const item_el=$(`<div><label><input type="checkbox" value="${vm_str}" id="${id_str}"> ${vm_str}</label></div>`);if(selected_arr.includes(vm_str))item_el.find('input').prop('checked',true);list_el.append(item_el);});
     vmbrUpdateBackupVmLabel();
   });
 }
-
 function vmbrUpdateBackupVmLabel() {
-  const list_el     = $('#vmbr-vm-dropdown-backup .vmbr-vm-dropdown-list');
-  const checked_arr = list_el.find('input:checked').map(function(){ return $(this).val(); }).get();
-  $('#vmbr-vm-dropdown-backup .vmbr-dropdown-label').text(checked_arr.length ? checked_arr.join(', ') : 'Select VM(s)');
+  const list_el=$('#vmbr-vm-dropdown-backup .vmbr-vm-dropdown-list');
+  const checked_arr=list_el.find('input:checked').map(function(){return $(this).val();}).get();
+  $('#vmbr-vm-dropdown-backup .vmbr-dropdown-label').text(checked_arr.length?checked_arr.join(', '):'Select VM(s)');
   $('#vmbr-hidden-vms-backup').val(checked_arr.join(','));
 }
 
 function vmbrLoadRestoreFolders() {
-  if (restoreFolderLoadInFlight_bool) return;
-  restoreFolderLoadInFlight_bool = true;
-
-  const currentChecked_arr = $('#vmbr-vm-dropdown-restore .vmbr-vm-dropdown-list input:checked')
-    .map(function(){ return $(this).val(); }).get();
-  if (currentChecked_arr.length) {
-    vmbrOriginalRestoreSelection_arr = currentChecked_arr;
-  }
-
-  const dropdown_el     = $('#vmbr-vm-dropdown-restore');
-  const list_el         = dropdown_el.find('.vmbr-vm-dropdown-list');
-  const label_el        = dropdown_el.find('.vmbr-dropdown-label');
-  const restorePath_str = $('#vmbr-restore-location').val().trim();
-
+  if(restoreFolderLoadInFlight_bool)return; restoreFolderLoadInFlight_bool=true;
+  const currentChecked_arr=$('#vmbr-vm-dropdown-restore .vmbr-vm-dropdown-list input:checked').map(function(){return $(this).val();}).get();
+  if(currentChecked_arr.length)vmbrOriginalRestoreSelection_arr=currentChecked_arr;
+  const dropdown_el=$('#vmbr-vm-dropdown-restore'); const list_el=dropdown_el.find('.vmbr-vm-dropdown-list'); const label_el=dropdown_el.find('.vmbr-dropdown-label'); const restorePath_str=$('#vmbr-restore-location').val().trim();
   list_el.empty();
-
-  function noFolders(msg_str) {
-    dropdown_el.addClass('disabled').removeClass('active');
-    list_el.hide(); label_el.text(msg_str);
-    $('#vmbr-hidden-vms-restore').val('');
-    $('#vmbr-version-wrapper').hide();
-    $('#vmbr-version-container').empty();
-    restoreFolderLoadInFlight_bool = false;
-  }
-
-  if (!restorePath_str) { noFolders('No backups at this location'); return; }
-
-  vmbrGet('list_restore_folders.php', { restore_path: restorePath_str })
-    .done(function(data) {
-      if (!data.folders || !data.folders.length) { noFolders('No backups at this location'); return; }
-
-      dropdown_el.removeClass('disabled active');
-      list_el.hide();
-
-      const stillValid_arr = [];
-      data.folders.forEach(folder_str => {
-        const id_str  = 'vmrestore-' + folder_str.replace(/\s+/g,'_');
-        const item_el = $(`<div><label><input type="checkbox" value="${folder_str}" id="${id_str}"> ${folder_str}</label></div>`);
-        if (vmbrOriginalRestoreSelection_arr.includes(folder_str)) {
-          item_el.find('input').prop('checked', true);
-          stillValid_arr.push(folder_str);
-        }
-        list_el.append(item_el);
-      });
-
-      if (stillValid_arr.length) {
-        label_el.text(stillValid_arr.join(', '));
-        $('#vmbr-hidden-vms-restore').val(stillValid_arr.join(','));
-      } else {
-        label_el.text('Select VM(s)');
-        $('#vmbr-hidden-vms-restore').val('');
-      }
-      vmbrScheduleVersionRebuild();
-    })
-    .fail(() => noFolders('Error loading backups'))
-    .always(() => { restoreFolderLoadInFlight_bool = false; });
+  function noFolders(msg_str){dropdown_el.addClass('disabled').removeClass('active');list_el.hide();label_el.text(msg_str);$('#vmbr-hidden-vms-restore').val('');$('#vmbr-version-wrapper').hide();$('#vmbr-version-container').empty();restoreFolderLoadInFlight_bool=false;}
+  if(!restorePath_str){noFolders('No backups at this location');return;}
+  vmbrGet('list_restore_folders.php',{restore_path:restorePath_str}).done(function(data){
+    if(!data.folders||!data.folders.length){noFolders('No backups at this location');return;}
+    dropdown_el.removeClass('disabled active'); list_el.hide();
+    const stillValid_arr=[];
+    data.folders.forEach(folder_str=>{const id_str='vmrestore-'+folder_str.replace(/\s+/g,'_');const item_el=$(`<div><label><input type="checkbox" value="${folder_str}" id="${id_str}"> ${folder_str}</label></div>`);if(vmbrOriginalRestoreSelection_arr.includes(folder_str)){item_el.find('input').prop('checked',true);stillValid_arr.push(folder_str);}list_el.append(item_el);});
+    if(stillValid_arr.length){label_el.text(stillValid_arr.join(', '));$('#vmbr-hidden-vms-restore').val(stillValid_arr.join(','));}else{label_el.text('Select VM(s)');$('#vmbr-hidden-vms-restore').val('');}
+    vmbrScheduleVersionRebuild();
+  }).fail(()=>noFolders('Error loading backups')).always(()=>{restoreFolderLoadInFlight_bool=false;});
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// 6. VERSION FIELDS & MALFORMED SCAN
-// ════════════════════════════════════════════════════════════════════════════
-function vmbrScheduleVersionRebuild() {
-  clearTimeout(versionRebuildTimer_id);
-  versionRebuildTimer_id = setTimeout(vmbrDoRebuildVersionFields, 150);
-}
+function vmbrScheduleVersionRebuild() { clearTimeout(versionRebuildTimer_id); versionRebuildTimer_id=setTimeout(vmbrDoRebuildVersionFields,150); }
 
 function vmbrDoRebuildVersionFields() {
-  if (versionRebuildInFlight_bool) { versionRebuildTimer_id = setTimeout(vmbrDoRebuildVersionFields, 150); return; }
-
-  const container_el = $('#vmbr-version-container');
-  const wrapper_el   = $('#vmbr-version-wrapper');
-  container_el.empty();
-  $('#vmbr-malformed-container').empty();
-
-  const restorePath_str = $('#vmbr-restore-location').val().trim();
-  if (!restorePath_str) { wrapper_el.hide(); return; }
-
-  const selectedVMs_arr = ($('#vmbr-hidden-vms-restore').val() || '').split(',').map(s=>s.trim()).filter(Boolean);
-  if (!selectedVMs_arr.length) { wrapper_el.hide(); return; }
-
-  wrapper_el.show();
-  versionRebuildInFlight_bool = true;
-
-  let pending_int = selectedVMs_arr.length;
-  const vmData_obj = {};
-
-  selectedVMs_arr.forEach(vm_str => {
-    vmbrGet('get_vm_versions.php', { vm:vm_str, restore_path:restorePath_str })
-      .done(function(versions_arr) { vmData_obj[vm_str] = versions_arr; })
-      .always(function() {
-        pending_int--;
-        if (pending_int > 0) return;
-
-        selectedVMs_arr.forEach(vm_str => {
-          const versions_arr  = vmData_obj[vm_str] || [];
-          const valid_arr     = versions_arr.filter(v => !v.malformed);
-
-          const field_el = $(`
-            <div class="form-pair vmbr-version-field">
-              <label style="color:var(--c-label) !important;font-weight:600 !important;"
-                     title="Select which backup version to restore for ${vm_str}">
-                Version (${vm_str}):
-              </label>
-              <span><select name="VERSION_${vm_str}" data-vm="${vm_str}" class="version-select"></select></span>
-            </div>
-          `);
-
-          const select_el = field_el.find('select');
-          if (!valid_arr.length) {
-            const msg_str = versions_arr.length ? 'No backups with all 3 files exist' : 'No backups found';
-            select_el.prop('disabled', true).append(`<option style="color:#888;">${msg_str}</option>`);
-          } else {
-            valid_arr.forEach((v_obj, idx_int) => {
-              let lbl_str = v_obj.display;
-              if (idx_int === 0) lbl_str += ' (LATEST)';
-              if (valid_arr.length > 1 && idx_int === valid_arr.length-1) lbl_str += ' (OLDEST)';
-              select_el.append(`<option value="${v_obj.raw}">${lbl_str}</option>`);
-            });
-            select_el.val(valid_arr[0].raw).prop('disabled', false);
-          }
-          container_el.append(field_el);
-        });
-
-        if (window._fbbProcessLabels) window._fbbProcessLabels(container_el);
-        versionRebuildInFlight_bool = false;
+  if(versionRebuildInFlight_bool){versionRebuildTimer_id=setTimeout(vmbrDoRebuildVersionFields,150);return;}
+  const container_el=$('#vmbr-version-container'); const wrapper_el=$('#vmbr-version-wrapper');
+  container_el.empty(); $('#vmbr-malformed-container').empty();
+  const restorePath_str=$('#vmbr-restore-location').val().trim();
+  if(!restorePath_str){wrapper_el.hide();return;}
+  const selectedVMs_arr=($('#vmbr-hidden-vms-restore').val()||'').split(',').map(s=>s.trim()).filter(Boolean);
+  if(!selectedVMs_arr.length){wrapper_el.hide();return;}
+  wrapper_el.show(); versionRebuildInFlight_bool=true;
+  let pending_int=selectedVMs_arr.length; const vmData_obj={};
+  selectedVMs_arr.forEach(vm_str=>{
+    vmbrGet('get_vm_versions.php',{vm:vm_str,restore_path:restorePath_str}).done(function(versions_arr){vmData_obj[vm_str]=versions_arr;}).always(function(){
+      pending_int--; if(pending_int>0)return;
+      selectedVMs_arr.forEach(vm_str=>{
+        const versions_arr=vmData_obj[vm_str]||[]; const valid_arr=versions_arr.filter(v=>!v.malformed);
+        const field_el=$(`<div class="form-pair vmbr-version-field"><label style="color:var(--c-label) !important;font-weight:600 !important;" title="Select which backup version to restore for ${vm_str}">Version (${vm_str}):</label><span><select name="VERSION_${vm_str}" data-vm="${vm_str}" class="version-select"></select></span></div>`);
+        const select_el=field_el.find('select');
+        if(!valid_arr.length){const msg_str=versions_arr.length?'No backups with all 3 files exist':'No backups found';select_el.prop('disabled',true).append(`<option style="color:#888;">${msg_str}</option>`);}
+        else{valid_arr.forEach((v_obj,idx_int)=>{let lbl_str=v_obj.display;if(idx_int===0)lbl_str+=' (LATEST)';if(valid_arr.length>1&&idx_int===valid_arr.length-1)lbl_str+=' (OLDEST)';select_el.append(`<option value="${v_obj.raw}">${lbl_str}</option>`);});select_el.val(valid_arr[0].raw).prop('disabled',false);}
+        container_el.append(field_el);
       });
+      if(window._fbbProcessLabels)window._fbbProcessLabels(container_el);
+      versionRebuildInFlight_bool=false;
+    });
   });
 }
 
-$(document).on('focus', '.version-select', function() {
-  const select_el   = $(this);
-  const vm_str      = select_el.data('vm');
-  const restorePath_str = $('#vmbr-restore-location').val().trim();
-  if (!vm_str || !restorePath_str) return;
-  const currentVal_str = select_el.val();
-
-  vmbrGet('get_vm_versions.php', { vm:vm_str, restore_path:restorePath_str })
-    .done(function(versions_arr) {
-      select_el.empty();
-      const valid_arr = (versions_arr || []).filter(v => !v.malformed);
-      if (!valid_arr.length) {
-        const msg_str = versions_arr.length ? 'No backups with all 3 files exist' : 'No backups found';
-        select_el.prop('disabled', true).append(`<option style="color:#888;">${msg_str}</option>`);
-      } else {
-        valid_arr.forEach((v_obj, idx_int) => {
-          let lbl_str = v_obj.display;
-          if (idx_int === 0) lbl_str += ' (LATEST)';
-          if (valid_arr.length > 1 && idx_int === valid_arr.length-1) lbl_str += ' (OLDEST)';
-          select_el.append(`<option value="${v_obj.raw}">${lbl_str}</option>`);
-        });
-        select_el.val(valid_arr.some(v => v.raw === currentVal_str) ? currentVal_str : valid_arr[0].raw);
-        select_el.prop('disabled', false);
-      }
-    });
+$(document).on('focus','.version-select',function(){
+  const select_el=$(this); const vm_str=select_el.data('vm'); const restorePath_str=$('#vmbr-restore-location').val().trim();
+  if(!vm_str||!restorePath_str)return; const currentVal_str=select_el.val();
+  vmbrGet('get_vm_versions.php',{vm:vm_str,restore_path:restorePath_str}).done(function(versions_arr){
+    select_el.empty(); const valid_arr=(versions_arr||[]).filter(v=>!v.malformed);
+    if(!valid_arr.length){const msg_str=versions_arr.length?'No backups with all 3 files exist':'No backups found';select_el.prop('disabled',true).append(`<option style="color:#888;">${msg_str}</option>`);}
+    else{valid_arr.forEach((v_obj,idx_int)=>{let lbl_str=v_obj.display;if(idx_int===0)lbl_str+=' (LATEST)';if(valid_arr.length>1&&idx_int===valid_arr.length-1)lbl_str+=' (OLDEST)';select_el.append(`<option value="${v_obj.raw}">${lbl_str}</option>`);});select_el.val(valid_arr.some(v=>v.raw===currentVal_str)?currentVal_str:valid_arr[0].raw);select_el.prop('disabled',false);}
+  });
 });
 
 function vmbrScanMalformed() {
-  const restorePath_str = $('#vmbr-restore-location').val().trim();
-  if (!restorePath_str) return;
-
-  vmbrGet('scan_malformed_backups.php', { restore_path:restorePath_str })
-    .done(function(data_arr) {
-      if (!data_arr || !data_arr.length) { $('#vmbr-malformed-container').empty(); return; }
-      let msg_str = '';
-      if (data_arr.length === 1) {
-        const b = data_arr[0];
-        msg_str = `⚠ ${b.vm} — Backup ${b.backup} is missing ${vmbrFormatMissingList(b.missing)}<br>This backup will not be included to be restored`;
-      } else {
-        msg_str = '⚠ Missing files:<br>';
-        data_arr.forEach(b => { msg_str += `${b.vm} - ${b.backup} - ${vmbrFormatMissingList(b.missing)}<br>`; });
-        msg_str += 'These backups will not be included to be restored';
-      }
-      $('#vmbr-malformed-container').html(`<div>${msg_str}</div>`);
-    });
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// 7. BACKUP BUTTON
-// ════════════════════════════════════════════════════════════════════════════
-$('#vmbr-backup-now-btn').on('click', async function() {
-  if (backupReqInFlight_bool) return;
-  const vms_str  = $('#vmbr-hidden-vms-backup').val();
-  const dest_str = $('#vmbr-backup-destination').val().trim();
-
-  if (!vms_str)  { alert('Please select at least one VM to backup'); return; }
-  if (!dest_str) { alert('Please select a backup destination'); return; }
-
-  const vmList_arr = vms_str.split(',').map(v=>v.trim()).filter(Boolean);
-  try {
-    if (!await vmbrValidateMountTypes(vmList_arr, dest_str)) return;
-  } catch(e) { alert('Error validating vdisk paths'); console.error(e); return; }
-
-  const services_arr = vmbrGetSelectedServices(false);
-  if (services_arr.includes('Pushover') && document.getElementById('vmbr-backup-notif')?.value === 'yes') {
-    if (!$('#vmbr-pushover-key').val().trim()) { alert('Please enter your Pushover user key'); return; }
-  }
-
-  backupReqInFlight_bool = true;
-
-  const webhooks_obj = {};
-  $('#vmbr-webhook-container-backup .vmbr-webhook-input').each(function() {
-    webhooks_obj['WEBHOOK_' + $(this).data('service').toUpperCase()] = $(this).val().trim();
+  const restorePath_str=$('#vmbr-restore-location').val().trim(); if(!restorePath_str)return;
+  vmbrGet('scan_malformed_backups.php',{restore_path:restorePath_str}).done(function(data_arr){
+    if(!data_arr||!data_arr.length){$('#vmbr-malformed-container').empty();return;}
+    let msg_str='';
+    if(data_arr.length===1){const b=data_arr[0];msg_str=`⚠ ${b.vm} — Backup ${b.backup} is missing ${vmbrFormatMissingList(b.missing)}<br>This backup will not be included to be restored`;}
+    else{msg_str='⚠ Missing files:<br>';data_arr.forEach(b=>{msg_str+=`${b.vm} - ${b.backup} - ${vmbrFormatMissingList(b.missing)}<br>`;});msg_str+='These backups will not be included to be restored';}
+    $('#vmbr-malformed-container').html(`<div>${msg_str}</div>`);
   });
+}
+</script>
 
-  vmbrPost('save_settings.php', {
-    VMS_TO_BACKUP:        vms_str,
-    BACKUP_DESTINATION:   dest_str,
-    BACKUPS_TO_KEEP:      $('#vmbr-backup-keep').val(),
-    BACKUP_OWNER:         $('#vmbr-backup-owner').val(),
-    DRY_RUN:              $('#vmbr-backup-dry-run').val(),
-    NOTIFICATIONS:        document.getElementById('vmbr-backup-notif')?.value || 'no',
-    NOTIFICATION_SERVICE: vmbrGetSelectedServices(false).join(','),
-    WEBHOOK_DISCORD:      webhooks_obj['WEBHOOK_DISCORD']  || '',
-    WEBHOOK_GOTIFY:       webhooks_obj['WEBHOOK_GOTIFY']   || '',
-    WEBHOOK_NTFY:         webhooks_obj['WEBHOOK_NTFY']     || '',
-    WEBHOOK_PUSHOVER:     webhooks_obj['WEBHOOK_PUSHOVER'] || '',
-    WEBHOOK_SLACK:        webhooks_obj['WEBHOOK_SLACK']    || '',
-    PUSHOVER_USER_KEY:    $('#vmbr-pushover-key').val() || '',
-    csrf_token:           csrfToken_str,
-  })
-    .done(function(res) {
-      if (res && res.status === 'ok') {
-        $.get(vmbrH('backup.php'), { csrf_token: csrfToken_str })
-          .done(function(res2) {
-            if (res2 && res2.status === 'ok') console.log('[vm-backup] started PID:', res2.pid);
-            else alert(res2.message || 'Failed to start backup');
-          })
-          .fail(() => alert('Error starting backup'));
-      } else { alert('Failed to save settings'); }
-    })
-    .fail(() => alert('Error saving settings'))
-    .always(() => { backupReqInFlight_bool = false; });
+<script>
+'use strict';
+$('#vmbr-backup-now-btn').on('click', async function() {
+  if(backupReqInFlight_bool)return;
+  const vms_str=$('#vmbr-hidden-vms-backup').val(); const dest_str=$('#vmbr-backup-destination').val().trim();
+  if(!vms_str){alert('Please select at least one VM to backup');return;}
+  if(!dest_str){alert('Please select a backup destination');return;}
+  const vmList_arr=vms_str.split(',').map(v=>v.trim()).filter(Boolean);
+  try{if(!await vmbrValidateMountTypes(vmList_arr,dest_str))return;}catch(e){alert('Error validating vdisk paths');console.error(e);return;}
+  const services_arr=vmbrGetSelectedServices(false);
+  if(services_arr.includes('Pushover')&&document.getElementById('vmbr-backup-notif')?.value==='yes'){if(!$('#vmbr-pushover-key').val().trim()){alert('Please enter your Pushover user key');return;}}
+  backupReqInFlight_bool=true;
+  const webhooks_obj={};
+  $('#vmbr-webhook-container-backup .vmbr-webhook-input').each(function(){webhooks_obj['WEBHOOK_'+$(this).data('service').toUpperCase()]=$(this).val().trim();});
+  vmbrPost('save_settings.php',{VMS_TO_BACKUP:vms_str,BACKUP_DESTINATION:dest_str,BACKUPS_TO_KEEP:$('#vmbr-backup-keep').val(),BACKUP_OWNER:$('#vmbr-backup-owner').val(),DRY_RUN:$('#vmbr-backup-dry-run').val(),NOTIFICATIONS:document.getElementById('vmbr-backup-notif')?.value||'no',NOTIFICATION_SERVICE:vmbrGetSelectedServices(false).join(','),WEBHOOK_DISCORD:webhooks_obj['WEBHOOK_DISCORD']||'',WEBHOOK_GOTIFY:webhooks_obj['WEBHOOK_GOTIFY']||'',WEBHOOK_NTFY:webhooks_obj['WEBHOOK_NTFY']||'',WEBHOOK_PUSHOVER:webhooks_obj['WEBHOOK_PUSHOVER']||'',WEBHOOK_SLACK:webhooks_obj['WEBHOOK_SLACK']||'',PUSHOVER_USER_KEY:$('#vmbr-pushover-key').val()||'',csrf_token:csrfToken_str})
+    .done(function(res){if(res&&res.status==='ok'){$.get(vmbrH('backup.php'),{csrf_token:csrfToken_str}).done(function(res2){if(res2&&res2.status==='ok')console.log('[vm-backup] started PID:',res2.pid);else alert(res2.message||'Failed to start backup');}).fail(()=>alert('Error starting backup'));}else alert('Failed to save settings');})
+    .fail(()=>alert('Error saving settings')).always(()=>{backupReqInFlight_bool=false;});
 });
 
-// ════════════════════════════════════════════════════════════════════════════
-// 8. RESTORE BUTTON
-// ════════════════════════════════════════════════════════════════════════════
 $('#vmbr-restore-now-btn').on('click', async function() {
-  const vms_str      = $('#vmbr-hidden-vms-restore').val();
-  const location_str = $('#vmbr-restore-location').val().trim();
-  const dest_str     = $('#vmbr-restore-destination').val().trim();
-
-  if (!vms_str)      { alert('Please select at least one VM to restore'); return; }
-  if (!location_str) { alert('Please set location of backups'); return; }
-  if (!dest_str)     { alert('Please set a restore destination'); return; }
-
-  const services_arr = vmbrGetSelectedServices(true);
-  if (services_arr.includes('Pushover') && document.getElementById('vmbr-restore-notif')?.value === 'yes') {
-    if (!$('#vmbr-pushover-key_restore').val().trim()) { alert('Please enter your Pushover user key'); return; }
-  }
-
-  if ($('#vmbr-restore-now-btn').prop('disabled')) return;
-
-  const versions_obj = {};
-  $('#vmbr-version-container select.version-select').each(function() {
-    const vm_str = $(this).data('vm'); const val_str = $(this).val();
-    if (vm_str && val_str) versions_obj[vm_str] = val_str;
-  });
-  const versionsStr_str = Object.entries(versions_obj).map(([v,r]) => `${v}=${r}`).join(',');
-
-  const webhooks_obj = {};
-  $('#vmbr-webhook-container-restore .vmbr-webhook-input').each(function() {
-    webhooks_obj['WEBHOOK_' + $(this).data('service').toUpperCase() + '_RESTORE'] = $(this).val().trim();
-  });
-
-  vmbrPost('save_settings_restore.php', {
-    LOCATION_OF_BACKUPS:          location_str,
-    VMS_TO_RESTORE:               vms_str,
-    VERSIONS:                     versionsStr_str,
-    RESTORE_DESTINATION:          dest_str,
-    DRY_RUN_RESTORE:              $('#vmbr-restore-dry-run').val(),
-    NOTIFICATIONS_RESTORE:        document.getElementById('vmbr-restore-notif')?.value || 'no',
-    NOTIFICATION_SERVICE_RESTORE: vmbrGetSelectedServices(true).join(','),
-    WEBHOOK_DISCORD_RESTORE:      webhooks_obj['WEBHOOK_DISCORD_RESTORE']  || '',
-    WEBHOOK_GOTIFY_RESTORE:       webhooks_obj['WEBHOOK_GOTIFY_RESTORE']   || '',
-    WEBHOOK_NTFY_RESTORE:         webhooks_obj['WEBHOOK_NTFY_RESTORE']     || '',
-    WEBHOOK_PUSHOVER_RESTORE:     webhooks_obj['WEBHOOK_PUSHOVER_RESTORE'] || '',
-    WEBHOOK_SLACK_RESTORE:        webhooks_obj['WEBHOOK_SLACK_RESTORE']    || '',
-    PUSHOVER_USER_KEY_RESTORE:    $('#vmbr-pushover-key_restore').val() || '',
-    csrf_token:                   csrfToken_str,
-  })
-    .done(function(res) {
-      if (res && res.status === 'ok') {
-        $.get(vmbrH('restore.php'), { csrf_token: csrfToken_str })
-          .done(function(res2) {
-            if (res2 && res2.status === 'ok') console.log('[vm-backup] restore started PID:', res2.pid);
-            else alert(res2.message || 'Failed to start restore');
-          })
-          .fail(() => alert('Error starting restore'));
-      } else { alert('Failed to save settings'); }
-    })
-    .fail(() => alert('Error saving settings'));
+  const vms_str=$('#vmbr-hidden-vms-restore').val(); const location_str=$('#vmbr-restore-location').val().trim(); const dest_str=$('#vmbr-restore-destination').val().trim();
+  if(!vms_str){alert('Please select at least one VM to restore');return;}
+  if(!location_str){alert('Please set location of backups');return;}
+  if(!dest_str){alert('Please set a restore destination');return;}
+  const services_arr=vmbrGetSelectedServices(true);
+  if(services_arr.includes('Pushover')&&document.getElementById('vmbr-restore-notif')?.value==='yes'){if(!$('#vmbr-pushover-key_restore').val().trim()){alert('Please enter your Pushover user key');return;}}
+  if($('#vmbr-restore-now-btn').prop('disabled'))return;
+  const versions_obj={}; $('#vmbr-version-container select.version-select').each(function(){const vm_str=$(this).data('vm');const val_str=$(this).val();if(vm_str&&val_str)versions_obj[vm_str]=val_str;});
+  const versionsStr_str=Object.entries(versions_obj).map(([v,r])=>`${v}=${r}`).join(',');
+  const webhooks_obj={}; $('#vmbr-webhook-container-restore .vmbr-webhook-input').each(function(){webhooks_obj['WEBHOOK_'+$(this).data('service').toUpperCase()+'_RESTORE']=$(this).val().trim();});
+  vmbrPost('save_settings_restore.php',{LOCATION_OF_BACKUPS:location_str,VMS_TO_RESTORE:vms_str,VERSIONS:versionsStr_str,RESTORE_DESTINATION:dest_str,DRY_RUN_RESTORE:$('#vmbr-restore-dry-run').val(),NOTIFICATIONS_RESTORE:document.getElementById('vmbr-restore-notif')?.value||'no',NOTIFICATION_SERVICE_RESTORE:vmbrGetSelectedServices(true).join(','),WEBHOOK_DISCORD_RESTORE:webhooks_obj['WEBHOOK_DISCORD_RESTORE']||'',WEBHOOK_GOTIFY_RESTORE:webhooks_obj['WEBHOOK_GOTIFY_RESTORE']||'',WEBHOOK_NTFY_RESTORE:webhooks_obj['WEBHOOK_NTFY_RESTORE']||'',WEBHOOK_PUSHOVER_RESTORE:webhooks_obj['WEBHOOK_PUSHOVER_RESTORE']||'',WEBHOOK_SLACK_RESTORE:webhooks_obj['WEBHOOK_SLACK_RESTORE']||'',PUSHOVER_USER_KEY_RESTORE:$('#vmbr-pushover-key_restore').val()||'',csrf_token:csrfToken_str})
+    .done(function(res){if(res&&res.status==='ok'){$.get(vmbrH('restore.php'),{csrf_token:csrfToken_str}).done(function(res2){if(res2&&res2.status==='ok')console.log('[vm-backup] restore started PID:',res2.pid);else alert(res2.message||'Failed to start restore');}).fail(()=>alert('Error starting restore'));}else alert('Failed to save settings');})
+    .fail(()=>alert('Error saving settings'));
 });
 </script>
 
 <script>
 'use strict';
-// ════════════════════════════════════════════════════════════════════════════
-// 9. SCHEDULE MANAGEMENT
-// ════════════════════════════════════════════════════════════════════════════
 function vmbrLoadSchedules(force_bool) {
-  if (scheduleUILocked_bool && !force_bool) return $.Deferred().resolve().promise();
-  return $.get(vmbrH('schedule_list.php'), function(html_str) {
-    $('#vmbr-schedule-list').html(html_str);
-    const $tbl = $('#vmbr-schedule-list table');
-    $tbl.removeAttr('style');
-    $tbl.find('thead tr, th').removeAttr('style');
-    $tbl.find('tbody tr').each(function() {
-      $(this).removeAttr('style');
-      $(this).find('td').removeAttr('style');
-    });
-  }).always(vmbrUnlockScheduleUI);
+  if(scheduleUILocked_bool&&!force_bool)return $.Deferred().resolve().promise();
+  return $.get(vmbrH('schedule_list.php'),function(html_str){$('#vmbr-schedule-list').html(html_str);const $tbl=$('#vmbr-schedule-list table');$tbl.removeAttr('style');$tbl.find('thead tr, th').removeAttr('style');$tbl.find('tbody tr').each(function(){$(this).removeAttr('style');$(this).find('td').removeAttr('style');});}).always(vmbrUnlockScheduleUI);
 }
 
 async function vmbrScheduleJob(type_str) {
-  if (!vmbrValidatePrereqs()) return;
-  if (scheduleUILocked_bool) return;
-  vmbrLockScheduleUI();
-
-  const cron_obj = vmbrBuildCronFromUI();
-  if (!cron_obj.valid_bool) { vmbrUnlockScheduleUI(); alert('Invalid cron expression'); return; }
-
-  const vms_str  = $('#vmbr-hidden-vms-backup').val();
-  const dest_str = $('#vmbr-backup-destination').val().trim();
-  try {
-    const ok_bool = await vmbrValidateMountTypes(vms_str.split(',').map(v=>v.trim()).filter(Boolean), dest_str);
-    if (!ok_bool) { vmbrUnlockScheduleUI(); return; }
-  } catch(e) { vmbrUnlockScheduleUI(); alert('Error validating vdisk paths'); return; }
-
-  const existing_arr = await vmbrGet('schedule_cron_check.php');
-  const conflict_str = vmbrCheckCronConflicts(cron_obj.expr_str, existing_arr, editingScheduleId_str, 15);
-  if (conflict_str) {
-    vmbrUnlockScheduleUI();
-    alert('This schedule is within 15 minutes of an existing schedule (' + conflict_str + '). Please choose a different time.');
-    return;
-  }
-
-  const settings_obj = {};
-  $('input[name], select[name]').each(function() { settings_obj[this.name] = $(this).val(); });
-
-  const url_str = editingScheduleId_str ? 'schedule_update.php' : 'schedule_create.php';
-
-  $.ajax({
-    type:'POST', url:vmbrH(url_str),
-    data:{ id:editingScheduleId_str, type:type_str, cron:cron_obj.expr_str, settings:settings_obj },
-    success:function() {
-      vmbrResetScheduleUI();
-      editingScheduleId_str = null;
-      vmbrLoadSchedules(true);
-      vmbrShowPopup('vmbr-backup-popup', '✓ Schedule saved!');
-    },
-    error:function(xhr) {
-      vmbrUnlockScheduleUI();
-      if (xhr.status === 409) alert('Duplicate schedule detected!');
-      else alert('Error saving schedule: ' + xhr.responseText);
-    },
-  });
+  if(!vmbrValidatePrereqs())return; if(scheduleUILocked_bool)return; vmbrLockScheduleUI();
+  const cron_obj=vmbrBuildCronFromUI(); if(!cron_obj.valid_bool){vmbrUnlockScheduleUI();alert('Invalid cron expression');return;}
+  const vms_str=$('#vmbr-hidden-vms-backup').val(); const dest_str=$('#vmbr-backup-destination').val().trim();
+  try{const ok_bool=await vmbrValidateMountTypes(vms_str.split(',').map(v=>v.trim()).filter(Boolean),dest_str);if(!ok_bool){vmbrUnlockScheduleUI();return;}}catch(e){vmbrUnlockScheduleUI();alert('Error validating vdisk paths');return;}
+  const existing_arr=await vmbrGet('schedule_cron_check.php');
+  const conflict_str=vmbrCheckCronConflicts(cron_obj.expr_str,existing_arr,editingScheduleId_str,15);
+  if(conflict_str){vmbrUnlockScheduleUI();alert('This schedule is within 15 minutes of an existing schedule ('+conflict_str+'). Please choose a different time.');return;}
+  const settings_obj={};$('input[name], select[name]').each(function(){settings_obj[this.name]=$(this).val();});
+  const url_str=editingScheduleId_str?'schedule_update.php':'schedule_create.php';
+  $.ajax({type:'POST',url:vmbrH(url_str),data:{id:editingScheduleId_str,type:type_str,cron:cron_obj.expr_str,settings:settings_obj},
+    success:function(){vmbrResetScheduleUI();editingScheduleId_str=null;vmbrLoadSchedules(true);vmbrShowPopup('vmbr-backup-popup','✓ Schedule saved!');},
+    error:function(xhr){vmbrUnlockScheduleUI();if(xhr.status===409)alert('Duplicate schedule detected!');else alert('Error saving schedule: '+xhr.responseText);}});
 }
 
 function vmbrResetScheduleUI() {
-  const $btn = $('#vmbr-schedule-btn');
-  $btn.text('Schedule It');
-  if ($btn.hasClass('tooltipstered')) $btn.tooltipster('content', 'Create a backup schedule using the settings shown above');
-  $('#vmbr-cancel-edit-btn').hide();
-  $('#vmbr-backup-popup').stop(true,true).hide().text('');
+  const $btn=$('#vmbr-schedule-btn');$btn.text('Schedule It');
+  if($btn.hasClass('tooltipstered'))$btn.tooltipster('content','Create a backup schedule using the settings shown above');
+  $('#vmbr-cancel-edit-btn').hide();$('#vmbr-backup-popup').stop(true,true).hide().text('');
 }
 
 function editSchedule(id_str) {
-  if (scheduleUILocked_bool) return;
-  vmbrLockScheduleUI();
-  vmbrGet('schedule_load.php', { id:id_str })
-    .done(function(s_obj) {
-      const settings_obj = s_obj.SETTINGS || {};
-      for (const k_str in settings_obj) {
-        const el_obj = $('[name="' + k_str + '"]');
-        if (!el_obj.length) continue;
-        if (el_obj.is(':checkbox')) el_obj.prop('checked', settings_obj[k_str] == 1 || settings_obj[k_str] === true);
-        else if (el_obj.is(':radio')) $('[name="' + k_str + '"][value="' + settings_obj[k_str] + '"]').prop('checked', true);
-        else el_obj.val(settings_obj[k_str]).trigger('change');
-        if (k_str === 'VMS_TO_BACKUP') $('#vmbr-vm-dropdown-backup').attr('data-selected', settings_obj[k_str]);
-      }
-      $('#vmbr-cron-mode').val(vmbrDetectCronMode(s_obj.CRON)).trigger('change');
-      editingScheduleId_str = id_str;
-      vmbrLoadBackupVMs();
-      const $btn = $('#vmbr-schedule-btn');
-      $btn.text('Update');
-      if ($btn.hasClass('tooltipstered')) $btn.tooltipster('content', 'Update the backup schedule');
-      $('#vmbr-cancel-edit-btn').show();
-      vmbrUnlockScheduleUI();
-    });
+  if(scheduleUILocked_bool)return; vmbrLockScheduleUI();
+  vmbrGet('schedule_load.php',{id:id_str}).done(function(s_obj){
+    const settings_obj=s_obj.SETTINGS||{};
+    for(const k_str in settings_obj){const el_obj=$('[name="'+k_str+'"]');if(!el_obj.length)continue;if(el_obj.is(':checkbox'))el_obj.prop('checked',settings_obj[k_str]==1||settings_obj[k_str]===true);else if(el_obj.is(':radio'))$('[name="'+k_str+'"][value="'+settings_obj[k_str]+'"]').prop('checked',true);else el_obj.val(settings_obj[k_str]).trigger('change');if(k_str==='VMS_TO_BACKUP')$('#vmbr-vm-dropdown-backup').attr('data-selected',settings_obj[k_str]);}
+    $('#vmbr-cron-mode').val(vmbrDetectCronMode(s_obj.CRON)).trigger('change');
+    editingScheduleId_str=id_str; vmbrLoadBackupVMs();
+    const $btn=$('#vmbr-schedule-btn');$btn.text('Update');if($btn.hasClass('tooltipstered'))$btn.tooltipster('content','Update the backup schedule');
+    $('#vmbr-cancel-edit-btn').show(); vmbrUnlockScheduleUI();
+  });
 }
 
-function deleteSchedule(id_str) {
-  if (scheduleUILocked_bool) return;
-  if (!confirm('Delete this schedule?')) return;
-  vmbrLockScheduleUI();
-  vmbrPost('schedule_delete.php', { id:id_str }).always(() => vmbrLoadSchedules(true));
-}
+function deleteSchedule(id_str) { if(scheduleUILocked_bool)return; if(!confirm('Delete this schedule?'))return; vmbrLockScheduleUI(); vmbrPost('schedule_delete.php',{id:id_str}).always(()=>vmbrLoadSchedules(true)); }
 
 function runScheduleBackup(id_str, btn_el) {
-  if (scheduleUILocked_bool) return;
-  if (!confirm('Are you sure you want to run this backup now?')) return;
-  vmbrLockScheduleUI();
-  btn_el.disabled = true;
-  const origText_str  = btn_el.textContent;
-  const origTitle_str = btn_el.getAttribute('title') || 'Run schedule';
-  btn_el.textContent  = 'Running…';
-
-  vmbrPost('run_schedule.php', { id:id_str })
-    .done(function(res) {
-      if (!res.started) {
-        alert('Failed to start backup');
-        btn_el.disabled = false; btn_el.textContent = origText_str;
-        vmbrUnlockScheduleUI(); return;
-      }
-      vmbrShowBanner('backup', '⚠ Scheduled backup in progress');
-      vmbrSetAllButtonsDisabled(true);
-      prevBackupBanner_bool = true;
-
-      (function waitForUnlock() {
-        vmbrGet('check_lock.php').done(function(data) {
-          if (!data.locked) {
-            btn_el.textContent = origText_str; btn_el.setAttribute('title', origTitle_str);
-            btn_el.onclick = function(){ runScheduleBackup(id_str, btn_el); };
-            vmbrHideBanner('backup');
-            prevBackupBanner_bool = false;
-            vmbrSetAllButtonsDisabled(false);
-            vmbrUnlockScheduleUI(); return;
-          }
-          setTimeout(waitForUnlock, POLL_FAST_INT);
-        });
-      })();
-    })
-    .fail(function(xhr, status_str, err_str) {
-      alert('Failed to start backup: ' + (xhr.responseJSON?.error || err_str));
-      btn_el.disabled = false; btn_el.textContent = origText_str;
-      vmbrUnlockScheduleUI();
-    });
+  if(scheduleUILocked_bool)return; if(!confirm('Are you sure you want to run this backup now?'))return;
+  vmbrLockScheduleUI(); btn_el.disabled=true;
+  const origText_str=btn_el.textContent; const origTitle_str=btn_el.getAttribute('title')||'Run schedule'; btn_el.textContent='Running…';
+  vmbrPost('run_schedule.php',{id:id_str}).done(function(res){
+    if(!res.started){alert('Failed to start backup');btn_el.disabled=false;btn_el.textContent=origText_str;vmbrUnlockScheduleUI();return;}
+    vmbrShowBanner('backup','⚠ Scheduled backup in progress'); vmbrSetAllButtonsDisabled(true); prevBackupBanner_bool=true;
+    (function waitForUnlock(){vmbrGet('check_lock.php').done(function(data){if(!data.locked){btn_el.textContent=origText_str;btn_el.setAttribute('title',origTitle_str);btn_el.onclick=function(){runScheduleBackup(id_str,btn_el);};vmbrHideBanner('backup');prevBackupBanner_bool=false;vmbrSetAllButtonsDisabled(false);vmbrUnlockScheduleUI();return;}setTimeout(waitForUnlock,POLL_FAST_INT);});})();
+  }).fail(function(xhr,status_str,err_str){alert('Failed to start backup: '+(xhr.responseJSON?.error||err_str));btn_el.disabled=false;btn_el.textContent=origText_str;vmbrUnlockScheduleUI();});
 }
 
-function toggleSchedule(id_str, isEnabled_bool) {
-  if (scheduleUILocked_bool) return;
-  if (!confirm(isEnabled_bool ? 'Disable this schedule?' : 'Enable this schedule?')) return;
-  vmbrLockScheduleUI();
-  vmbrPost('schedule_toggle.php', { id:id_str }).always(() => vmbrLoadSchedules(true));
-}
+function toggleSchedule(id_str, isEnabled_bool) { if(scheduleUILocked_bool)return; if(!confirm(isEnabled_bool?'Disable this schedule?':'Enable this schedule?'))return; vmbrLockScheduleUI(); vmbrPost('schedule_toggle.php',{id:id_str}).always(()=>vmbrLoadSchedules(true)); }
 
-// ════════════════════════════════════════════════════════════════════════════
-// 10. FOLDER PICKER
-// ════════════════════════════════════════════════════════════════════════════
 function vmbrLoadFolders(path_str) {
-  vmbrGet('list_folders.php', { path:path_str, field:folderPickerTargetId_str })
-    .done(function(data) {
-      folderPickerPath_str     = data.current;
-      folderPickerSelected_str = null;
-
-      const parts_arr = data.current.split('/').filter(p => p !== '');
-      let buildPath_str = '';
-      const bc_str = parts_arr.map((part_str, idx_int) => {
-        buildPath_str += '/' + part_str;
-        const sep_str = idx_int < parts_arr.length-1 ? ' / ' : '';
-        return `<span class="vmbr-bc-part" data-path="${buildPath_str}" style="cursor:pointer;">${part_str}</span>${sep_str}`;
-      }).join('');
-      $('#vmbr-folder-breadcrumb').html(bc_str);
-
-      let html_str = '';
-      if (data.parent) {
-        html_str += `<div class="vmbr-folder-item vmbr-browse-row" data-path="${data.parent}" style="cursor:pointer;display:flex;align-items:center;">.. Up Directory</div>`;
-      }
-      data.folders.forEach(f_obj => {
-        const dis_str = f_obj.selectable ? '' : 'disabled';
-        const ops_str = f_obj.selectable ? '' : 'style="opacity:0.35;"';
-        html_str += `
-          <div class="vmbr-folder-item vmbr-browse-row" data-path="${f_obj.path}" style="display:flex;align-items:center;gap:0px;">
-            <label class="vmbr-folder-check-label" style="display:flex;align-items:center;cursor:pointer;padding:9px 2px 4px 4px;">
-              <input type="checkbox" class="vmbr-folder-checkbox" value="${f_obj.path}" ${dis_str} ${ops_str}>
-            </label>
-            <span class="vmbr-folder-name-label" style="flex:1;cursor:pointer;">${f_obj.name}</span>
-          </div>`;
-      });
-      $('#vmbr-folder-list').html(html_str);
-
-      $('.vmbr-bc-part').off('click').on('click', function(){ vmbrLoadFolders($(this).data('path')); });
-      $('.vmbr-browse-row').off('click').on('click', function(e){
-        if ($(e.target).closest('.vmbr-folder-check-label,.vmbr-folder-name-label').length) return;
-        vmbrLoadFolders($(this).data('path'));
-      });
-      $('.vmbr-folder-name-label').off('click').on('click', function(){
-        vmbrLoadFolders($(this).closest('.vmbr-browse-row').data('path'));
-      });
-      $('.vmbr-folder-check-label').off('click').on('click', function(e){ e.stopPropagation(); });
-      $('.vmbr-folder-checkbox').off('change').on('change', function(e){
-        if (this.disabled) return;
-        $('.vmbr-folder-checkbox').not(this).prop('checked', false);
-        folderPickerSelected_str = this.checked ? $(this).val() : null;
-        e.stopPropagation();
-      });
-    });
-}
-
-function vmbrResolveAndApplyPath(selectedPath_str, targetId_str) {
-  $('#' + targetId_str).val(selectedPath_str).trigger('input').trigger('change');
-  $('#vmbr-folder-picker-modal').hide();
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// 11. LOG CONTROLS
-// ════════════════════════════════════════════════════════════════════════════
-function vmbrApplyLogSearch() {
-  const logEl   = document.getElementById('vmbr-log-pre');
-  const countEl = document.getElementById('vmbr-log-search-count');
-  const term_str = (document.getElementById('vmbr-log-search').value || '').trim();
-  const raw_str  = logEl.dataset.raw || '';
-
-  if (!term_str) {
-    logEl.textContent = raw_str || 'VM backup & restore log not found';
-    countEl.classList.remove('visible'); return;
-  }
-
-  const escaped_str = term_str.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  const re_obj = new RegExp('(' + escaped_str + ')','gi');
-  const parts_arr = raw_str.split(re_obj);
-  let matches_int = 0;
-  logEl.innerHTML = '';
-  parts_arr.forEach(function(part_str) {
-    if (re_obj.test(part_str)) {
-      matches_int++;
-      const mark_el = document.createElement('mark');
-      mark_el.className = 'log-highlight'; mark_el.textContent = part_str;
-      logEl.appendChild(mark_el); re_obj.lastIndex = 0;
-    } else { logEl.appendChild(document.createTextNode(part_str)); }
+  vmbrGet('list_folders.php',{path:path_str,field:folderPickerTargetId_str}).done(function(data){
+    folderPickerPath_str=data.current; folderPickerSelected_str=null;
+    const parts_arr=data.current.split('/').filter(p=>p!==''); let buildPath_str='';
+    const bc_str=parts_arr.map((part_str,idx_int)=>{buildPath_str+='/'+part_str;const sep_str=idx_int<parts_arr.length-1?' / ':'';return`<span class="vmbr-bc-part" data-path="${buildPath_str}" style="cursor:pointer;">${part_str}</span>${sep_str}`;}).join('');
+    $('#vmbr-folder-breadcrumb').html(bc_str);
+    let html_str='';
+    if(data.parent)html_str+=`<div class="vmbr-folder-item vmbr-browse-row" data-path="${data.parent}" style="cursor:pointer;display:flex;align-items:center;">.. Up Directory</div>`;
+    data.folders.forEach(f_obj=>{const dis_str=f_obj.selectable?'':'disabled';const ops_str=f_obj.selectable?'':'style="opacity:0.35;"';html_str+=`<div class="vmbr-folder-item vmbr-browse-row" data-path="${f_obj.path}" style="display:flex;align-items:center;gap:0px;"><label class="vmbr-folder-check-label" style="display:flex;align-items:center;cursor:pointer;padding:9px 2px 4px 4px;"><input type="checkbox" class="vmbr-folder-checkbox" value="${f_obj.path}" ${dis_str} ${ops_str}></label><span class="vmbr-folder-name-label" style="flex:1;cursor:pointer;">${f_obj.name}</span></div>`;});
+    $('#vmbr-folder-list').html(html_str);
+    $('.vmbr-bc-part').off('click').on('click',function(){vmbrLoadFolders($(this).data('path'));});
+    $('.vmbr-browse-row').off('click').on('click',function(e){if($(e.target).closest('.vmbr-folder-check-label,.vmbr-folder-name-label').length)return;vmbrLoadFolders($(this).data('path'));});
+    $('.vmbr-folder-name-label').off('click').on('click',function(){vmbrLoadFolders($(this).closest('.vmbr-browse-row').data('path'));});
+    $('.vmbr-folder-check-label').off('click').on('click',function(e){e.stopPropagation();});
+    $('.vmbr-folder-checkbox').off('change').on('change',function(e){if(this.disabled)return;$('.vmbr-folder-checkbox').not(this).prop('checked',false);folderPickerSelected_str=this.checked?$(this).val():null;e.stopPropagation();});
   });
-  countEl.textContent = matches_int + ' match' + (matches_int !== 1 ? 'es' : '');
-  countEl.classList.toggle('visible', matches_int > 0);
 }
+function vmbrResolveAndApplyPath(selectedPath_str, targetId_str) { $('#'+targetId_str).val(selectedPath_str).trigger('input').trigger('change'); $('#vmbr-folder-picker-modal').hide(); }
 
-function vmbrFallbackCopy(text_str) {
-  const ta_el = document.createElement('textarea'); ta_el.value = text_str;
-  document.body.appendChild(ta_el); ta_el.select();
-  try { document.execCommand('copy'); vmbrShowLogToast('Copied'); }
-  catch(e) { alert('Failed to copy log'); }
-  document.body.removeChild(ta_el);
+function vmbrApplyLogSearch() {
+  const logEl=document.getElementById('vmbr-log-pre'); const countEl=document.getElementById('vmbr-log-search-count');
+  const term_str=(document.getElementById('vmbr-log-search').value||'').trim(); const raw_str=logEl.dataset.raw||'';
+  if(!term_str){logEl.textContent=raw_str||'VM backup & restore log not found';countEl.classList.remove('visible');return;}
+  const escaped_str=term_str.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); const re_obj=new RegExp('('+escaped_str+')','gi');
+  const parts_arr=raw_str.split(re_obj); let matches_int=0; logEl.innerHTML='';
+  parts_arr.forEach(function(part_str){if(re_obj.test(part_str)){matches_int++;const mark_el=document.createElement('mark');mark_el.className='log-highlight';mark_el.textContent=part_str;logEl.appendChild(mark_el);re_obj.lastIndex=0;}else{logEl.appendChild(document.createTextNode(part_str));}});
+  countEl.textContent=matches_int+' match'+(matches_int!==1?'es':''); countEl.classList.toggle('visible',matches_int>0);
 }
+function vmbrFallbackCopy(text_str){const ta_el=document.createElement('textarea');ta_el.value=text_str;document.body.appendChild(ta_el);ta_el.select();try{document.execCommand('copy');vmbrShowLogToast(logDebugMode_bool?'Debug log copied':'Log copied');}catch(e){alert('Failed to copy log');}document.body.removeChild(ta_el);}
 
-// ════════════════════════════════════════════════════════════════════════════
-// 12. DOCUMENT READY — INIT
-// ════════════════════════════════════════════════════════════════════════════
 $(document).ready(function() {
-
   vmbrSwitchMode('backup');
 
-  const page_el   = document.getElementById('vmbr-page');
-  const layout_el = document.getElementById('vmbr-layout');
-
-  function vmbrZeroMargins() {
-    if (!page_el) return;
-    const cs_el = page_el.parentElement;
-    const tab_el = cs_el ? cs_el.parentElement : null;
-    if (cs_el)  cs_el.style.setProperty('margin-top','0','important');
-    if (tab_el) tab_el.style.setProperty('margin-top','0','important');
-    page_el.style.setProperty('margin-top','0','important');
-  }
+  const page_el=document.getElementById('vmbr-page'); const layout_el=document.getElementById('vmbr-layout');
+  function vmbrZeroMargins(){if(!page_el)return;const cs_el=page_el.parentElement;const tab_el=cs_el?cs_el.parentElement:null;if(cs_el)cs_el.style.setProperty('margin-top','0','important');if(tab_el)tab_el.style.setProperty('margin-top','0','important');page_el.style.setProperty('margin-top','0','important');}
   vmbrZeroMargins();
-  let zeroAttempts_int = 0;
-  const zeroInterval_id = setInterval(function(){
-    vmbrZeroMargins();
-    if (++zeroAttempts_int >= 8) clearInterval(zeroInterval_id);
-  }, 250);
+  let zeroAttempts_int=0;
+  const zeroInterval_id=setInterval(function(){vmbrZeroMargins();if(++zeroAttempts_int>=8)clearInterval(zeroInterval_id);},250);
+  const marginObs=new MutationObserver(function(){vmbrZeroMargins();});
+  let ancestor_el=page_el?page_el.parentElement:null;
+  while(ancestor_el&&ancestor_el.id!=='displaybox'&&ancestor_el!==document.body){marginObs.observe(ancestor_el,{attributes:true,attributeFilter:['style','class']});ancestor_el=ancestor_el.parentElement;}
 
-  const marginObs = new MutationObserver(function(){ vmbrZeroMargins(); });
-  let ancestor_el = page_el ? page_el.parentElement : null;
-  while (ancestor_el && ancestor_el.id !== 'displaybox' && ancestor_el !== document.body) {
-    marginObs.observe(ancestor_el, { attributes:true, attributeFilter:['style','class'] });
-    ancestor_el = ancestor_el.parentElement;
-  }
+  const ownerSel_el=$('#vmbr-backup-owner'); const ownerSelected_str=ownerSel_el.data('selected')||'nobody';
+  vmbrGet('list_users_group100.php').done(function(data){ownerSel_el.empty();(data.users||[]).forEach(user_str=>{ownerSel_el.append($('<option>',{value:user_str,text:user_str,selected:user_str===ownerSelected_str}));});});
 
-  const ownerSel_el    = $('#vmbr-backup-owner');
-  const ownerSelected_str = ownerSel_el.data('selected') || 'nobody';
-  vmbrGet('list_users_group100.php').done(function(data) {
-    ownerSel_el.empty();
-    (data.users || []).forEach(user_str => {
-      ownerSel_el.append($('<option>', { value:user_str, text:user_str, selected:user_str === ownerSelected_str }));
-    });
-  });
-
-  const backupDropdown_el = $('#vmbr-vm-dropdown-backup');
-  const backupList_el     = backupDropdown_el.find('.vmbr-vm-dropdown-list');
-
-  backupDropdown_el.find('.vmbr-dropdown-label').on('click', function(e){
-    if (backupDropdown_el.hasClass('disabled')) return;
-    e.stopPropagation(); backupList_el.toggle();
-    backupDropdown_el.toggleClass('active', backupList_el.is(':visible'));
-  });
-  $(document).on('click', function(e){
-    if (!$(e.target).closest('#vmbr-vm-dropdown-backup').length) {
-      backupList_el.hide(); backupDropdown_el.removeClass('active');
-    }
-  });
-  backupList_el.on('change','input[type=checkbox]', vmbrUpdateBackupVmLabel);
+  const backupDropdown_el=$('#vmbr-vm-dropdown-backup'); const backupList_el=backupDropdown_el.find('.vmbr-vm-dropdown-list');
+  backupDropdown_el.find('.vmbr-dropdown-label').on('click',function(e){if(backupDropdown_el.hasClass('disabled'))return;e.stopPropagation();backupList_el.toggle();backupDropdown_el.toggleClass('active',backupList_el.is(':visible'));});
+  $(document).on('click',function(e){if(!$(e.target).closest('#vmbr-vm-dropdown-backup').length){backupList_el.hide();backupDropdown_el.removeClass('active');}});
+  backupList_el.on('change','input[type=checkbox]',vmbrUpdateBackupVmLabel);
   vmbrLoadBackupVMs();
 
-  const restoreDropdown_el = $('#vmbr-vm-dropdown-restore');
-  const restoreList_el     = restoreDropdown_el.find('.vmbr-vm-dropdown-list');
+  const restoreDropdown_el=$('#vmbr-vm-dropdown-restore'); const restoreList_el=restoreDropdown_el.find('.vmbr-vm-dropdown-list');
+  restoreDropdown_el.on('click',function(e){if(restoreDropdown_el.hasClass('disabled'))return;e.stopPropagation();restoreList_el.toggle();restoreDropdown_el.toggleClass('active',restoreList_el.is(':visible'));});
+  $(document).on('click',function(e){if(!$(e.target).closest('#vmbr-vm-dropdown-restore').length){restoreList_el.hide();restoreDropdown_el.removeClass('active');}});
+  restoreList_el.on('click','input,label',function(e){e.stopPropagation();});
+  restoreList_el.on('change','input[type=checkbox]',function(){const checked_arr=restoreList_el.find('input:checked').map(function(){return $(this).val();}).get();restoreDropdown_el.find('.vmbr-dropdown-label').text(checked_arr.length?checked_arr.join(', '):'Select VM(s)');$('#vmbr-hidden-vms-restore').val(checked_arr.join(','));vmbrScheduleVersionRebuild();});
 
-  restoreDropdown_el.on('click', function(e){
-    if (restoreDropdown_el.hasClass('disabled')) return;
-    e.stopPropagation(); restoreList_el.toggle();
-    restoreDropdown_el.toggleClass('active', restoreList_el.is(':visible'));
-  });
-  $(document).on('click', function(e){
-    if (!$(e.target).closest('#vmbr-vm-dropdown-restore').length) {
-      restoreList_el.hide(); restoreDropdown_el.removeClass('active');
-    }
-  });
-  restoreList_el.on('click','input,label', function(e){ e.stopPropagation(); });
-  restoreList_el.on('change','input[type=checkbox]', function(){
-    const checked_arr = restoreList_el.find('input:checked').map(function(){ return $(this).val(); }).get();
-    restoreDropdown_el.find('.vmbr-dropdown-label').text(checked_arr.length ? checked_arr.join(', ') : 'Select VM(s)');
-    $('#vmbr-hidden-vms-restore').val(checked_arr.join(','));
-    vmbrScheduleVersionRebuild();
-  });
+  $('#vmbr-notif-service-backup').on('click',function(e){e.stopPropagation();$('#vmbr-backup-notif-list').toggle();});
+  $('#vmbr-notif-service-restore').on('click',function(e){e.stopPropagation();$('#vmbr-restore-notif-list').toggle();});
+  $('#vmbr-backup-notif-list, #vmbr-restore-notif-list').on('click',function(e){e.stopPropagation();});
+  $(document).on('click',function(e){if(!$(e.target).closest('#vmbr-notif-service-backup').length)$('#vmbr-backup-notif-list').hide();if(!$(e.target).closest('#vmbr-notif-service-restore').length)$('#vmbr-restore-notif-list').hide();});
+  $('#vmbr-backup-notif-list').on('change','input[type=checkbox]',function(){vmbrUpdateNotifLabel(false);vmbrRebuildWebhookFields(false);});
+  $('#vmbr-restore-notif-list').on('change','input[type=checkbox]',function(){vmbrUpdateNotifLabel(true);vmbrRebuildWebhookFields(true);});
 
-  $('#vmbr-notif-service-backup').on('click', function(e){
-    e.stopPropagation(); $('#vmbr-backup-notif-list').toggle();
-  });
-  $('#vmbr-notif-service-restore').on('click', function(e){
-    e.stopPropagation(); $('#vmbr-restore-notif-list').toggle();
-  });
-  $('#vmbr-backup-notif-list, #vmbr-restore-notif-list').on('click', function(e){ e.stopPropagation(); });
-  $(document).on('click', function(e){
-    if (!$(e.target).closest('#vmbr-notif-service-backup').length)  $('#vmbr-backup-notif-list').hide();
-    if (!$(e.target).closest('#vmbr-notif-service-restore').length) $('#vmbr-restore-notif-list').hide();
-  });
-  $('#vmbr-backup-notif-list').on('change','input[type=checkbox]', function(){
-    vmbrUpdateNotifLabel(false); vmbrRebuildWebhookFields(false);
-  });
-  $('#vmbr-restore-notif-list').on('change','input[type=checkbox]', function(){
-    vmbrUpdateNotifLabel(true); vmbrRebuildWebhookFields(true);
-  });
+  const notifBackup_el=document.getElementById('vmbr-backup-notif'); const notifRestore_el=document.getElementById('vmbr-restore-notif');
+  function toggleBackup(){vmbrApplyNotifToggle(notifBackup_el,'#vmbr-backup-notif-service-row','#vmbr-webhook-container-backup',false);}
+  function toggleRestore(){vmbrApplyNotifToggle(notifRestore_el,'#vmbr-restore-notif-service-row','#vmbr-webhook-container-restore',true);}
+  toggleBackup();toggleRestore();
+  if(notifBackup_el)notifBackup_el.addEventListener('change',toggleBackup);
+  if(notifRestore_el)notifRestore_el.addEventListener('change',toggleRestore);
 
-  const notifBackup_el  = document.getElementById('vmbr-backup-notif');
-  const notifRestore_el = document.getElementById('vmbr-restore-notif');
-  function toggleBackup()  { vmbrApplyNotifToggle(notifBackup_el,  '#vmbr-backup-notif-service-row',  '#vmbr-webhook-container-backup',  false); }
-  function toggleRestore() { vmbrApplyNotifToggle(notifRestore_el, '#vmbr-restore-notif-service-row', '#vmbr-webhook-container-restore', true);  }
-  toggleBackup(); toggleRestore();
-  if (notifBackup_el)  notifBackup_el.addEventListener('change',  toggleBackup);
-  if (notifRestore_el) notifRestore_el.addEventListener('change', toggleRestore);
+  let locationChangeTimer_id=null; let lastRestoreLocation_str=$('#vmbr-restore-location').val().trim();
+  $('#vmbr-restore-location').on('input blur change',function(){const newVal_str=$(this).val().trim();if(newVal_str===lastRestoreLocation_str)return;lastRestoreLocation_str=newVal_str;clearTimeout(locationChangeTimer_id);locationChangeTimer_id=setTimeout(function(){vmbrLoadRestoreFolders();vmbrScanMalformed();},300);});
 
-  let locationChangeTimer_id = null;
-  let lastRestoreLocation_str = $('#vmbr-restore-location').val().trim();
-  $('#vmbr-restore-location').on('input blur change', function(){
-    const newVal_str = $(this).val().trim();
-    if (newVal_str === lastRestoreLocation_str) return;
-    lastRestoreLocation_str = newVal_str;
-    clearTimeout(locationChangeTimer_id);
-    locationChangeTimer_id = setTimeout(function(){
-      vmbrLoadRestoreFolders();
-      vmbrScanMalformed();
-    }, 300);
-  });
-
-  const cronMode_el = document.getElementById('vmbr-cron-mode');
-  if (cronMode_el) {
-    vmbrToggleCronOptions(cronMode_el.value);
-    cronMode_el.addEventListener('change', e => vmbrToggleCronOptions(e.target.value));
-    ['#vmbr-hourly-freq','#vmbr-daily-hour','#vmbr-daily-min',
-     '#vmbr-weekly-day','#vmbr-weekly-hour','#vmbr-weekly-min',
-     '#vmbr-monthly-day','#vmbr-monthly-hour','#vmbr-monthly-min'].forEach(sel_str => {
-      $(sel_str).on('change', vmbrUpdateCronHidden);
-    });
-  }
+  const cronMode_el=document.getElementById('vmbr-cron-mode');
+  if(cronMode_el){vmbrToggleCronOptions(cronMode_el.value);cronMode_el.addEventListener('change',e=>vmbrToggleCronOptions(e.target.value));['#vmbr-hourly-freq','#vmbr-daily-hour','#vmbr-daily-min','#vmbr-weekly-day','#vmbr-weekly-hour','#vmbr-weekly-min','#vmbr-monthly-day','#vmbr-monthly-hour','#vmbr-monthly-min'].forEach(sel_str=>{$(sel_str).on('change',vmbrUpdateCronHidden);});}
 
   vmbrLoadSchedules();
-  $(document).on('click','#vmbr-schedule-btn', function(){ vmbrScheduleJob('backup'); });
-  $('#vmbr-cancel-edit-btn').on('click', function(){ location.reload(); });
+  $(document).on('click','#vmbr-schedule-btn',function(){vmbrScheduleJob('backup');});
+  $('#vmbr-cancel-edit-btn').on('click',function(){location.reload();});
 
-  $('input[data-picker-title]').on('click', function(){
-    folderPickerTargetId_str = $(this).attr('id');
-    $('#vmbr-folder-picker-title').text($(this).data('picker-title'));
-    $('#vmbr-folder-picker-modal').show();
-    const saved_str = $(this).val();
-    vmbrLoadFolders(saved_str && saved_str.startsWith('/mnt') ? saved_str : '/mnt');
-  });
-  $('#vmbr-folder-close-btn').on('click', function(){ $('#vmbr-folder-picker-modal').hide(); });
-  $('#vmbr-folder-confirm-btn').off('click').on('click', function(e){
-    e.preventDefault();
-    if (!folderPickerSelected_str || !folderPickerTargetId_str) return;
-    vmbrResolveAndApplyPath(folderPickerSelected_str, folderPickerTargetId_str);
-  });
-  $('#vmbr-folder-create-btn').on('click', function(){
-    $('#vmbr-new-folder-wrap').show(); $('#vmbr-new-folder-name').val('').focus();
-  });
-  $('#vmbr-new-folder-cancel-btn').on('click', function(){
-    $('#vmbr-new-folder-wrap').hide(); $('#vmbr-new-folder-name').val('');
-  });
-  $('#vmbr-new-folder-ok-btn').on('click', function(){
-    const name_str = $('#vmbr-new-folder-name').val().trim();
-    if (!name_str) return;
-    vmbrPost('create_folder.php', { path:folderPickerPath_str, name:name_str, csrf_token:csrfToken_str })
-      .done(function(res){
-        if (res.success) { $('#vmbr-new-folder-wrap').hide(); $('#vmbr-new-folder-name').val(''); vmbrLoadFolders(folderPickerPath_str); }
-        else alert(res.error || 'Failed to create folder');
-      }, 'json');
-  });
+  $('input[data-picker-title]').on('click',function(){folderPickerTargetId_str=$(this).attr('id');$('#vmbr-folder-picker-title').text($(this).data('picker-title'));$('#vmbr-folder-picker-modal').show();const saved_str=$(this).val();vmbrLoadFolders(saved_str&&saved_str.startsWith('/mnt')?saved_str:'/mnt');});
+  $('#vmbr-folder-close-btn').on('click',function(){$('#vmbr-folder-picker-modal').hide();});
+  $('#vmbr-folder-confirm-btn').off('click').on('click',function(e){e.preventDefault();if(!folderPickerSelected_str||!folderPickerTargetId_str)return;vmbrResolveAndApplyPath(folderPickerSelected_str,folderPickerTargetId_str);});
+  $('#vmbr-folder-create-btn').on('click',function(){$('#vmbr-new-folder-wrap').show();$('#vmbr-new-folder-name').val('').focus();});
+  $('#vmbr-new-folder-cancel-btn').on('click',function(){$('#vmbr-new-folder-wrap').hide();$('#vmbr-new-folder-name').val('');});
+  $('#vmbr-new-folder-ok-btn').on('click',function(){const name_str=$('#vmbr-new-folder-name').val().trim();if(!name_str)return;vmbrPost('create_folder.php',{path:folderPickerPath_str,name:name_str,csrf_token:csrfToken_str}).done(function(res){if(res.success){$('#vmbr-new-folder-wrap').hide();$('#vmbr-new-folder-name').val('');vmbrLoadFolders(folderPickerPath_str);}else alert(res.error||'Failed to create folder');},'json');});
 
-  const logSearchEl_el  = document.getElementById('vmbr-log-search');
-  const logSearchClear_el = document.getElementById('vmbr-log-search-clear');
-  function vmbrUpdateSearchClear() {
-    logSearchClear_el.style.display = logSearchEl_el.value ? 'flex' : 'none';
-  }
-  logSearchClear_el.addEventListener('mousedown', function(e) {
-    e.preventDefault();
-    logSearchEl_el.value = '';
-    vmbrApplyLogSearch();
-    vmbrUpdateSearchClear();
-    logSearchEl_el.focus();
-  });
-  const logAutoBtn_el   = document.getElementById('vmbr-log-autoscroll-btn');
-  const logTopBtn_el    = document.getElementById('vmbr-log-scroll-top-btn');
+  const logSearchEl_el=document.getElementById('vmbr-log-search'); const logSearchClear_el=document.getElementById('vmbr-log-search-clear');
+  function vmbrUpdateSearchClear(){logSearchClear_el.style.display=logSearchEl_el.value?'flex':'none';}
+  logSearchClear_el.addEventListener('mousedown',function(e){e.preventDefault();logSearchEl_el.value='';vmbrApplyLogSearch();vmbrUpdateSearchClear();logSearchEl_el.focus();});
+  logSearchEl_el.addEventListener('input',function(){vmbrApplyLogSearch();vmbrUpdateSearchClear();});
 
-  function vmbrSyncScrollTooltips() {
-    logAutoBtn_el.title = 'Scroll to bottom / Disable auto scroll';
-    logTopBtn_el.title  = 'Scroll to top / Enable auto scroll';
-  }
+  const logAutoBtn_el=document.getElementById('vmbr-log-autoscroll-btn'); const logTopBtn_el=document.getElementById('vmbr-log-scroll-top-btn');
+  function vmbrSyncScrollTooltips(){logAutoBtn_el.title='Scroll to bottom / Disable auto scroll';logTopBtn_el.title='Scroll to top / Enable auto scroll';}
   vmbrSyncScrollTooltips();
 
-  logSearchEl_el.addEventListener('input', function() {
-    vmbrApplyLogSearch();
-    vmbrUpdateSearchClear();
+  logAutoBtn_el.addEventListener('click',function(){logAutoScroll_bool=!logAutoScroll_bool;if(logAutoScroll_bool){const logEl=document.getElementById('vmbr-log-pre');logEl.scrollTop=logEl.scrollHeight;}vmbrSyncScrollTooltips();});
+  logTopBtn_el.addEventListener('click',function(){logAutoScroll_bool=false;document.getElementById('vmbr-log-pre').scrollTop=0;vmbrSyncScrollTooltips();});
+  document.getElementById('vmbr-log-pre').addEventListener('scroll',function(){const atBottom_bool=this.scrollHeight-this.scrollTop-this.clientHeight<8;if(!atBottom_bool&&logAutoScroll_bool){logAutoScroll_bool=false;vmbrSyncScrollTooltips();}});
+
+  document.getElementById('vmbr-log-clear-btn').addEventListener('click',function(){
+    const label_str = logDebugMode_bool ? 'debug log' : 'backup & restore log';
+    if(!confirm('Are you sure you want to clear the ' + label_str + '?'))return;
+    fetch(vmbrH('clear_log.php'),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-TOKEN':csrfToken_str},body:'log=last&debug='+(logDebugMode_bool?'1':'0')+'&csrf_token='+encodeURIComponent(csrfToken_str)})
+      .then(r=>r.json()).then(data=>{if(data.ok){const logEl=document.getElementById('vmbr-log-pre');logEl.dataset.raw='';logEl.textContent='';lastLogSnapshot_str='';document.getElementById('vmbr-log-search-count').classList.remove('visible');vmbrShowLogToast(logDebugMode_bool?'Debug log cleared':'Log cleared');}}).catch(()=>alert('Failed to clear log'));
   });
 
-  logAutoBtn_el.addEventListener('click', function(){
-    logAutoScroll_bool = !logAutoScroll_bool;
-    if (logAutoScroll_bool) {
-      const logEl = document.getElementById('vmbr-log-pre');
-      logEl.scrollTop = logEl.scrollHeight;
-    }
-    vmbrSyncScrollTooltips();
-  });
-  logTopBtn_el.addEventListener('click', function(){
-    logAutoScroll_bool = false;
-    document.getElementById('vmbr-log-pre').scrollTop = 0;
-    vmbrSyncScrollTooltips();
-  });
-  document.getElementById('vmbr-log-pre').addEventListener('scroll', function(){
-    const atBottom_bool = this.scrollHeight - this.scrollTop - this.clientHeight < 8;
-    if (!atBottom_bool && logAutoScroll_bool) {
-      logAutoScroll_bool = false;
-      vmbrSyncScrollTooltips();
-    }
+  document.getElementById('vmbr-log-copy-btn').addEventListener('click',function(){
+    const logEl=document.getElementById('vmbr-log-pre'); const text_str=logEl.dataset.raw||logEl.textContent||'';
+    if(!text_str.trim()||text_str.includes('log not found'))return;
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text_str).then(()=>vmbrShowLogToast(logDebugMode_bool?'Debug log copied':'Copied')).catch(()=>vmbrFallbackCopy(text_str));}else{vmbrFallbackCopy(text_str);}
   });
 
-  document.getElementById('vmbr-log-clear-btn').addEventListener('click', function(){
-    if (!confirm('Are you sure you want to clear the backup & restore log?')) return;
-    fetch(vmbrH('clear_log.php'), {
-      method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-TOKEN':csrfToken_str},
-      body:'log=last&csrf_token=' + encodeURIComponent(csrfToken_str),
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data.ok) {
-          const logEl = document.getElementById('vmbr-log-pre');
-          logEl.dataset.raw = ''; logEl.textContent = '';
-          lastLogSnapshot_str = '';
-          document.getElementById('vmbr-log-search-count').classList.remove('visible');
-          vmbrShowLogToast('Log cleared');
-        }
-      })
-      .catch(() => alert('Failed to clear log'));
-  });
-
-  document.getElementById('vmbr-log-copy-btn').addEventListener('click', function(){
-    const logEl   = document.getElementById('vmbr-log-pre');
-    const text_str = logEl.dataset.raw || logEl.textContent || '';
-    if (!text_str.trim() || text_str.includes('VM backup & restore log not found')) return;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text_str).then(() => vmbrShowLogToast('Copied')).catch(() => vmbrFallbackCopy(text_str));
-    } else { vmbrFallbackCopy(text_str); }
-  });
-
-  setTimeout(vmbrScheduleVersionRebuild, 50);
-  setTimeout(vmbrScanMalformed, 100);
-  vmbrLoadRestoreFolders();
-
-  if (typeof caPluginUpdateCheck === 'function') {
-    caPluginUpdateCheck('vm-backup-and-restore.plg', { name:'vm-backup-and-restore' });
-  }
+  setTimeout(vmbrScheduleVersionRebuild,50); setTimeout(vmbrScanMalformed,100); vmbrLoadRestoreFolders();
+  if(typeof caPluginUpdateCheck==='function')caPluginUpdateCheck('vm-backup-and-restore.plg',{name:'vm-backup-and-restore'});
 });
 </script>
 
 <script>
 'use strict';
-// ════════════════════════════════════════════════════════════════════════════
-// 13. INLINE HELP (F1 / click-to-reveal)
-// ════════════════════════════════════════════════════════════════════════════
 $(document).ready(function() {
-  let _fbbLastClick_int = 0;
-  let _fbbF1Open_bool   = false;
+  let _fbbLastClick_int=0; let _fbbF1Open_bool=false;
 
   function attachHelp($trigger, helpText_str, $insertAfter) {
-    const helpId_str = 'fbb-help-' + Math.random().toString(36).substr(2,9);
-    const $helpDiv = $('<div class="fbb-help-text" id="' + helpId_str + '" style="display:none;">' + helpText_str + '</div>');
-    $insertAfter.after($helpDiv);
-    $helpDiv.data('fbb-guard', $insertAfter);
-    $trigger.addClass('fbb-has-help');
-    $trigger.on('click', function(){
-      _fbbLastClick_int = Date.now();
-      const $h = $('#' + helpId_str);
-      $h.is(':visible') ? $h.slideUp(150) : $h.slideDown(150);
-    });
+    const helpId_str='fbb-help-'+Math.random().toString(36).substr(2,9);
+    const $helpDiv=$('<div class="fbb-help-text" id="'+helpId_str+'" style="display:none;">'+helpText_str+'</div>');
+    $insertAfter.after($helpDiv); $helpDiv.data('fbb-guard',$insertAfter); $trigger.addClass('fbb-has-help');
+    $trigger.on('click',function(){_fbbLastClick_int=Date.now();const $h=$('#'+helpId_str);$h.is(':visible')?$h.slideUp(150):$h.slideDown(150);});
   }
-
-  window._fbbAttachHelp = attachHelp;
+  window._fbbAttachHelp=attachHelp;
 
   function processHelpLabels($scope) {
-    $scope.find('label[title]').each(function(){
-      const $label = $(this);
-      const helpText_str = $label.attr('title');
-      if (!helpText_str || $label.hasClass('fbb-has-help')) return;
-      $label.removeAttr('title');
-      const $formPair = $label.closest('.form-pair');
-      attachHelp($label, helpText_str, $formPair.length ? $formPair : $label);
-    });
-    $scope.find('span[title]').each(function(){
-      const $span = $(this);
-      if ($span.children('button').length) return;
-      if ($span.hasClass('vmbr-status-label')) {
-        const helpText_str = $span.attr('title');
-        if (!helpText_str || $span.hasClass('fbb-has-help')) return;
-        $span.removeAttr('title');
-        const $statusRow = $span.closest('.vmbr-status-row');
-        attachHelp($span, helpText_str, $statusRow.length ? $statusRow : $span);
-        return;
-      }
-      $span.removeAttr('title').removeAttr('class');
-    });
+    $scope.find('label[title]').each(function(){const $label=$(this);const helpText_str=$label.attr('title');if(!helpText_str||$label.hasClass('fbb-has-help'))return;$label.removeAttr('title');const $formPair=$label.closest('.form-pair');attachHelp($label,helpText_str,$formPair.length?$formPair:$label);});
+    $scope.find('span[title]').each(function(){const $span=$(this);if($span.children('button').length)return;if($span.hasClass('vmbr-status-label')){const helpText_str=$span.attr('title');if(!helpText_str||$span.hasClass('fbb-has-help'))return;$span.removeAttr('title');const $statusRow=$span.closest('.vmbr-status-row');attachHelp($span,helpText_str,$statusRow.length?$statusRow:$span);return;}$span.removeAttr('title').removeAttr('class');});
   }
-
-  window._fbbProcessLabels = processHelpLabels;
+  window._fbbProcessLabels=processHelpLabels;
   processHelpLabels($(document));
 
-  const $modeRow = $('#vmbr-mode-row');
-  if ($('#vmbr-plugin-label').length) {
-    attachHelp($('#vmbr-plugin-label'), 'Easily switch between your installed jcofer555 plugins', $modeRow);
-  }
-  attachHelp($('#vmbr-mode-label'), 'Switch between modes', $modeRow);
+  const $modeRow=$('#vmbr-mode-row');
+  if($('#vmbr-plugin-label').length)attachHelp($('#vmbr-plugin-label'),'Easily switch between your installed jcofer555 plugins',$modeRow);
+  attachHelp($('#vmbr-mode-label'),'Switch between modes',$modeRow);
 
-  $(document).on('keydown', function(e){
-    if (e.key !== 'F1') return;
-    e.preventDefault();
-    if (_fbbF1Open_bool) {
-      $('.fbb-help-text').slideUp(150);
-      _fbbF1Open_bool = false;
-    } else {
-      $('.fbb-help-text').each(function(){
-        const $guard = $(this).data('fbb-guard');
-        if ($guard && !$guard.is(':visible')) return;
-        $(this).slideDown(150);
-      });
-      _fbbF1Open_bool = true;
-    }
-  });
+  attachHelp($('#vmbr-debug-log-label'),'Enable to view the debug log',$('#vmbr-debug-log-label').closest('.vmbr-log-toolbar'));
 
-  $(document).on('click', function(){
-    if (Date.now() - _fbbLastClick_int < 150) return;
-    $('.fbb-help-text').slideUp(150);
-    _fbbF1Open_bool = false;
-  });
+  $(document).on('keydown',function(e){if(e.key!=='F1')return;e.preventDefault();if(_fbbF1Open_bool){$('.fbb-help-text').slideUp(150);_fbbF1Open_bool=false;}else{$('.fbb-help-text').each(function(){const $guard=$(this).data('fbb-guard');if($guard&&!$guard.is(':visible'))return;$(this).slideDown(150);});_fbbF1Open_bool=true;}});
+  $(document).on('click',function(){if(Date.now()-_fbbLastClick_int<150)return;$('.fbb-help-text').slideUp(150);_fbbF1Open_bool=false;});
 
-  function vmbrInitTooltipster($el_arr) {
-    $el_arr.each(function() {
-      const $el = $(this);
-      if ($el.hasClass('tooltipstered')) return;
-      const tip_str = $el.attr('title') || '';
-      if (!tip_str) return;
-      $el.tooltipster({ maxWidth:300, content:tip_str });
-      $el.removeAttr('title');
-    });
-  }
+  function vmbrInitTooltipster($el_arr){$el_arr.each(function(){const $el=$(this);if($el.hasClass('tooltipstered'))return;const tip_str=$el.attr('title')||'';if(!tip_str)return;$el.tooltipster({maxWidth:300,content:tip_str});$el.removeAttr('title');});}
+  vmbrInitTooltipster($('#vmbr-schedule-btn, #vmbr-backup-stop-btn, #vmbr-restore-stop-btn, #vmbr-backup-now-btn, #vmbr-restore-now-btn, #vmbr-log-clear-btn, #vmbr-log-copy-btn, #vmbr-log-scroll-top-btn, #vmbr-log-autoscroll-btn'));
 
-  vmbrInitTooltipster($(
-    '#vmbr-schedule-btn, #vmbr-backup-stop-btn, #vmbr-restore-stop-btn, ' +
-    '#vmbr-backup-now-btn, #vmbr-restore-now-btn, ' +
-    '#vmbr-log-clear-btn, #vmbr-log-copy-btn, ' +
-    '#vmbr-log-scroll-top-btn, #vmbr-log-autoscroll-btn'
-  ));
-
-  $(document).on('mouseenter', 'table button[title], table [title]', function(){
-    const $el = $(this);
-    if ($el.hasClass('tooltipstered')) return;
-    const tip_str = $el.attr('title') || '';
-    if (!tip_str) return;
-    $el.tooltipster({ maxWidth:300, content:tip_str });
-    $el.removeAttr('title');
-    setTimeout(() => { if ($el.is(':hover')) $el.tooltipster('open'); }, 200);
-  });
+  $(document).on('mouseenter','table button[title], table [title]',function(){const $el=$(this);if($el.hasClass('tooltipstered'))return;const tip_str=$el.attr('title')||'';if(!tip_str)return;$el.tooltipster({maxWidth:300,content:tip_str});$el.removeAttr('title');setTimeout(()=>{if($el.is(':hover'))$el.tooltipster('open');},200);});
 });
 </script>
