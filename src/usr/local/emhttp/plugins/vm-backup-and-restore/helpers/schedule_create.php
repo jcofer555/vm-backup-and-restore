@@ -11,6 +11,15 @@ const ALLOWED_BACKUP_KEYS  = ['VMS_TO_BACKUP', 'BACKUP_DESTINATION', 'BACKUPS_TO
 const ALLOWED_RESTORE_KEYS = ['VMS_TO_RESTORE', 'RESTORE_DESTINATION', 'LOCATION_OF_BACKUPS', 'DRY_RUN_RESTORE', 'NOTIFICATIONS_RESTORE', 'NOTIFICATION_SERVICE'];
 const EXCLUDED_KEYS        = ['csrf_token', 'CRON_EXPRESSION'];
 
+// --- CSRF validation ---
+$csrf_cookie_str = $_COOKIE['csrf_token'] ?? '';
+$csrf_post_str   = $_POST['csrf_token']   ?? '';
+if ($csrf_cookie_str !== '' && !hash_equals($csrf_cookie_str, $csrf_post_str)) {
+    http_response_code(403);
+    echo json_encode(['status' => 'error', 'message' => 'Invalid CSRF token']);
+    exit;
+}
+
 // --- Input ---
 $type_str     = (string)($_POST['type']     ?? '');
 $cron_str     = trim((string)($_POST['cron'] ?? ''));

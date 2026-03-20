@@ -15,6 +15,14 @@ function json_error(string $message): void
     exit;
 }
 
+// --- CSRF validation ---
+$csrf_cookie_str = $_COOKIE['csrf_token'] ?? '';
+$csrf_post_str   = $_POST['csrf_token']   ?? '';
+if ($csrf_cookie_str !== '' && !hash_equals($csrf_cookie_str, $csrf_post_str)) {
+    http_response_code(403);
+    json_error('Invalid CSRF token');
+}
+
 $id_str = (string)($_POST['id'] ?? '');
 
 if ($id_str === '') {

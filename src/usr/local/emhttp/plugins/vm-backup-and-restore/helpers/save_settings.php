@@ -18,6 +18,15 @@ function json_error(string $message): void
     exit;
 }
 
+// --- CSRF validation ---
+// Only enforce if the cookie is actually present — if Unraid hasn't set it yet
+// (e.g. first load, session edge case) we allow through rather than hard-fail.
+$csrf_cookie_str = $_COOKIE['csrf_token'] ?? '';
+$csrf_post_str   = $_POST['csrf_token']   ?? '';
+if ($csrf_cookie_str !== '' && !hash_equals($csrf_cookie_str, $csrf_post_str)) {
+    json_error('Invalid CSRF token');
+}
+
 // --- Read POST values ---
 $vms_to_backup_str        = (string)($_POST['VMS_TO_BACKUP']        ?? '');
 $backup_destination_str   = (string)($_POST['BACKUP_DESTINATION']   ?? '');
@@ -34,15 +43,7 @@ foreach ($services_arr as $svc_str) {
     $webhooks_arr[$svc_str] = (string)($_POST['WEBHOOK_' . $svc_str] ?? '');
 }
 
-// --- Normalize backup destination path ---
-if ($backup_destination_str !== '') {
-    $resolved_str = realpath($backup_destination_str);
-    if ($resolved_str !== false) {
-        $backup_destination_str = $resolved_str;
-    }
-}
-
-// --- Build config ---
+// --- Build config (paths stored as-is — realpath applied at backup time) ---
 $lines_arr = [
     'VMS_TO_BACKUP'        => $vms_to_backup_str,
     'BACKUP_DESTINATION'   => $backup_destination_str,

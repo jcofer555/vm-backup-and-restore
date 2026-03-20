@@ -6,6 +6,15 @@ header('Content-Type: application/json');
 
 const SCHEDULES_CFG = '/boot/config/plugins/vm-backup-and-restore/schedules.cfg';
 
+// --- CSRF validation ---
+$csrf_cookie_str = $_COOKIE['csrf_token'] ?? '';
+$csrf_post_str   = $_POST['csrf_token']   ?? '';
+if ($csrf_cookie_str !== '' && !hash_equals($csrf_cookie_str, $csrf_post_str)) {
+    http_response_code(403);
+    echo json_encode(['status' => 'error', 'message' => 'Invalid CSRF token']);
+    exit;
+}
+
 $id_str = (string)($_POST['id'] ?? '');
 
 if ($id_str === '' || !file_exists(SCHEDULES_CFG)) {

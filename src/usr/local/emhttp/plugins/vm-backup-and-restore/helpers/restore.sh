@@ -4,6 +4,7 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 SCRIPT_START_EPOCH=$(date +%s)
 STOP_FLAG="/tmp/vm-backup-and-restore/restore_stop_requested.txt"
 RSYNC_PID=""
+WATCHER_PID=""
 RESTORED_FILES_arr=()
 TEMP_FILES_arr=()
 
@@ -31,6 +32,18 @@ mkdir -p "$ROTATE_DIR"
 
 debug_log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Restore session started debug - $*" >> "$DEBUG_LOG"
+}
+
+log_path_resolution() {
+    local label_str="$1"
+    local raw_str="$2"
+    local resolved_str="$3"
+    if [[ -n "$raw_str" && "$raw_str" != "$resolved_str" ]]; then
+        echo "[PATH RESOLVED] $label_str: $raw_str -> $resolved_str (symlink followed)"
+        debug_log "[PATH RESOLVED] $label_str: $raw_str -> $resolved_str (symlink followed)"
+    else
+        debug_log "$label_str: $resolved_str (no symlink resolution needed)"
+    fi
 }
 
 # --- Log rotation: main log ---
@@ -86,7 +99,7 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] Restore session started - Plugin version: $
 
 # --- Cleanup trap ---
 cleanup() {
-	local end_epoch_int duration_int
+    local end_epoch_int duration_int
     end_epoch_int=$(date +%s)
     duration_int=$(( end_epoch_int - SCRIPT_START_EPOCH ))
     SCRIPT_DURATION_HUMAN="$(format_duration "$duration_int")"
@@ -119,7 +132,7 @@ cleanup() {
 
         echo "Restore was stopped early. Cleaned up files created this run"
         debug_log "===== Session ended (stopped early) ====="
-		echo "[$(date '+%Y-%m-%d %H:%M:%S')] Restore session finished - Duration: $SCRIPT_DURATION_HUMAN"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Restore session finished - Duration: $SCRIPT_DURATION_HUMAN"
         notify_restore "warning" "VM Backup & Restore" "Restore was stopped early - Duration: $SCRIPT_DURATION_HUMAN"
         set_restore_status "Restore stopped and cleaned up"
         rm -f "$RESTORE_STATUS_FILE"
@@ -240,12 +253,29 @@ notify_restore "normal" "VM Backup & Restore" "Restore started"
 sleep 5
 
 IFS=',' read -r -a vm_names_arr <<< "$VMS_TO_RESTORE"
-backup_path_str="$LOCATION_OF_BACKUPS"
-vm_domains_str="$RESTORE_DESTINATION"
 DRY_RUN="$DRY_RUN_RESTORE"
 
+# --- Resolve paths at runtime so symlinks are followed correctly
+# without writing the resolved paths back to settings_restore.cfg or the UI ---
+_raw_backup_path_str="${LOCATION_OF_BACKUPS:-}"
+if [[ -n "$_raw_backup_path_str" ]]; then
+    backup_path_str=$(readlink -f "$_raw_backup_path_str" 2>/dev/null || echo "$_raw_backup_path_str")
+else
+    backup_path_str=""
+fi
+log_path_resolution "LOCATION_OF_BACKUPS" "$_raw_backup_path_str" "$backup_path_str"
+
+_raw_vm_domains_str="${RESTORE_DESTINATION:-}"
+if [[ -n "$_raw_vm_domains_str" ]]; then
+    vm_domains_str=$(readlink -f "$_raw_vm_domains_str" 2>/dev/null || echo "$_raw_vm_domains_str")
+else
+    vm_domains_str=""
+fi
+log_path_resolution "RESTORE_DESTINATION" "$_raw_vm_domains_str" "$vm_domains_str"
+
 debug_log "===== Session started ====="
-debug_log "VMS_TO_RESTORE=$VMS_TO_RESTORE backup_path=$backup_path_str vm_domains=$vm_domains_str DRY_RUN=$DRY_RUN"
+debug_log "VMS_TO_RESTORE=$VMS_TO_RESTORE"
+debug_log "DRY_RUN=$DRY_RUN"
 
 # NOTE: The backup source location and the restore destination do not need to share
 # the same mount type — e.g. backups can live on /mnt/remotes while restoring to

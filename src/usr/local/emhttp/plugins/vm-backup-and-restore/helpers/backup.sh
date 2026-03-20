@@ -129,6 +129,18 @@ debug_log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Backup session started debug - $*" >> "$DEBUG_LOG"
 }
 
+log_path_resolution() {
+    local label_str="$1"
+    local raw_str="$2"
+    local resolved_str="$3"
+    if [[ -n "$raw_str" && "$raw_str" != "$resolved_str" ]]; then
+        echo "[PATH RESOLVED] $label_str: $raw_str -> $resolved_str (symlink followed)"
+        debug_log "[PATH RESOLVED] $label_str: $raw_str -> $resolved_str (symlink followed)"
+    else
+        debug_log "$label_str: $resolved_str (no symlink resolution needed)"
+    fi
+}
+
 set_status "Started backup session"
 
 # --- Log rotation: main log ---
@@ -279,8 +291,18 @@ sleep 5
 # --- Config-derived variables ---
 BACKUPS_TO_KEEP="${BACKUPS_TO_KEEP:-0}"
 backup_owner_str="${BACKUP_OWNER:-nobody}"
-backup_location_str="${BACKUP_DESTINATION:-}"
+
+# --- Resolve backup destination to its real path at runtime ---
+# This ensures symlinks (e.g. /mnt/user -> /mnt/user0) are followed correctly
+# without writing the resolved path back to settings.cfg or the UI.
+_raw_backup_location_str="${BACKUP_DESTINATION:-}"
+if [[ -n "$_raw_backup_location_str" ]]; then
+    backup_location_str=$(readlink -f "$_raw_backup_location_str" 2>/dev/null || echo "$_raw_backup_location_str")
+else
+    backup_location_str=""
+fi
 export backup_location_str
+log_path_resolution "BACKUP_DESTINATION" "$_raw_backup_location_str" "$backup_location_str"
 
 debug_log "===== Session started ====="
 debug_log "DRY_RUN=$DRY_RUN BACKUPS_TO_KEEP=$BACKUPS_TO_KEEP backup_owner=$backup_owner_str backup_location=$backup_location_str"

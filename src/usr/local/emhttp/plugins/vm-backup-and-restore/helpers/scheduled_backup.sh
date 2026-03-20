@@ -48,6 +48,18 @@ debug_log() {
 
 set_status() { echo "$1" > "$STATUS_FILE"; }
 
+log_path_resolution() {
+    local label_str="$1"
+    local raw_str="$2"
+    local resolved_str="$3"
+    if [[ -n "$raw_str" && "$raw_str" != "$resolved_str" ]]; then
+        echo "[PATH RESOLVED] $label_str: $raw_str -> $resolved_str (symlink followed)"
+        debug_log "[PATH RESOLVED] $label_str: $raw_str -> $resolved_str (symlink followed)"
+    else
+        debug_log "$label_str: $resolved_str (no symlink resolution needed)"
+    fi
+}
+
 classify_path() {
     local path_str="$1"
     local resolved_str
@@ -326,8 +338,18 @@ sleep 5
 
 BACKUPS_TO_KEEP="${BACKUPS_TO_KEEP:-0}"
 backup_owner_str="${BACKUP_OWNER:-nobody}"
-backup_location_str="${BACKUP_DESTINATION:-}"
+
+# --- Resolve backup destination to its real path at runtime ---
+# This ensures symlinks (e.g. /mnt/user -> /mnt/user0) are followed correctly
+# without writing the resolved path back to the schedule config or the UI.
+_raw_backup_location_str="${BACKUP_DESTINATION:-}"
+if [[ -n "$_raw_backup_location_str" ]]; then
+    backup_location_str=$(readlink -f "$_raw_backup_location_str" 2>/dev/null || echo "$_raw_backup_location_str")
+else
+    backup_location_str=""
+fi
 export backup_location_str
+log_path_resolution "BACKUP_DESTINATION" "$_raw_backup_location_str" "$backup_location_str"
 
 debug_log "===== Session started ====="
 debug_log "SCHEDULE_ID=${SCHEDULE_ID:-not set} DRY_RUN=$DRY_RUN BACKUPS_TO_KEEP=$BACKUPS_TO_KEEP"

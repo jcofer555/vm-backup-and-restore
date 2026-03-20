@@ -45,25 +45,18 @@ function vmbrH(path_str) { return HELPERS_BASE_STR + '/' + path_str; }
 function vmbrGet(ep_str, data_obj)  { return $.getJSON(vmbrH(ep_str), data_obj || {}); }
 function vmbrPost(ep_str, data_obj) { return $.post(vmbrH(ep_str), data_obj); }
 
+// vmbrResolvePathServer — returns path unchanged; resolve_path.php intentionally
+// does not call realpath() to prevent /mnt/user symlinks being silently rewritten
+// to their physical target (e.g. /mnt/cache) in saved settings and the UI.
 async function vmbrResolvePathServer(path_str) {
-  try {
-    const res = await fetch(vmbrH('resolve_path.php'), { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'path='+encodeURIComponent(path_str)+'&csrf_token='+encodeURIComponent(csrfToken_str) });
-    return (await res.text()).trim() || path_str;
-  } catch(e) { return path_str; }
+  return path_str;
 }
 
-function vmbrClassifyPath(path_str) {
-  if (path_str.startsWith('/mnt/user/')    || path_str === '/mnt/user')    return 'USER';
-  if (path_str.startsWith('/mnt/user0/')   || path_str === '/mnt/user0')   return 'USER0';
-  if (path_str.startsWith('/mnt/remotes/') || path_str === '/mnt/remotes') return 'EXEMPT';
-  if (path_str.startsWith('/mnt/addons/')  || path_str === '/mnt/addons')  return 'EXEMPT';
-  return 'OTHER';
-}
+function vmbrGetSelectedServices(isRestore_bool) { const listId_str=isRestore_bool?'#vmbr-restore-notif-list':'#vmbr-backup-notif-list'; return $(listId_str).find('input:checked').map(function(){ return $(this).val(); }).get(); }
+function vmbrUpdateNotifLabel(isRestore_bool) { const services_arr=vmbrGetSelectedServices(isRestore_bool); const labelId_str=isRestore_bool?'#vmbr-restore-notif-label':'#vmbr-backup-notif-label'; $(labelId_str).text(services_arr.length?services_arr.join(', '):'Select service(s)'); }
 function vmbrFormatMissingList(arr) { if (arr.length===1) return arr[0]; if (arr.length===2) return arr[0]+' and '+arr[1]; return arr.slice(0,-1).join(', ')+', and '+arr[arr.length-1]; }
 function vmbrNormalizeWebhookUrl(val_str, svc_str) { val_str=val_str.trim(); if (!val_str||val_str.startsWith('https://')) return val_str; const cfg=SERVICE_CONFIG_OBJ[svc_str]; return (cfg&&cfg.prefix)?cfg.prefix+val_str:val_str; }
 function vmbrValidateWebhookUrl(val_str, svc_str) { if (!val_str) return true; const cfg=SERVICE_CONFIG_OBJ[svc_str]; if (!cfg||!cfg.prefix) return true; return val_str.startsWith(cfg.prefix); }
-function vmbrGetSelectedServices(isRestore_bool) { const listId_str=isRestore_bool?'#vmbr-restore-notif-list':'#vmbr-backup-notif-list'; return $(listId_str).find('input:checked').map(function(){ return $(this).val(); }).get(); }
-function vmbrUpdateNotifLabel(isRestore_bool) { const services_arr=vmbrGetSelectedServices(isRestore_bool); const labelId_str=isRestore_bool?'#vmbr-restore-notif-label':'#vmbr-backup-notif-label'; $(labelId_str).text(services_arr.length?services_arr.join(', '):'Select service(s)'); }
 function vmbrShowPopup(id_str, msg_str) { const $p=$('#'+id_str); $p.text(msg_str).fadeIn(150); setTimeout(()=>$p.fadeOut(200,()=>$p.text('').hide()),3000); }
 function vmbrShowLogToast(msg_str) { const el=document.getElementById('vmbr-log-toast'); if(!el)return; el.textContent=msg_str; el.classList.add('visible'); clearTimeout(el._hideTimer); el._hideTimer=setTimeout(()=>el.classList.remove('visible'),2000); }
 function vmbrLockScheduleUI()   { scheduleUILocked_bool=true;  $('.schedule-action-btn').prop('disabled',true);  }
@@ -165,28 +158,11 @@ function vmbrValidatePrereqs() {
   return true;
 }
 
-async function vmbrFetchVdiskPaths(vmList_arr) { return $.ajax({ url:vmbrH('get_vdisk_paths.php'), method:'POST', data:{vms:vmList_arr}, dataType:'json' }); }
-async function vmbrValidateMountTypes(vmList_arr, dest_str) {
-  const destClass_str = vmbrClassifyPath(dest_str);
-  const data_obj = await vmbrFetchVdiskPaths(vmList_arr);
-  for (const vm_str of vmList_arr) {
-    const disks_arr = data_obj[vm_str];
-    if (!Array.isArray(disks_arr)) { vmbrAlert(`Could not read vdisk paths for ${vm_str}`); return false; }
-    for (const disk_str of disks_arr) {
-      const diskClass_str = vmbrClassifyPath(disk_str);
-      if (diskClass_str!==destClass_str&&diskClass_str!=='EXEMPT'&&destClass_str!=='EXEMPT') { vmbrAlert(`${vm_str}'s vdisk ${disk_str} uses mount type (${diskClass_str}) but backup destination uses (${destClass_str}).\n\nBoth must use the same mount type.`); return false; }
-    }
-  }
-  return true;
-}
-
-// ── Select/picker wrap (identical ▼ arrow via ::after on wrapper div) ────────
+// ── Select/picker wrap ────────────────────────────────────────────────────────
 function vmbrWrapSelects() {
-  // Mark mode-row selects as wrapped so they are never touched
   document.querySelectorAll('#vmbr-mode-row select').forEach(function(sel_el) {
     sel_el.classList.add('vmbr-wrapped');
   });
-  // Wrap all other <select> elements inside the plugin
   document.querySelectorAll('#vmbr-page select:not(.vmbr-wrapped)').forEach(function(sel_el) {
     if (sel_el.closest('.vmbr-select-wrap')) return;
     const wrap_el = document.createElement('div');
@@ -195,7 +171,6 @@ function vmbrWrapSelects() {
     wrap_el.appendChild(sel_el);
     sel_el.classList.add('vmbr-wrapped');
   });
-  // Wrap picker text inputs — ::after doesn't work on <input>, so same div trick
   ['vmbr-backup-destination','vmbr-restore-location','vmbr-restore-destination'].forEach(function(id_str) {
     const inp_el = document.getElementById(id_str);
     if (!inp_el || inp_el.closest('.vmbr-select-wrap')) return;
@@ -224,7 +199,7 @@ let versionRebuildTimer_id         = null;
 let folderPickerPath_str     = '/mnt';
 let folderPickerSelected_str = null;
 let folderPickerTargetId_str = null;
-let logAutoScroll_bool = false;   // starts at top on every page load
+let logAutoScroll_bool = false;
 let logDebugMode_bool  = false;
 let editingScheduleId_str = null;
 let vmbrOriginalRestoreSelection_arr = [];
@@ -232,7 +207,7 @@ let vmbrOriginalRestoreSelection_arr = [];
 // ── Log ───────────────────────────────────────────────────────────────────────
 function vmbrSwitchLog(isDebug_bool) {
   logDebugMode_bool  = isDebug_bool;
-  logAutoScroll_bool = false;   // return to top when toggling
+  logAutoScroll_bool = false;
   lastLogSnapshot_str = null;
   document.getElementById('vmbr-log-pre').scrollTop = 0;
 }
@@ -295,7 +270,6 @@ function vmbrFallbackCopy(text_str) {
     .then(r => r.text())
     .then(data_str => {
       const emptyMsg_str = logDebugMode_bool ? 'VM backup & restore debug log not found' : 'VM backup & restore log not found';
-      // Reverse lines so newest entries appear at the top
       const reversed_str = data_str
         ? data_str.split('\n').filter(l => l.trim()).reverse().join('\n')
         : '';
@@ -445,7 +419,6 @@ function vmbrShowFolderToast(msg_str) {
 }
 
 function vmbrLoadFolders(path_str) {
-  // Hide the create-folder bar on every navigation
   document.getElementById('vmbr-create-folder-bar').style.display = 'none';
   document.getElementById('vmbr-new-folder-name').value = '';
 
@@ -465,7 +438,12 @@ function vmbrLoadFolders(path_str) {
     $('.vmbr-folder-checkbox').off('change').on('change',function(e){if(this.disabled)return;$('.vmbr-folder-checkbox').not(this).prop('checked',false);folderPickerSelected_str=this.checked?$(this).val():null;e.stopPropagation();});
   });
 }
-function vmbrResolveAndApplyPath(selectedPath_str, targetId_str) { $('#'+targetId_str).val(selectedPath_str).trigger('input').trigger('change'); $('#vmbr-folder-picker-modal').hide(); }
+
+// Apply the selected path directly to the target input — no server-side resolution.
+function vmbrResolveAndApplyPath(selectedPath_str, targetId_str) {
+  $('#'+targetId_str).val(selectedPath_str).trigger('input').trigger('change');
+  $('#vmbr-folder-picker-modal').hide();
+}
 
 // ── Backup/Restore now ────────────────────────────────────────────────────────
 $('#vmbr-backup-now-btn').on('click', async function() {
@@ -473,8 +451,6 @@ $('#vmbr-backup-now-btn').on('click', async function() {
   const vms_str=$('#vmbr-hidden-vms-backup').val(); const dest_str=$('#vmbr-backup-destination').val().trim();
   if(!vms_str){vmbrAlert('Please select at least one VM to backup');return;}
   if(!dest_str){vmbrAlert('Please select a backup destination');return;}
-  const vmList_arr=vms_str.split(',').map(v=>v.trim()).filter(Boolean);
-  try{if(!await vmbrValidateMountTypes(vmList_arr,dest_str))return;}catch(e){vmbrAlert('Error validating vdisk paths');console.error(e);return;}
   const services_arr=vmbrGetSelectedServices(false);
   if(services_arr.includes('Pushover')&&document.getElementById('vmbr-backup-notif')?.value==='yes'){if(!$('#vmbr-pushover-key').val().trim()){vmbrAlert('Please enter your Pushover user key');return;}}
   backupReqInFlight_bool=true;
@@ -510,14 +486,12 @@ function vmbrLoadSchedules(force_bool) {
 async function vmbrScheduleJob(type_str) {
   if(!vmbrValidatePrereqs())return; if(scheduleUILocked_bool)return; vmbrLockScheduleUI();
   const cron_obj=vmbrBuildCronFromUI(); if(!cron_obj.valid_bool){vmbrUnlockScheduleUI();vmbrAlert('Invalid cron expression');return;}
-  const vms_str=$('#vmbr-hidden-vms-backup').val(); const dest_str=$('#vmbr-backup-destination').val().trim();
-  try{const ok_bool=await vmbrValidateMountTypes(vms_str.split(',').map(v=>v.trim()).filter(Boolean),dest_str);if(!ok_bool){vmbrUnlockScheduleUI();return;}}catch(e){vmbrUnlockScheduleUI();vmbrAlert('Error validating vdisk paths');return;}
   const existing_arr=await vmbrGet('schedule_cron_check.php');
   const conflict_str=vmbrCheckCronConflicts(cron_obj.expr_str,existing_arr,editingScheduleId_str,15);
   if(conflict_str){vmbrUnlockScheduleUI();vmbrAlert('This schedule is within 15 minutes of an existing schedule ('+conflict_str+'). Please choose a different time.');return;}
   const settings_obj={};$('input[name], select[name]').each(function(){settings_obj[this.name]=$(this).val();});
   const url_str=editingScheduleId_str?'schedule_update.php':'schedule_create.php';
-  $.ajax({type:'POST',url:vmbrH(url_str),data:{id:editingScheduleId_str,type:type_str,cron:cron_obj.expr_str,settings:settings_obj},
+  $.ajax({type:'POST',url:vmbrH(url_str),data:{id:editingScheduleId_str,type:type_str,cron:cron_obj.expr_str,settings:settings_obj,csrf_token:csrfToken_str},
     success:function(){vmbrResetScheduleUI();editingScheduleId_str=null;vmbrLoadSchedules(true);vmbrShowPopup('vmbr-backup-popup','✓ Schedule saved!');},
     error:function(xhr){vmbrUnlockScheduleUI();if(xhr.status===409)vmbrAlert('Duplicate schedule detected!');else vmbrAlert('Error saving schedule: '+xhr.responseText);}});
 }
@@ -544,7 +518,7 @@ function deleteSchedule(id_str) {
   if(scheduleUILocked_bool)return;
   vmbrConfirm('Delete this schedule?', function() {
     vmbrLockScheduleUI();
-    vmbrPost('schedule_delete.php',{id:id_str}).always(()=>vmbrLoadSchedules(true));
+    vmbrPost('schedule_delete.php',{id:id_str,csrf_token:csrfToken_str}).always(()=>vmbrLoadSchedules(true));
   });
 }
 
@@ -553,7 +527,7 @@ function runScheduleBackup(id_str, btn_el) {
   vmbrConfirm('Are you sure you want to run this backup now?', function() {
     vmbrLockScheduleUI(); btn_el.disabled=true;
     const origText_str=btn_el.textContent; const origTitle_str=btn_el.getAttribute('title')||'Run schedule'; btn_el.textContent='Running…';
-    vmbrPost('run_schedule.php',{id:id_str}).done(function(res){
+    vmbrPost('run_schedule.php',{id:id_str,csrf_token:csrfToken_str}).done(function(res){
       if(!res.started){vmbrAlert('Failed to start backup');btn_el.disabled=false;btn_el.textContent=origText_str;vmbrUnlockScheduleUI();return;}
       vmbrShowBanner('backup','⚠ Scheduled backup in progress'); vmbrSetAllButtonsDisabled(true); prevBackupBanner_bool=true;
       (function waitForUnlock(){vmbrGet('check_lock.php').done(function(data){if(!data.locked){btn_el.textContent=origText_str;btn_el.setAttribute('title',origTitle_str);btn_el.onclick=function(){runScheduleBackup(id_str,btn_el);};vmbrHideBanner('backup');prevBackupBanner_bool=false;vmbrSetAllButtonsDisabled(false);vmbrUnlockScheduleUI();return;}setTimeout(waitForUnlock,POLL_FAST_MS_INT);});})();
@@ -565,7 +539,7 @@ function toggleSchedule(id_str, isEnabled_bool) {
   if(scheduleUILocked_bool)return;
   vmbrConfirm(isEnabled_bool ? 'Disable this schedule?' : 'Enable this schedule?', function() {
     vmbrLockScheduleUI();
-    vmbrPost('schedule_toggle.php',{id:id_str}).always(()=>vmbrLoadSchedules(true));
+    vmbrPost('schedule_toggle.php',{id:id_str,csrf_token:csrfToken_str}).always(()=>vmbrLoadSchedules(true));
   });
 }
 
@@ -579,29 +553,24 @@ $(document).ready(function() {
   let zeroAttempts_int=0;
   const zeroInterval_id=setInterval(function(){vmbrZeroMargins();if(++zeroAttempts_int>=8)clearInterval(zeroInterval_id);},250);
 
-  // Init saved restore selection
   const savedRestoreSel_str = (typeof VMBR_SAVED_VMS_TO_RESTORE !== 'undefined') ? VMBR_SAVED_VMS_TO_RESTORE : '';
   vmbrOriginalRestoreSelection_arr = savedRestoreSel_str.split(',').map(s=>s.trim()).filter(Boolean);
 
-  // Backup owner dropdown
   const ownerSel_el=$('#vmbr-backup-owner'); const ownerSelected_str=ownerSel_el.data('selected')||'nobody';
   vmbrGet('list_users_group100.php').done(function(data){ownerSel_el.empty();(data.users||[]).forEach(user_str=>{ownerSel_el.append($('<option>',{value:user_str,text:user_str,selected:user_str===ownerSelected_str}));});});
 
-  // Backup VM dropdown
   const backupDropdown_el=$('#vmbr-vm-dropdown-backup'); const backupList_el=backupDropdown_el.find('.vmbr-vm-dropdown-list');
   backupDropdown_el.find('.vmbr-dropdown-label').on('click',function(e){if(backupDropdown_el.hasClass('disabled'))return;e.stopPropagation();backupList_el.toggle();backupDropdown_el.toggleClass('active',backupList_el.is(':visible'));});
   $(document).on('click',function(e){if(!$(e.target).closest('#vmbr-vm-dropdown-backup').length){backupList_el.hide();backupDropdown_el.removeClass('active');}});
   backupList_el.on('change','input[type=checkbox]',vmbrUpdateBackupVmLabel);
   vmbrLoadBackupVMs();
 
-  // Restore VM dropdown
   const restoreDropdown_el=$('#vmbr-vm-dropdown-restore'); const restoreList_el=restoreDropdown_el.find('.vmbr-vm-dropdown-list');
   restoreDropdown_el.on('click',function(e){if(restoreDropdown_el.hasClass('disabled'))return;e.stopPropagation();restoreList_el.toggle();restoreDropdown_el.toggleClass('active',restoreList_el.is(':visible'));});
   $(document).on('click',function(e){if(!$(e.target).closest('#vmbr-vm-dropdown-restore').length){restoreList_el.hide();restoreDropdown_el.removeClass('active');}});
   restoreList_el.on('click','input,label',function(e){e.stopPropagation();});
   restoreList_el.on('change','input[type=checkbox]',function(){const checked_arr=restoreList_el.find('input:checked').map(function(){return $(this).val();}).get();restoreDropdown_el.find('.vmbr-dropdown-label').text(checked_arr.length?checked_arr.join(', '):'Select VM(s)');$('#vmbr-hidden-vms-restore').val(checked_arr.join(','));vmbrScheduleVersionRebuild();});
 
-  // Notification dropdowns
   $('#vmbr-notif-service-backup').on('click',function(e){e.stopPropagation();$('#vmbr-backup-notif-list').toggle();});
   $('#vmbr-notif-service-restore').on('click',function(e){e.stopPropagation();$('#vmbr-restore-notif-list').toggle();});
   $('#vmbr-backup-notif-list, #vmbr-restore-notif-list').on('click',function(e){e.stopPropagation();});
@@ -616,11 +585,9 @@ $(document).ready(function() {
   if(notifBackup_el)notifBackup_el.addEventListener('change',toggleBackup);
   if(notifRestore_el)notifRestore_el.addEventListener('change',toggleRestore);
 
-  // Restore location change
   let locationChangeTimer_id=null; let lastRestoreLocation_str=$('#vmbr-restore-location').val().trim();
   $('#vmbr-restore-location').on('input blur change',function(){const newVal_str=$(this).val().trim();if(newVal_str===lastRestoreLocation_str)return;lastRestoreLocation_str=newVal_str;clearTimeout(locationChangeTimer_id);locationChangeTimer_id=setTimeout(function(){vmbrLoadRestoreFolders();vmbrScanMalformed();},300);});
 
-  // Cron mode
   const cronMode_el=document.getElementById('vmbr-cron-mode');
   if(cronMode_el){vmbrToggleCronOptions(cronMode_el.value);cronMode_el.addEventListener('change',e=>vmbrToggleCronOptions(e.target.value));['#vmbr-hourly-freq','#vmbr-daily-hour','#vmbr-daily-min','#vmbr-weekly-day','#vmbr-weekly-hour','#vmbr-weekly-min','#vmbr-monthly-day','#vmbr-monthly-hour','#vmbr-monthly-min'].forEach(sel_str=>{$(sel_str).on('change',vmbrUpdateCronHidden);});}
 
@@ -628,7 +595,6 @@ $(document).ready(function() {
   $(document).on('click','#vmbr-schedule-btn',function(){vmbrScheduleJob('backup');});
   $('#vmbr-cancel-edit-btn').on('click',function(){location.reload();});
 
-  // Folder picker — open
   $('input[data-picker-title]').on('click',function(){
     folderPickerTargetId_str=$(this).attr('id');
     $('#vmbr-folder-picker-title').text($(this).data('picker-title'));
@@ -636,31 +602,26 @@ $(document).ready(function() {
     const saved_str=$(this).val();
     vmbrLoadFolders(saved_str&&saved_str.startsWith('/mnt')?saved_str:'/mnt');
   });
-  // Folder picker — close
   $('#vmbr-folder-close-btn').on('click',function(){
     document.getElementById('vmbr-create-folder-bar').style.display = 'none';
     document.getElementById('vmbr-new-folder-name').value = '';
     $('#vmbr-folder-picker-modal').hide();
   });
-  // Folder picker — select
   $('#vmbr-folder-confirm-btn').off('click').on('click',function(e){
     e.preventDefault();
     if(!folderPickerSelected_str||!folderPickerTargetId_str)return;
     vmbrResolveAndApplyPath(folderPickerSelected_str,folderPickerTargetId_str);
   });
-  // New Folder button — show inline bar
   $('#vmbr-folder-create-btn').on('click',function(){
     const bar = document.getElementById('vmbr-create-folder-bar');
     bar.style.display = 'flex';
     document.getElementById('vmbr-new-folder-name').value = '';
     document.getElementById('vmbr-new-folder-name').focus();
   });
-  // Create folder — cancel
   $('#vmbr-new-folder-cancel-btn').on('click',function(){
     document.getElementById('vmbr-create-folder-bar').style.display = 'none';
     document.getElementById('vmbr-new-folder-name').value = '';
   });
-  // Create folder — ok
   $('#vmbr-new-folder-ok-btn').on('click',function(){
     const name_str=document.getElementById('vmbr-new-folder-name').value.trim(); if(!name_str)return;
     vmbrPost('create_folder.php',{path:folderPickerPath_str,name:name_str,csrf_token:csrfToken_str}).done(function(res){
@@ -673,19 +634,16 @@ $(document).ready(function() {
     if(e.key==='Escape') document.getElementById('vmbr-new-folder-cancel-btn').click();
   });
 
-  // Log search
   const logSearchEl_el=document.getElementById('vmbr-log-search'); const logSearchClear_el=document.getElementById('vmbr-log-search-clear');
   function vmbrUpdateSearchClear(){logSearchClear_el.style.display=logSearchEl_el.value?'flex':'none';}
   logSearchClear_el.addEventListener('mousedown',function(e){e.preventDefault();logSearchEl_el.value='';vmbrApplyLogSearch();vmbrUpdateSearchClear();logSearchEl_el.focus();});
   logSearchEl_el.addEventListener('input',function(){vmbrApplyLogSearch();vmbrUpdateSearchClear();});
 
-  // Log scroll buttons
   const logAutoBtn_el=document.getElementById('vmbr-log-autoscroll-btn'); const logTopBtn_el=document.getElementById('vmbr-log-scroll-top-btn');
   logAutoBtn_el.addEventListener('click',function(){logAutoScroll_bool=!logAutoScroll_bool;if(logAutoScroll_bool){const logEl=document.getElementById('vmbr-log-pre');logEl.scrollTop=logEl.scrollHeight;}});
   logTopBtn_el.addEventListener('click',function(){logAutoScroll_bool=false;document.getElementById('vmbr-log-pre').scrollTop=0;});
   document.getElementById('vmbr-log-pre').addEventListener('scroll',function(){if(this.scrollHeight-this.scrollTop-this.clientHeight<8)return;logAutoScroll_bool=false;});
 
-  // Clear log
   document.getElementById('vmbr-log-clear-btn').addEventListener('click',function(){
     const label_str = logDebugMode_bool ? 'debug log' : 'backup & restore log';
     vmbrConfirm('Are you sure you want to clear the ' + label_str + '?', function() {
@@ -694,7 +652,6 @@ $(document).ready(function() {
     });
   });
 
-  // Copy log
   document.getElementById('vmbr-log-copy-btn').addEventListener('click',function(){
     const logEl=document.getElementById('vmbr-log-pre'); const text_str=logEl.dataset.raw||logEl.textContent||'';
     if(!text_str.trim()||text_str.includes('log not found'))return;
@@ -704,9 +661,7 @@ $(document).ready(function() {
   setTimeout(vmbrScheduleVersionRebuild,50); setTimeout(vmbrScanMalformed,100); vmbrLoadRestoreFolders();
   if(typeof caPluginUpdateCheck==='function')caPluginUpdateCheck('vm-backup-and-restore.plg',{name:'vm-backup-and-restore'});
 
-  // Wrap all selects on load so ::after arrow shows on all of them
   vmbrWrapSelects();
-  // Re-wrap after webhook fields are rebuilt
   const _origRebuild = vmbrRebuildWebhookFields;
   window.vmbrRebuildWebhookFields = function(isRestore_bool) {
     _origRebuild(isRestore_bool);

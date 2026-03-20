@@ -20,16 +20,22 @@ $backup_defaults_arr = [
     'WEBHOOK_DISCORD'      => '',
     'WEBHOOK_GOTIFY'       => '',
     'WEBHOOK_NTFY'         => '',
-    'WEBHOOK_PUSHOVER'     => '',
     'WEBHOOK_SLACK'        => '',
+    'WEBHOOK_PUSHOVER'     => '',
     'PUSHOVER_USER_KEY'    => '',
 ];
-$existing_arr = file_exists(CFG_PATH) ? (parse_ini_file(CFG_PATH) ?: []) : [];
-foreach ($backup_defaults_arr as $key_str => $val_str) { if (!array_key_exists($key_str, $existing_arr)) $existing_arr[$key_str] = $val_str; }
-$cfg_text_str = '';
-foreach ($backup_defaults_arr as $key_str => $default_str) { $cfg_text_str .= $key_str . '="' . $existing_arr[$key_str] . '"' . "\n"; }
-@file_put_contents(CFG_PATH, $cfg_text_str);
-$settings_arr = $existing_arr;
+// Read existing cfg and merge defaults in memory only for display.
+// Never write back from .page — paths are written exclusively by save_settings.php
+// so that user-chosen paths (e.g. /mnt/user/...) are never silently resolved.
+// First-run initialisation: write defaults once only if the cfg does not yet exist.
+if (!file_exists(CFG_PATH)) {
+    @mkdir(dirname(CFG_PATH), 0755, true);
+    $init_str = '';
+    foreach ($backup_defaults_arr as $k => $v) { $init_str .= $k . '="' . $v . '"' . "\n"; }
+    @file_put_contents(CFG_PATH, $init_str);
+}
+$existing_arr = parse_ini_file(CFG_PATH) ?: [];
+$settings_arr = array_merge($backup_defaults_arr, $existing_arr);
 
 $restore_defaults_arr = [
     'LOCATION_OF_BACKUPS'          => '',
@@ -42,16 +48,19 @@ $restore_defaults_arr = [
     'WEBHOOK_DISCORD_RESTORE'      => '',
     'WEBHOOK_GOTIFY_RESTORE'       => '',
     'WEBHOOK_NTFY_RESTORE'         => '',
-    'WEBHOOK_PUSHOVER_RESTORE'     => '',
     'WEBHOOK_SLACK_RESTORE'        => '',
+    'WEBHOOK_PUSHOVER_RESTORE'     => '',
     'PUSHOVER_USER_KEY_RESTORE'    => '',
 ];
-$existing_restore_arr = file_exists(CFG_RESTORE_PATH) ? (parse_ini_file(CFG_RESTORE_PATH) ?: []) : [];
-foreach ($restore_defaults_arr as $key_str => $val_str) { if (!array_key_exists($key_str, $existing_restore_arr)) $existing_restore_arr[$key_str] = $val_str; }
-$restore_cfg_text_str = '';
-foreach ($restore_defaults_arr as $key_str => $default_str) { $restore_cfg_text_str .= $key_str . '="' . $existing_restore_arr[$key_str] . '"' . "\n"; }
-@file_put_contents(CFG_RESTORE_PATH, $restore_cfg_text_str);
-$restore_settings_arr = $existing_restore_arr;
+// Same pattern for restore cfg — read + in-memory merge only; first-run write if missing.
+if (!file_exists(CFG_RESTORE_PATH)) {
+    @mkdir(dirname(CFG_RESTORE_PATH), 0755, true);
+    $init_str = '';
+    foreach ($restore_defaults_arr as $k => $v) { $init_str .= $k . '="' . $v . '"' . "\n"; }
+    @file_put_contents(CFG_RESTORE_PATH, $init_str);
+}
+$existing_restore_arr = parse_ini_file(CFG_RESTORE_PATH) ?: [];
+$restore_settings_arr = array_merge($restore_defaults_arr, $existing_restore_arr);
 
 $sibling_plugin_checks_arr = [
     'automover'             => ['plg'=>'/boot/config/plugins/automover.plg',             'page'=>'/usr/local/emhttp/plugins/automover/automover.page',                         'label'=>'Automover',              'url'=>'/Settings/automover'],
@@ -92,14 +101,42 @@ const HELPERS_BASE_STR = '/plugins/vm-backup-and-restore/helpers';
 const POLL_FAST_MS_INT = 1000;
 const POLL_SLOW_MS_INT = 4000;
 
-let csrfToken_str = "<?= $_GET['csrf_token'] ?? ($_COOKIE['csrf_token'] ?? '') ?>";
-if (!csrfToken_str || csrfToken_str === 'undefined') {
-  try {
-    if (typeof window.csrf_token !== 'undefined' && window.csrf_token) csrfToken_str = window.csrf_token;
-    else if (document.querySelector("meta[name='csrf_token']")) csrfToken_str = document.querySelector("meta[name='csrf_token']").getAttribute('content');
-    else if (document.cookie.includes('csrf_token=')) { const m_arr=document.cookie.match(/csrf_token=([^;]+)/); if(m_arr) csrfToken_str=decodeURIComponent(m_arr[1]); }
-    else if (window.parent && window.parent.csrf_token) csrfToken_str = window.parent.csrf_token;
-  } catch(e) { console.warn('[vm-backup] CSRF discovery failed:', e); }
+// ── CSRF token acquisition ────────────────────────────────────────────────────
+// Priority order: window.parent (Unraid's iframe architecture sets it here),
+// then window.csrf_token (non-iframe), then cookie (not HttpOnly in Unraid),
+// then meta tag, then PHP inline value as last resort.
+let csrfToken_str = '';
+
+try {
+  // 1. window.parent.csrf_token — most reliable in Unraid's iframe layout
+  if (window.parent && typeof window.parent.csrf_token === 'string' && window.parent.csrf_token) {
+    csrfToken_str = window.parent.csrf_token;
+  }
+  // 2. window.csrf_token — covers non-iframe context
+  if (!csrfToken_str && typeof window.csrf_token === 'string' && window.csrf_token) {
+    csrfToken_str = window.csrf_token;
+  }
+  // 3. Cookie — Unraid's csrf_token cookie is not HttpOnly so JS can read it
+  if (!csrfToken_str && document.cookie) {
+    const m_arr = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+    if (m_arr && m_arr[1]) csrfToken_str = decodeURIComponent(m_arr[1]);
+  }
+  // 4. Meta tag fallback (not used by Unraid but harmless to check)
+  if (!csrfToken_str) {
+    const meta_el = document.querySelector("meta[name='csrf_token']");
+    if (meta_el) csrfToken_str = meta_el.getAttribute('content') || '';
+  }
+} catch(e) {
+  console.warn('[vm-backup] CSRF token discovery failed:', e);
+}
+
+// 5. PHP inline value — last resort, only populated when passed as GET param
+if (!csrfToken_str) {
+  csrfToken_str = "<?= htmlspecialchars($_GET['csrf_token'] ?? ($_COOKIE['csrf_token'] ?? ''), ENT_QUOTES) ?>";
+}
+
+if (!csrfToken_str) {
+  console.warn('[vm-backup] CSRF token could not be determined — write operations may fail');
 }
 
 const SAVED_WEBHOOKS_OBJ = {
