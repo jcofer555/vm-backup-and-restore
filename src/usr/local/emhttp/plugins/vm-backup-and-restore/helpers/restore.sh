@@ -176,6 +176,51 @@ CONFIG="/boot/config/plugins/vm-backup-and-restore/settings_restore.cfg"
 debug_log "Loading config: $CONFIG"
 source "$CONFIG" || { debug_log "ERROR: Failed to source config: $CONFIG"; exit 1; }
 
+classify_path() {
+    local path_str="$1"
+    local resolved_str
+    resolved_str=$(readlink -f "$path_str" 2>/dev/null || echo "$path_str")
+
+    if [[ "$resolved_str" == /mnt/user  || "$resolved_str" == /mnt/user/*  ]];    then echo "USER";   return; fi
+    if [[ "$resolved_str" == /mnt/user0 || "$resolved_str" == /mnt/user0/* ]];    then echo "USER0";  return; fi
+    if [[ "$resolved_str" == /mnt/remotes || "$resolved_str" == /mnt/remotes/* ]]; then echo "EXEMPT"; return; fi
+    if [[ "$resolved_str" == /mnt/addons  || "$resolved_str" == /mnt/addons/*  ]]; then echo "EXEMPT"; return; fi
+    if [[ "$resolved_str" == /mnt/* ]]; then echo "DISK"; return; fi
+    echo "OTHER"
+}
+
+# Allowlist matrix:
+#   USER  -> USER, EXEMPT
+#   USER0 -> USER0, DISK, EXEMPT
+#   DISK  -> DISK, EXEMPT
+#   EXEMPT-> USER, USER0, DISK, EXEMPT  (always allowed)
+validate_mount_compatibility() {
+    local src_str="$1"
+    local dst_str="$2"
+    local src_class_str dst_class_str
+
+    src_class_str=$(classify_path "$src_str")
+    dst_class_str=$(classify_path "$dst_str")
+
+    debug_log "validate_mount_compatibility: src=$src_str ($src_class_str) dst=$dst_str ($dst_class_str)"
+
+    local allowed_int=0
+    case "$src_class_str" in
+        USER)   [[ "$dst_class_str" == "USER"  || "$dst_class_str" == "EXEMPT" ]] && allowed_int=1 ;;
+        USER0)  [[ "$dst_class_str" == "USER0" || "$dst_class_str" == "DISK" || "$dst_class_str" == "EXEMPT" ]] && allowed_int=1 ;;
+        DISK)   [[ "$dst_class_str" == "DISK"  || "$dst_class_str" == "EXEMPT" ]] && allowed_int=1 ;;
+        EXEMPT) allowed_int=1 ;;
+    esac
+
+    if [[ "$allowed_int" -eq 0 ]]; then
+        echo "[ERROR] Backup source ($src_str, class: $src_class_str) is incompatible with restore destination ($dst_str, class: $dst_class_str)"
+        echo "[ERROR] USER can only restore to USER or EXEMPT (remotes/addons). USER0 can restore to USER0, DISK, or EXEMPT. DISK can restore to DISK or EXEMPT."
+        debug_log "ERROR: Mount type mismatch - src=$src_str ($src_class_str) dst=$dst_str ($dst_class_str)"
+        return 1
+    fi
+    return 0
+}
+
 # --- Webhook cleanup ---
 WEBHOOK_DISCORD_RESTORE="${WEBHOOK_DISCORD_RESTORE//\"/}"
 WEBHOOK_GOTIFY_RESTORE="${WEBHOOK_GOTIFY_RESTORE//\"/}"
@@ -277,11 +322,17 @@ debug_log "===== Session started ====="
 debug_log "VMS_TO_RESTORE=$VMS_TO_RESTORE"
 debug_log "DRY_RUN=$DRY_RUN"
 
-# NOTE: The backup source location and the restore destination do not need to share
-# the same mount type — e.g. backups can live on /mnt/remotes while restoring to
-# /mnt/user. The vdisk path vs restore-destination check is enforced in the UI
-# before this script is ever invoked.
-debug_log "backup_path=$backup_path_str vm_domains=$vm_domains_str (mount-type check skipped — handled by UI)"
+debug_log "backup_path=$backup_path_str vm_domains=$vm_domains_str"
+
+if [[ -n "$backup_path_str" && -n "$vm_domains_str" ]]; then
+    if ! validate_mount_compatibility "$backup_path_str" "$vm_domains_str"; then
+        set_restore_status "Aborted — mount type mismatch between backup source and restore destination"
+        exit 1
+    fi
+    debug_log "Mount compatibility check passed: $backup_path_str -> $vm_domains_str"
+else
+    debug_log "Skipping mount compatibility check — one or both paths are empty"
+fi
 
 mapfile -t RUNNING_BEFORE_arr < <(virsh list --state-running --name | grep -Fxv "")
 debug_log "VMs running before restore: ${RUNNING_BEFORE_arr[*]:-none}"
