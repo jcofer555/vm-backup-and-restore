@@ -1,0 +1,503 @@
+/* ── Design tokens ─────────────────────────────────────────────────────── */
+:root {
+  --c-accent:        #7c3aed;
+  --c-accent-light:  #a78bfa;
+  --c-accent-dim:    rgba(124,58,237,0.18);
+  --c-accent-glow:   rgba(124,58,237,0.35);
+  --c-bg:            #0d0d11;
+  --c-surface:       #13131a;
+  --c-surface-raised:#1a1a24;
+  --c-border:        rgba(124,58,237,0.30);
+  --c-border-strong: rgba(124,58,237,0.60);
+  --c-text:          #d4d4e8;
+  --c-text-muted:    #8888aa;
+  --c-label:         #a78bfa;
+  --c-danger:        #ef4444;
+  --c-warn:          #f59e0b;
+  --c-success:       #22c55e;
+  --radius-card:     10px;
+  --radius-input:    6px;
+  --shadow-card:     0 4px 24px rgba(0,0,0,0.5);
+  --input-w:         210px;
+  --label-w:         158px;
+  /* solid triangle arrow — matches browser native ▼, applied to all fields */
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpolygon points='0,0 12,0 6,8' fill='%23a78bfa'/%3E%3C/svg%3E");
+}
+
+#unraid-api-modals-virtual { position:absolute !important; height:0 !important; overflow:visible !important; }
+
+/* ── Page shell ─────────────────────────────────────────────────────────── */
+#vmbr-page {
+  display:flex; flex-direction:column;
+  width:100%; font-family:'Segoe UI',system-ui,sans-serif;
+  color:var(--c-text); margin-top:-31px;
+}
+
+/* ── Grid ────────────────────────────────────────────────────────────────── */
+#vmbr-layout {
+  display:grid;
+  grid-template-columns:minmax(340px,0.85fr) minmax(0,2.4fr);
+  gap:14px; width:100%; box-sizing:border-box;
+  align-items:stretch; margin-bottom:14px;
+}
+.vmbr-panel-wrap { display:flex; flex-direction:column; min-width:0; overflow:visible; }
+
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+.vmbr-card {
+  background:var(--c-surface); border:1px solid var(--c-border);
+  border-radius:var(--radius-card); box-shadow:var(--shadow-card);
+  display:flex; flex-direction:column; overflow:visible;
+  margin-top:-68px; height:740px;
+}
+.vmbr-card-header {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 16px 9px; background:var(--c-surface-raised);
+  border-bottom:1px solid var(--c-border); flex-shrink:0;
+}
+.vmbr-card-title { font-size:13px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:var(--c-accent-light); flex:1; }
+.vmbr-card-status { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--c-text-muted); }
+.vmbr-status-dot { width:7px; height:7px; border-radius:50%; background:var(--c-text-muted); flex-shrink:0; transition:background .4s; }
+.vmbr-status-dot.active { background:var(--c-success); box-shadow:0 0 6px var(--c-success); animation:vmbr-pulse 1.4s infinite; }
+@keyframes vmbr-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.vmbr-card-body { padding:14px 16px 16px; overflow-y:auto; flex:1; container-type:inline-size; container-name:plugin-panel; border-radius:0 0 var(--radius-card) var(--radius-card); }
+
+/* ── Mode/plugin row ─────────────────────────────────────────────────────── */
+#vmbr-mode-row {
+  display:flex; align-items:center; gap:10px; padding:7px 12px;
+  background:var(--c-surface-raised); border-bottom:1px solid var(--c-border);
+  border-radius:var(--radius-card) var(--radius-card) 0 0;
+  flex-shrink:0; flex-wrap:nowrap; box-sizing:border-box; width:100%;
+}
+.vmbr-topbar-group { display:flex; align-items:center; gap:5px; flex-shrink:0; }
+#vmbr-mode-row .vmbr-topbar-group:first-child { padding-left:3px; }
+.vmbr-topbar-label { font-size:12px; font-weight:600; color:var(--c-label); letter-spacing:.2px; white-space:nowrap; }
+
+/* ── Select arrows ───────────────────────────────────────────────────────── */
+/* Strip native arrow from all form selects — mode row excluded (no arrow there) */
+#vmbr-page select,
+#vmbr-backup-panel select,
+#vmbr-restore-panel select {
+  -webkit-appearance:none !important;
+  -moz-appearance:none !important;
+  appearance:none !important;
+  background-image:none !important;
+  padding-right:26px !important;
+}
+/* Mode/plugin row selects — full native appearance, unset everything we touched */
+#vmbr-mode-row select,
+#vmbr-mode-row .vmbr-topbar-select {
+  -webkit-appearance:auto !important;
+  -moz-appearance:auto !important;
+  appearance:auto !important;
+  background-image:none !important;
+  padding-right:7px !important;
+  padding-left:7px !important;
+}
+
+/* Wrapper div injected by JS around every select — carries the ▼ arrow */
+.vmbr-select-wrap {
+  position:relative;
+  display:inline-block;
+  width:var(--input-w);
+  max-width:var(--input-w);
+  flex:none;
+}
+.vmbr-select-wrap select {
+  width:100% !important;
+  max-width:100% !important;
+}
+.vmbr-select-wrap::after,
+#vmbr-vm-dropdown-backup::after,
+#vmbr-vm-dropdown-restore::after,
+#vmbr-notif-service-backup::after,
+#vmbr-notif-service-restore::after {
+  content:'';
+  position:absolute;
+  right:9px;
+  top:50%;
+  transform:translateY(-50%);
+  width:0; height:0;
+  border-left:5px solid transparent;
+  border-right:5px solid transparent;
+  border-top:6px solid var(--c-accent-light);
+  pointer-events:none;
+}
+
+/* Picker text inputs — wrapped by JS, just ensure no bg-image */
+#vmbr-backup-destination,
+#vmbr-restore-location,
+#vmbr-restore-destination {
+  background-image:none !important;
+  padding-right:26px !important;
+}
+
+/* Multiselect divs */
+#vmbr-vm-dropdown-backup,
+#vmbr-vm-dropdown-restore,
+#vmbr-notif-service-backup,
+#vmbr-notif-service-restore {
+  position:relative;
+  background-image:none !important;
+  padding-right:26px !important;
+}
+
+#vmbr-mode-row select,
+#vmbr-mode-row .vmbr-topbar-select {
+  height:auto !important; font-size:11px !important;
+  background-color:var(--c-bg) !important; color:var(--c-text) !important;
+  border:1px solid var(--c-border-strong) !important;
+  border-radius:var(--radius-input) !important;
+  padding:4px 24px 4px 7px !important; cursor:pointer !important;
+  width:150px !important; max-width:150px !important;
+  min-width:0 !important; box-sizing:border-box !important;
+}
+#vmbr-mode-row select:focus,
+#vmbr-mode-row .vmbr-topbar-select:focus { outline:none !important; box-shadow:0 0 0 2px var(--c-accent-glow) !important; }
+
+/* ── Section labels ──────────────────────────────────────────────────────── */
+.vmbr-section-label { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--c-text-muted); padding:6px 0 4px; margin-bottom:4px; border-bottom:1px solid var(--c-border); }
+
+/* ── Labels ──────────────────────────────────────────────────────────────── */
+#vmbr-page label,
+#vmbr-page label span { color:var(--c-label) !important; font-weight:600 !important; }
+#vmbr-page .vmbr-vm-dropdown-list label,
+#vmbr-page .vmbr-vm-dropdown-list label span,
+#vmbr-page .vmbr-vm-dropdown-list div,
+#vmbr-vm-dropdown-backup .vmbr-vm-dropdown-list label,
+#vmbr-vm-dropdown-restore .vmbr-vm-dropdown-list label,
+#vmbr-notif-service-backup .vmbr-vm-dropdown-list label,
+#vmbr-notif-service-restore .vmbr-vm-dropdown-list label { color:var(--c-text) !important; font-weight:400 !important; }
+.vmbr-version-field label { color:var(--c-label) !important; font-weight:600 !important; }
+
+/* ── Form pairs ──────────────────────────────────────────────────────────── */
+.form-pair { display:flex !important; flex-direction:row !important; align-items:center !important; flex-wrap:nowrap !important; gap:0 10px !important; margin-bottom:10px !important; margin-top:4px !important; }
+.form-pair > label { width:var(--label-w) !important; min-width:var(--label-w) !important; flex:none !important; font-size:12px !important; font-weight:600 !important; color:var(--c-label) !important; letter-spacing:.2px; }
+.form-pair > span { display:contents !important; }
+.form-pair input[type="text"], .form-pair input[type="password"], .form-pair input[type="number"], .form-pair select { width:var(--input-w) !important; max-width:var(--input-w) !important; height:auto !important; flex:none !important; }
+.form-pair input[type="checkbox"] { width:15px !important; height:15px !important; flex:none !important; }
+.form-pair > .input-wrapper { display:contents !important; }
+#vmbr-webhook-container-backup .input-wrapper,
+#vmbr-webhook-container-restore .input-wrapper { display:flex !important; flex-direction:column !important; gap:2px !important; width:var(--input-w) !important; }
+.input-wrapper { display:flex; flex-direction:column; flex:1; min-width:0; }
+
+@container plugin-panel (max-width:400px) {
+  .form-pair { flex-direction:column !important; align-items:flex-start !important; gap:4px 0 !important; }
+  .form-pair > label { width:auto !important; min-width:unset !important; }
+}
+@media (max-width:768px) {
+  .form-pair { flex-direction:column !important; align-items:flex-start !important; gap:4px 0 !important; }
+  .form-pair > label { width:auto !important; min-width:unset !important; }
+}
+
+/* ── Inputs & selects ────────────────────────────────────────────────────── */
+#vmbr-page input[type="text"],
+#vmbr-page input[type="password"],
+#vmbr-page input[type="number"],
+#vmbr-page select,
+#vmbr-backup-panel input[type="text"],
+#vmbr-backup-panel input[type="password"],
+#vmbr-backup-panel input[type="number"],
+#vmbr-backup-panel select,
+#vmbr-restore-panel input[type="text"],
+#vmbr-restore-panel input[type="password"],
+#vmbr-restore-panel input[type="number"],
+#vmbr-restore-panel select {
+  background-color:var(--c-bg) !important; border:1px solid var(--c-border-strong) !important;
+  border-radius:var(--radius-input) !important; color:var(--c-text) !important;
+  padding:5px 8px !important; font-size:12px !important;
+  transition:border-color .15s, box-shadow .15s;
+  width:var(--input-w) !important; max-width:var(--input-w) !important; box-sizing:border-box !important;
+}
+#vmbr-page input:focus, #vmbr-page select:focus,
+#vmbr-backup-panel input:focus, #vmbr-backup-panel select:focus,
+#vmbr-restore-panel input:focus, #vmbr-restore-panel select:focus { outline:none !important; border-color:var(--c-accent-light) !important; box-shadow:0 0 0 3px var(--c-accent-glow) !important; }
+#vmbr-page input:hover, #vmbr-page select:hover { border-color:var(--c-accent-light) !important; }
+#vmbr-page select:disabled, #vmbr-page input:disabled { opacity:.45; cursor:not-allowed; }
+#vmbr-page select option { background:var(--c-surface); color:var(--c-text); }
+#vmbr-page input[type="checkbox"] { accent-color:var(--c-accent); cursor:pointer; }
+
+/* Picker text inputs */
+#vmbr-backup-destination,
+#vmbr-restore-location,
+#vmbr-restore-destination {
+  background-color:var(--c-bg) !important; border:1px solid var(--c-border-strong) !important;
+  border-radius:var(--radius-input) !important; color:var(--c-text) !important;
+  padding:0 24px 0 8px !important; font-size:12px !important;
+  height:29px !important; box-sizing:border-box !important; transition:box-shadow .15s;
+  cursor:pointer;
+}
+#vmbr-backup-destination:focus, #vmbr-restore-location:focus, #vmbr-restore-destination:focus { outline:none !important; box-shadow:0 0 0 3px var(--c-accent-glow) !important; }
+
+/* Log search — no arrow */
+#vmbr-log-search {
+  border:none !important; box-shadow:none !important; outline:none !important;
+  width:200px !important; max-width:200px !important; background:transparent !important;
+  padding:4px 24px 4px 6px !important; font-size:12px !important;
+  background-image:none !important;
+}
+#vmbr-log-search:focus { box-shadow:none !important; border:none !important; }
+#vmbr-log-search:hover { border:none !important; }
+
+input[type="number"] { padding-right:0; }
+input[type="number"].short-input { -moz-appearance:auto; -webkit-appearance:auto; appearance:auto; }
+select.version-select:disabled { pointer-events:none; opacity:.45; cursor:default; }
+input.state-error { border-color:var(--c-danger) !important; color:var(--c-danger) !important; }
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+#vmbr-page button { border:none; border-radius:6px; color:#fff; cursor:pointer; padding:7px 14px; font-size:12px; font-weight:600; letter-spacing:.3px; transition:background .15s, box-shadow .15s; background:var(--c-accent); }
+#vmbr-page button:hover { filter:brightness(1.12); }
+#vmbr-page button:focus-visible { outline:2px solid var(--c-accent-light); outline-offset:2px; }
+#vmbr-log-scroll-top-btn, #vmbr-log-autoscroll-btn { padding:7px 10px !important; font-size:14px !important; line-height:1 !important; min-width:0 !important; width:34px !important; }
+.vmbr-scroll-group { display:flex; flex-direction:row; gap:6px; align-items:center; }
+.vmbr-scroll-group button { margin:0 !important; }
+.vmbr-actions-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px; }
+
+/* ── Multiselect dropdowns ───────────────────────────────────────────────── */
+.vmbr-multiselect {
+  position:relative; width:var(--input-w); max-width:var(--input-w);
+  border:1px solid var(--c-border-strong) !important;
+  padding:5px 24px 5px 8px; background-color:var(--c-bg);
+  cursor:pointer; border-radius:var(--radius-input);
+  color:var(--c-text); transition:box-shadow .15s;
+  box-sizing:border-box; font-size:12px;
+}
+#vmbr-vm-dropdown-backup, #vmbr-vm-dropdown-restore,
+#vmbr-notif-service-backup, #vmbr-notif-service-restore {
+  border:1px solid var(--c-border-strong) !important; border-radius:var(--radius-input) !important;
+  background-color:var(--c-bg) !important; width:var(--input-w) !important; max-width:var(--input-w) !important;
+  height:auto !important; min-height:unset !important; flex:none !important; box-sizing:border-box !important;
+}
+.vmbr-multiselect:hover,
+#vmbr-vm-dropdown-backup:hover, #vmbr-vm-dropdown-restore:hover,
+#vmbr-notif-service-backup:hover, #vmbr-notif-service-restore:hover { border-color:var(--c-accent-light) !important; }
+.vmbr-multiselect:focus, .vmbr-multiselect.active,
+#vmbr-vm-dropdown-backup.active, #vmbr-vm-dropdown-restore.active,
+#vmbr-notif-service-backup.active, #vmbr-notif-service-restore.active { box-shadow:0 0 0 3px var(--c-accent-glow) !important; outline:none; }
+
+.vmbr-dropdown-label { color:var(--c-text) !important; user-select:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px; }
+.vmbr-vm-dropdown-list { padding:4px; display:none; position:absolute; top:100%; left:0; width:100%; max-height:200px; overflow-y:auto; border:1px solid var(--c-border-strong); background:var(--c-surface); color:var(--c-text); z-index:10; border-radius:0 0 6px 6px; }
+.vmbr-vm-dropdown-list div { padding:3px 2px; line-height:1.5; height:26px; display:flex; align-items:center; color:var(--c-text) !important; }
+.vmbr-vm-dropdown-list label { display:flex; align-items:center; gap:6px; color:var(--c-text) !important; font-weight:400; font-size:12px; }
+.vmbr-vm-dropdown-list input[type="checkbox"] {
+  appearance:none; width:14px; height:14px; border:1px solid var(--c-text-muted);
+  background:var(--c-bg); cursor:pointer; position:relative; accent-color:var(--c-accent);
+  flex:none !important; transition:border-color .15s, box-shadow .15s;
+}
+.vmbr-vm-dropdown-list input[type="checkbox"]:hover { border-color:var(--c-accent-light); }
+.vmbr-vm-dropdown-list input[type="checkbox"]:checked::after { content:'✔'; position:absolute; top:-2px; left:2px; font-size:12px; color:#fff; }
+.vmbr-vm-dropdown-list div:hover { background:var(--c-surface-raised); }
+#vmbr-vm-dropdown-backup.disabled, #vmbr-vm-dropdown-restore.disabled { pointer-events:none; opacity:.45; cursor:default; }
+
+/* ── Webhook fields ──────────────────────────────────────────────────────── */
+#vmbr-webhook-container-backup input, #vmbr-webhook-container-backup select,
+#vmbr-webhook-container-restore input, #vmbr-webhook-container-restore select {
+  width:var(--input-w) !important; max-width:var(--input-w) !important;
+  height:29px !important; box-sizing:border-box !important;
+  padding-top:0 !important; padding-bottom:0 !important; flex:none !important;
+}
+
+/* ── Banner ──────────────────────────────────────────────────────────────── */
+.vmbr-banner { display:none; margin-bottom:10px; background:var(--c-accent-dim); border:1px solid var(--c-border-strong); border-radius:8px; padding:8px 12px; max-width:calc(var(--label-w) + 10px + var(--input-w)); box-sizing:border-box; }
+.vmbr-banner-inner { display:flex; align-items:center; gap:10px; }
+.vmbr-banner-text { color:var(--c-text); font-weight:700; font-size:12px; }
+.vmbr-stop-toast { font-size:11px; color:var(--c-accent-light); white-space:nowrap; pointer-events:none; visibility:hidden; }
+.vmbr-stop-toast.visible { visibility:visible; }
+.vmbr-banner button { font-size:11px !important; padding:4px 10px !important; background:var(--c-accent) !important; }
+.vmbr-notif-row:hover { background:var(--c-surface-raised); }
+.vmbr-popup { display:none; background:rgba(34,197,94,0.15); color:var(--c-success); border:1px solid rgba(34,197,94,0.35); padding:6px 10px; border-radius:6px; margin-top:8px; font-weight:600; font-size:12px; }
+
+/* ── Toggle slider ───────────────────────────────────────────────────────── */
+.fbb-toggle-wrap { display:inline-flex; align-items:center; gap:6px; user-select:none; }
+.fbb-toggle { position:relative; display:inline-block; width:38px; height:20px; flex-shrink:0; }
+.fbb-toggle input { opacity:0; width:0; height:0; position:absolute; }
+.fbb-toggle-slider { position:absolute; cursor:pointer; inset:0; background:var(--c-bg); border:1px solid var(--c-border-strong); border-radius:20px; transition:background .2s, border-color .2s; }
+.fbb-toggle-slider:before { content:''; position:absolute; width:14px; height:14px; left:2px; top:2px; background:var(--c-text-muted); border-radius:50%; transition:transform .2s, background .2s; }
+.fbb-toggle input:checked + .fbb-toggle-slider { background:var(--c-accent-dim); border-color:var(--c-accent-light); }
+.fbb-toggle input:checked + .fbb-toggle-slider:before { transform:translateX(18px); background:var(--c-accent-light); }
+
+/* ── Log panel ───────────────────────────────────────────────────────────── */
+#vmbr-log-panel { background:var(--c-surface); border:1px solid var(--c-border); border-radius:var(--radius-card); box-shadow:var(--shadow-card); display:flex; flex-direction:column; overflow:hidden; height:740px; margin-top:-68px; }
+#vmbr-log-panel .vmbr-card-header { padding-left:13px; }
+.vmbr-log-toolbar { display:flex; align-items:center; gap:6px; padding:4px 12px; background:var(--c-surface-raised); border-bottom:1px solid var(--c-border); flex-shrink:0; }
+.vmbr-log-toolbar-right { display:flex; align-items:center; gap:6px; margin-left:auto; }
+#vmbr-log-toast { font-size:11px; color:var(--c-accent-light); white-space:nowrap; pointer-events:none; min-width:60px; visibility:hidden; }
+#vmbr-log-toast.visible { visibility:visible; }
+#vmbr-log-pre { background:var(--c-bg); border:none; border-radius:0 0 10px 10px; color:#b0b8d0; font-family:'Consolas','JetBrains Mono',monospace; font-size:12px; line-height:1.65; overflow-y:auto; padding:10px 14px 12px; white-space:pre-wrap; word-break:break-word; flex:1 1 0; margin:0; min-height:0; }
+#vmbr-log-pre .log-highlight { background:rgba(124,58,237,.22); border-radius:2px; color:var(--c-success); }
+
+.vmbr-log-search-wrap { display:flex; align-items:center; background:var(--c-bg); border:1px solid var(--c-border-strong); border-radius:6px; overflow:hidden; transition:box-shadow .15s; flex-shrink:0; position:relative; }
+.vmbr-log-search-wrap:focus-within { box-shadow:0 0 0 2px var(--c-accent-glow); }
+#vmbr-log-search::placeholder { color:rgba(255,255,255,.2); }
+#vmbr-log-search-count { font-size:11px; color:var(--c-text); white-space:nowrap; width:68px; flex-shrink:0; display:inline-block; visibility:hidden; }
+#vmbr-log-search-count.visible { visibility:visible; }
+#vmbr-log-search-clear { display:none; align-items:center; justify-content:center; position:absolute; right:6px; top:50%; transform:translateY(-50%); background:transparent; border:none; padding:0; margin:0; cursor:pointer; color:var(--c-text-muted); line-height:0; width:12px; height:12px; }
+#vmbr-log-search-clear:hover { color:var(--c-text); }
+#vmbr-log-search-clear svg { display:block; pointer-events:none; width:12px; height:12px; }
+
+/* ── Schedule section ────────────────────────────────────────────────────── */
+#vmbr-schedule-section { width:100%; box-sizing:border-box; padding-bottom:16px; color:var(--c-text) !important; overflow:visible !important; margin-top:18px !important; }
+#vmbr-schedule-list { color:var(--c-text) !important; width:100%; overflow:visible !important; }
+@media (min-width:1201px) {
+  #vmbr-page.unraid-71 #vmbr-schedule-section { margin-top:-32px !important; }
+  #vmbr-page.unraid-72 #vmbr-schedule-section { margin-top:2px !important; }
+}
+#vmbr-schedule-list .TableContainer { width:100%; box-sizing:border-box; border:2px solid var(--c-border-strong); border-radius:var(--radius-card); overflow-x:auto; display:block; }
+.vmbr-schedules-table { border-collapse:collapse; table-layout:auto; width:100%; background:var(--c-surface) !important; }
+.vmbr-schedules-table thead tr { background:var(--c-surface-raised) !important; border-bottom:2px solid var(--c-border-strong) !important; }
+.vmbr-schedules-table thead tr th:first-child { border-radius:8px 0 0 0; }
+.vmbr-schedules-table thead tr th:last-child  { border-radius:0 8px 0 0; }
+.vmbr-schedules-table th { padding:9px 8px; font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--c-accent-light) !important; white-space:nowrap; text-align:center; }
+.vmbr-schedules-table td { padding:8px 8px; vertical-align:middle !important; color:var(--c-text) !important; font-size:12px; background:var(--c-surface) !important; text-align:center; white-space:nowrap; }
+.vmbr-schedules-table th + th, .vmbr-schedules-table td + td { border-left:1px solid var(--c-border) !important; }
+.vmbr-schedules-table tbody tr + tr td { border-top:1px solid var(--c-border) !important; }
+.vmbr-schedules-table tbody tr:hover td { background:var(--c-surface-raised) !important; }
+.vmbr-schedules-table th:first-child, .vmbr-schedules-table td:first-child { text-align:left !important; padding-left:10px !important; }
+.vmbr-schedules-table th:nth-child(1), .vmbr-schedules-table td:nth-child(1) { min-width:130px; }
+.vmbr-schedules-table th:nth-child(2), .vmbr-schedules-table td:nth-child(2) { min-width:90px; max-width:160px; overflow:hidden; text-overflow:ellipsis; }
+.vmbr-schedules-table th:nth-child(3), .vmbr-schedules-table td:nth-child(3) { min-width:90px; max-width:160px; overflow:hidden; text-overflow:ellipsis; }
+.vmbr-schedules-table th:nth-child(4), .vmbr-schedules-table td:nth-child(4) { min-width:70px; white-space:nowrap; }
+.vmbr-schedules-table th:nth-child(5), .vmbr-schedules-table td:nth-child(5) { min-width:60px; white-space:nowrap; }
+.vmbr-schedules-table th:nth-child(6), .vmbr-schedules-table td:nth-child(6) { min-width:60px; white-space:nowrap; }
+.vmbr-schedules-table th:nth-child(7), .vmbr-schedules-table td:nth-child(7) { min-width:60px; white-space:nowrap; }
+.vmbr-schedules-table th:last-child, .vmbr-schedules-table td:last-child { text-align:center; white-space:nowrap; width:auto; min-width:200px; }
+.vmbr-schedules-table td:last-child { padding:5px 6px !important; }
+.vmbr-schedules-table td:last-child .vmbr-sched-actions { display:flex !important; flex-direction:row !important; gap:4px !important; justify-content:center !important; align-items:center !important; }
+.vmbr-schedules-table td:last-child .vmbr-sched-actions button { text-align:center !important; padding:4px 8px !important; font-size:11px !important; background:var(--c-accent) !important; border-radius:6px !important; color:#fff !important; margin:0 !important; white-space:nowrap !important; box-sizing:border-box !important; }
+@media (max-width:900px) {
+  .vmbr-schedules-table th:last-child, .vmbr-schedules-table td:last-child { min-width:180px; width:180px; }
+  .vmbr-schedules-table td:last-child .vmbr-sched-actions { display:grid !important; grid-template-columns:1fr 1fr !important; width:168px !important; }
+  .vmbr-schedules-table td:last-child .vmbr-sched-actions button { width:100% !important; }
+}
+.vmbr-sched-dot { display:inline-block; width:8px; height:8px; border-radius:50%; flex-shrink:0; vertical-align:middle; margin-right:5px; }
+.vmbr-sched-dot.enabled  { background:#22c55e; box-shadow:0 0 5px #22c55e; }
+.vmbr-sched-dot.disabled { background:#ef4444; box-shadow:0 0 5px #ef4444; }
+.vmbr-sched-ellipsis { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:0; }
+
+/* ── Folder picker modal ─────────────────────────────────────────────────── */
+.vmbr-modal { display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,.75); backdrop-filter:blur(3px); }
+.vmbr-modal-content {
+  width:90%; max-width:580px; margin:6% auto;
+  background:var(--c-surface) !important; border:1px solid var(--c-border-strong) !important;
+  border-radius:10px; color:var(--c-text) !important; padding:0;
+  box-shadow:0 24px 60px rgba(0,0,0,.7);
+  display:flex; flex-direction:column; max-height:88vh; overflow:hidden;
+}
+.vmbr-modal-header { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:var(--c-surface-raised) !important; border-bottom:1px solid var(--c-border-strong); font-weight:700; font-size:13px; color:var(--c-text) !important; flex-shrink:0; }
+#vmbr-folder-picker-title { color:var(--c-accent-light) !important; }
+.vmbr-breadcrumb { padding:8px 16px 6px; font-size:12px; color:var(--c-text-muted) !important; border-bottom:1px solid var(--c-border); flex-shrink:0; background:var(--c-surface); }
+
+/* Inline create-folder bar */
+#vmbr-create-folder-bar {
+  display:none; align-items:center; gap:8px;
+  padding:8px 16px; background:var(--c-surface-raised);
+  border-bottom:1px solid var(--c-border); flex-shrink:0;
+}
+#vmbr-create-folder-bar input[type="text"] {
+  flex:1; height:30px; background-color:var(--c-bg) !important;
+  border:1px solid var(--c-border-strong) !important;
+  border-radius:var(--radius-input) !important;
+  color:var(--c-text) !important; font-size:12px !important;
+  padding:0 8px !important; outline:none !important;
+  box-sizing:border-box !important; background-image:none !important;
+  width:auto !important; max-width:none !important;
+}
+#vmbr-create-folder-bar input[type="text"]:focus { border-color:var(--c-accent-light) !important; box-shadow:0 0 0 2px var(--c-accent-glow) !important; }
+#vmbr-create-folder-bar button {
+  border:none !important; border-radius:6px !important; color:#fff !important;
+  cursor:pointer !important; padding:6px 12px !important; font-size:12px !important;
+  font-weight:600 !important; background:var(--c-accent) !important;
+  transition:filter .15s !important; white-space:nowrap; flex-shrink:0;
+}
+#vmbr-create-folder-bar button:hover { filter:brightness(1.12) !important; }
+#vmbr-create-folder-bar .vmbr-btn-cancel { background:#444 !important; }
+
+.vmbr-folder-list { flex:1; overflow-y:auto; padding:6px; font-size:13px; min-height:0; }
+.vmbr-folder-item { padding:6px 8px; cursor:pointer; color:var(--c-text) !important; border-radius:4px; }
+.vmbr-folder-item:hover { background:var(--c-surface-raised); }
+.vmbr-folder-item label { cursor:pointer; color:var(--c-text) !important; font-size:13px; position:relative; top:-3px; }
+
+.vmbr-modal-footer {
+  padding:10px 16px; border-top:1px solid var(--c-border);
+  background:var(--c-surface-raised);
+  display:flex; align-items:center; justify-content:space-between; gap:8px; flex-shrink:0;
+}
+.vmbr-modal-footer button, .vmbr-modal-header button {
+  border:none; border-radius:6px; color:#fff; cursor:pointer;
+  padding:7px 14px; font-size:12px; font-weight:600; letter-spacing:.3px;
+  background:var(--c-accent); transition:background .15s, box-shadow .15s;
+}
+.vmbr-modal-footer button:hover, .vmbr-modal-header button:hover { filter:brightness(1.12); }
+.vmbr-btn-secondary { background:#444 !important; }
+.vmbr-footer-left  { display:flex; align-items:center; gap:8px; }
+.vmbr-footer-right { display:flex; align-items:center; gap:8px; }
+#vmbr-folder-toast { font-size:11px; color:var(--c-accent-light); white-space:nowrap; visibility:hidden; pointer-events:none; }
+#vmbr-folder-toast.visible { visibility:visible; }
+
+/* ── Custom confirm/alert dialogs ────────────────────────────────────────── */
+.vmbr-dialog-overlay {
+  display:none; position:fixed; z-index:10000; inset:0;
+  background:rgba(0,0,0,.78); backdrop-filter:blur(3px);
+  align-items:center; justify-content:center;
+}
+.vmbr-dialog-overlay.open { display:flex; }
+.vmbr-dialog-box {
+  background:var(--c-surface); border:1px solid var(--c-border-strong);
+  border-radius:var(--radius-card); box-shadow:0 24px 60px rgba(0,0,0,.7);
+  display:flex; flex-direction:column; overflow:hidden;
+  width:90%; max-width:400px;
+}
+.vmbr-dialog-header {
+  display:flex; align-items:center; gap:8px; padding:12px 16px;
+  background:var(--c-surface-raised); border-bottom:1px solid var(--c-border-strong);
+  font-weight:700; font-size:13px; color:var(--c-accent-light); flex-shrink:0;
+}
+.vmbr-dialog-body { padding:16px; overflow-y:auto; flex:1; }
+.vmbr-dialog-body p { margin:0; font-size:13px; color:var(--c-text); line-height:1.5; }
+.vmbr-dialog-footer {
+  padding:10px 16px; border-top:1px solid var(--c-border);
+  background:var(--c-surface-raised);
+  display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-shrink:0;
+}
+.vmbr-dialog-footer button {
+  background:var(--c-accent) !important; border:none !important; border-radius:6px !important;
+  color:#fff !important; cursor:pointer !important; font-size:12px !important;
+  font-weight:600 !important; padding:7px 14px !important;
+  letter-spacing:.3px !important; transition:filter .15s !important;
+}
+.vmbr-dialog-footer button:hover { filter:brightness(1.15) !important; }
+.vmbr-dialog-footer .vmbr-btn-secondary { background:#444 !important; }
+
+/* ── Inline help ─────────────────────────────────────────────────────────── */
+label.fbb-has-help, span.fbb-has-help { cursor:help; }
+.fbb-help-text { background:var(--c-surface-raised); border-left:3px solid var(--c-accent); border-radius:4px; color:var(--c-text-muted); font-size:11px; line-height:1.5; margin-bottom:8px; padding:6px 10px; max-width:500px; box-sizing:border-box; }
+
+/* ── Malformed container ─────────────────────────────────────────────────── */
+#vmbr-malformed-container > div { background:rgba(239,68,68,0.12) !important; color:var(--c-danger) !important; border:1px solid rgba(239,68,68,.35) !important; padding:9px 12px !important; border-radius:6px !important; margin-bottom:10px !important; font-size:12px !important; }
+
+/* ── Shake animation ─────────────────────────────────────────────────────── */
+@keyframes vmbr-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 50%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
+#vmbr-backup-panel.state-error { animation:vmbr-shake .3s; }
+
+/* ── Scrollbars ──────────────────────────────────────────────────────────── */
+#vmbr-backup-panel::-webkit-scrollbar, #vmbr-restore-panel::-webkit-scrollbar,
+#vmbr-log-pre::-webkit-scrollbar, .vmbr-vm-dropdown-list::-webkit-scrollbar,
+.vmbr-folder-list::-webkit-scrollbar { width:6px !important; display:block !important; }
+#vmbr-backup-panel::-webkit-scrollbar-thumb, #vmbr-restore-panel::-webkit-scrollbar-thumb,
+#vmbr-log-pre::-webkit-scrollbar-thumb, .vmbr-vm-dropdown-list::-webkit-scrollbar-thumb,
+.vmbr-folder-list::-webkit-scrollbar-thumb { background:var(--c-accent) !important; border-radius:3px !important; }
+#vmbr-backup-panel::-webkit-scrollbar-track, #vmbr-restore-panel::-webkit-scrollbar-track,
+#vmbr-log-pre::-webkit-scrollbar-track, .vmbr-vm-dropdown-list::-webkit-scrollbar-track,
+.vmbr-folder-list::-webkit-scrollbar-track { background:var(--c-bg) !important; }
+#vmbr-backup-panel, #vmbr-restore-panel, #vmbr-log-pre { scrollbar-width:thin !important; scrollbar-color:var(--c-accent) var(--c-bg) !important; }
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width:1200px) {
+  #vmbr-layout { grid-template-columns:1fr; }
+  .vmbr-card-body { height:480px; }
+  #vmbr-log-panel { grid-column:1; height:360px; }
+}
+@media (max-width:768px) {
+  #vmbr-layout { grid-template-columns:1fr; }
+  .vmbr-card-body { height:auto; min-height:400px; }
+  #vmbr-log-panel { grid-column:1; height:360px; }
+}
