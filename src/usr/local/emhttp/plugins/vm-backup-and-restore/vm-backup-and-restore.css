@@ -266,6 +266,7 @@ input.state-error { border-color:var(--c-danger) !important; color:var(--c-dange
   border:1px solid var(--c-border-strong) !important; border-radius:var(--radius-input) !important;
   background-color:var(--c-bg) !important; width:var(--input-w) !important; max-width:var(--input-w) !important;
   height:auto !important; min-height:unset !important; flex:none !important; box-sizing:border-box !important;
+  position:relative !important;
 }
 .vmbr-multiselect:hover,
 #vmbr-vm-dropdown-backup:hover, #vmbr-vm-dropdown-restore:hover,
@@ -275,7 +276,12 @@ input.state-error { border-color:var(--c-danger) !important; color:var(--c-dange
 #vmbr-notif-service-backup.active, #vmbr-notif-service-restore.active { box-shadow:0 0 0 3px var(--c-accent-glow) !important; outline:none; }
 
 .vmbr-dropdown-label { color:var(--c-text) !important; user-select:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px; }
-.vmbr-vm-dropdown-list { padding:4px; display:none; position:absolute; top:100%; left:0; width:100%; max-height:200px; overflow-y:auto; border:1px solid var(--c-border-strong); background:var(--c-surface); color:var(--c-text); z-index:10; border-radius:0 0 6px 6px; }
+
+/* ── VM dropdown list ─────────────────────────────────────────────────────
+   right:0 + left:auto pins the open list's right edge to the dropdown's
+   right edge, matching the alignment of the select fields above it.       */
+.vmbr-vm-dropdown-list { padding:4px; display:none; position:absolute; top:100%; left:0; right:0; width:auto; max-width:var(--input-w); max-height:200px; overflow-y:auto; overflow-x:hidden; border:1px solid var(--c-border-strong); background:var(--c-surface); color:var(--c-text); z-index:10; border-radius:0 0 6px 6px; }
+
 .vmbr-vm-dropdown-list div { padding:3px 2px; line-height:1.5; height:26px; display:flex; align-items:center; color:var(--c-text) !important; }
 .vmbr-vm-dropdown-list label { display:flex; align-items:center; gap:6px; color:var(--c-text) !important; font-weight:400; font-size:12px; }
 .vmbr-vm-dropdown-list input[type="checkbox"] {
@@ -411,7 +417,12 @@ input.state-error { border-color:var(--c-danger) !important; color:var(--c-dange
 #vmbr-create-folder-bar button:hover { filter:brightness(1.12) !important; }
 #vmbr-create-folder-bar .vmbr-btn-cancel { background:#444 !important; }
 
-.vmbr-folder-list { flex:1; overflow-y:auto; padding:6px; font-size:13px; min-height:0; }
+/* ── Folder list — height-capped so the modal stays compact ───────────────
+   The modal already has max-height:88vh + overflow:hidden. Capping the list
+   here prevents it from growing tall enough to push the footer off-screen
+   when there are many folders. Adjust 320px to taste.                      */
+.vmbr-folder-list { overflow-y:auto; padding:6px; font-size:13px; min-height:0; max-height:320px; }
+
 .vmbr-folder-item { padding:6px 8px; cursor:pointer; color:var(--c-text) !important; border-radius:4px; }
 .vmbr-folder-item:hover { background:var(--c-surface-raised); }
 .vmbr-folder-item label { cursor:pointer; color:var(--c-text) !important; font-size:13px; position:relative; top:-3px; }

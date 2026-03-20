@@ -76,7 +76,7 @@ classify_path() {
 # Allowlist matrix:
 #   USER  -> USER, EXEMPT
 #   USER0 -> USER0, DISK, EXEMPT
-#   DISK  -> DISK, EXEMPT
+#   DISK  -> DISK, USER0, EXEMPT
 #   EXEMPT-> USER, USER0, DISK, EXEMPT  (always allowed)
 validate_mount_compatibility() {
     local src_str="$1" dst_str="$2"
@@ -91,13 +91,13 @@ validate_mount_compatibility() {
     case "$src_class_str" in
         USER)   [[ "$dst_class_str" == "USER"  || "$dst_class_str" == "EXEMPT" ]] && allowed_int=1 ;;
         USER0)  [[ "$dst_class_str" == "USER0" || "$dst_class_str" == "DISK" || "$dst_class_str" == "EXEMPT" ]] && allowed_int=1 ;;
-        DISK)   [[ "$dst_class_str" == "DISK"  || "$dst_class_str" == "EXEMPT" ]] && allowed_int=1 ;;
+        DISK)   [[ "$dst_class_str" == "DISK"  || "$dst_class_str" == "USER0" || "$dst_class_str" == "EXEMPT" ]] && allowed_int=1 ;;
         EXEMPT) allowed_int=1 ;;
     esac
 
     if [[ "$allowed_int" -eq 0 ]]; then
         echo "[ERROR] Vdisk $src_str is on mount type ($src_class_str) and backup destination ($dst_class_str) — incompatible combination"
-        echo "[ERROR] USER can only back up to USER or EXEMPT (remotes/addons). USER0 can go to USER0, DISK, or EXEMPT. DISK can go to DISK or EXEMPT."
+        echo "[ERROR] USER can only back up to USER or EXEMPT (remotes/addons). USER0 can go to USER0, DISK, or EXEMPT. DISK can go to DISK, USER0, or EXEMPT."
         debug_log "ERROR: Mount type mismatch - src=$src_str ($src_class_str) dst=$dst_str ($dst_class_str)"
         set_status "Mount type mismatch for $src_str"
         return 1

@@ -192,7 +192,7 @@ classify_path() {
 # Allowlist matrix:
 #   USER  -> USER, EXEMPT
 #   USER0 -> USER0, DISK, EXEMPT
-#   DISK  -> DISK, EXEMPT
+#   DISK  -> DISK, USER0, EXEMPT
 #   EXEMPT-> USER, USER0, DISK, EXEMPT  (always allowed)
 validate_mount_compatibility() {
     local src_str="$1"
@@ -208,13 +208,13 @@ validate_mount_compatibility() {
     case "$src_class_str" in
         USER)   [[ "$dst_class_str" == "USER"  || "$dst_class_str" == "EXEMPT" ]] && allowed_int=1 ;;
         USER0)  [[ "$dst_class_str" == "USER0" || "$dst_class_str" == "DISK" || "$dst_class_str" == "EXEMPT" ]] && allowed_int=1 ;;
-        DISK)   [[ "$dst_class_str" == "DISK"  || "$dst_class_str" == "EXEMPT" ]] && allowed_int=1 ;;
+        DISK)   [[ "$dst_class_str" == "DISK"  || "$dst_class_str" == "USER0" || "$dst_class_str" == "EXEMPT" ]] && allowed_int=1 ;;
         EXEMPT) allowed_int=1 ;;
     esac
 
     if [[ "$allowed_int" -eq 0 ]]; then
         echo "[ERROR] Backup source ($src_str, class: $src_class_str) is incompatible with restore destination ($dst_str, class: $dst_class_str)"
-        echo "[ERROR] USER can only restore to USER or EXEMPT (remotes/addons). USER0 can restore to USER0, DISK, or EXEMPT. DISK can restore to DISK or EXEMPT."
+        echo "[ERROR] USER can only restore to USER or EXEMPT (remotes/addons). USER0 can restore to USER0, DISK, or EXEMPT. DISK can restore to DISK, USER0, or EXEMPT."
         debug_log "ERROR: Mount type mismatch - src=$src_str ($src_class_str) dst=$dst_str ($dst_class_str)"
         return 1
     fi
