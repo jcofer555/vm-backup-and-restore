@@ -61,6 +61,22 @@ physical_mount_path() {
 
 classify_path() {
     local path_str="$1"
+
+    # Check the original path string first.
+    # /mnt/user and /mnt/user0 are shfs virtual mounts — any path under them
+    # is a user/user0 share path regardless of where shfs physically stores it.
+    # Using df on these paths would return the underlying physical mount
+    # (/mnt/cache, /mnt/diskN) rather than /mnt/user, causing false mismatches
+    # when both src and dst are under /mnt/user but on different physical shares.
+    if [[ "$path_str" == /mnt/user  || "$path_str" == /mnt/user/*  ]];    then echo "USER";   return; fi
+    if [[ "$path_str" == /mnt/user0 || "$path_str" == /mnt/user0/* ]];    then echo "USER0";  return; fi
+    if [[ "$path_str" == /mnt/remotes || "$path_str" == /mnt/remotes/* ]]; then echo "EXEMPT"; return; fi
+    if [[ "$path_str" == /mnt/addons  || "$path_str" == /mnt/addons/*  ]]; then echo "EXEMPT"; return; fi
+
+    # For other /mnt/* paths (e.g. /mnt/backup/..., /mnt/cache/..., /mnt/disk1/...)
+    # use df to find the real mount point, which correctly classifies symlinks
+    # like /mnt/backup -> /mnt/disk1/backup as DISK rather than following the
+    # symlink string and misclassifying.
     local mount_str
     mount_str=$(physical_mount_path "$path_str")
     if [[ "$mount_str" == /mnt/user  || "$mount_str" == /mnt/user/*  ]];    then echo "USER";   return; fi
@@ -74,9 +90,16 @@ classify_path() {
 validate_mount_compatibility() {
     local src_str="$1" dst_str="$2"
     local src_class_str dst_class_str
-    src_class_str=$(classify_path "$src_str")
-    dst_class_str=$(classify_path "$dst_str")
-    debug_log "validate_mount_compatibility: src=$src_str ($src_class_str) dst=$dst_str ($dst_class_str)"
+
+    # Resolve both to physical paths for classification only.
+    # Original paths are kept for display in error messages.
+    local src_resolved_str dst_resolved_str
+    src_resolved_str=$(readlink -f "$src_str" 2>/dev/null || echo "$src_str")
+    dst_resolved_str=$(readlink -f "$dst_str" 2>/dev/null || echo "$dst_str")
+
+    src_class_str=$(classify_path "$src_resolved_str")
+    dst_class_str=$(classify_path "$dst_resolved_str")
+    debug_log "validate_mount_compatibility: src=$src_str -> $src_resolved_str ($src_class_str) dst=$dst_str -> $dst_resolved_str ($dst_class_str)"
     local allowed_int=0
     case "$src_class_str" in
         USER)   [[ "$dst_class_str" == "USER"  || "$dst_class_str" == "EXEMPT" ]] && allowed_int=1 ;;
@@ -484,7 +507,7 @@ for vm_str in "${CLEAN_VMS_arr[@]}"; do
 
     mapfile -t vdisks_arr < <(
         xmllint --xpath "//domain/devices/disk[@device='disk']/source/@file" "$vm_xml_path_str" 2>/dev/null \
-        | sed -E 's/ file=\"/\n/g' | sed -E 's/\"//g' | sed '/^$/d'
+        | sed -E 's/ file=\"/\n/g' | sed -E 's/\"//g' | sed '/^$/d' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
     )
     debug_log "vdisks for $vm_str: ${vdisks_arr[*]:-none}"
 
