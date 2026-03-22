@@ -130,12 +130,15 @@ function humanCron(string $cron): string
   <td><?= htmlspecialchars($notify_str) ?></td>
   <td>
     <div class="vmbr-sched-actions">
-      <button type="button" class="vm-backup-and-restoretip" title="Edit schedule"
+      <button type="button"
+              class="schedule-action-btn schedule-edit-btn vm-backup-and-restoretip"
+              data-id="<?= $id_esc ?>"
+              title="Edit schedule"
               onclick="editSchedule('<?= $id_esc ?>')">Edit</button>
-      <button type="button" class="vm-backup-and-restoretip"
+      <button type="button" class="schedule-action-btn vm-backup-and-restoretip"
               title="<?= $enabled_bool ? 'Disable schedule' : 'Enable schedule' ?>"
               onclick="toggleSchedule('<?= $id_esc ?>', <?= $enabled_bool ? 'true' : 'false' ?>)"><?= $btn_text_str ?></button>
-      <button type="button" class="vm-backup-and-restoretip" title="Delete schedule"
+      <button type="button" class="schedule-action-btn vm-backup-and-restoretip" title="Delete schedule"
               onclick="deleteSchedule('<?= $id_esc ?>')">Delete</button>
       <button type="button" class="schedule-action-btn run-schedule-btn vm-backup-and-restoretip"
               title="Run schedule now"

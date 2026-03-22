@@ -24,10 +24,6 @@ $backup_defaults_arr = [
     'WEBHOOK_PUSHOVER'     => '',
     'PUSHOVER_USER_KEY'    => '',
 ];
-// Read existing cfg and merge defaults in memory only for display.
-// Never write back from .page — paths are written exclusively by save_settings.php
-// so that user-chosen paths (e.g. /mnt/user/...) are never silently resolved.
-// First-run initialisation: write defaults once only if the cfg does not yet exist.
 if (!file_exists(CFG_PATH)) {
     @mkdir(dirname(CFG_PATH), 0755, true);
     $init_str = '';
@@ -52,7 +48,6 @@ $restore_defaults_arr = [
     'WEBHOOK_PUSHOVER_RESTORE'     => '',
     'PUSHOVER_USER_KEY_RESTORE'    => '',
 ];
-// Same pattern for restore cfg — read + in-memory merge only; first-run write if missing.
 if (!file_exists(CFG_RESTORE_PATH)) {
     @mkdir(dirname(CFG_RESTORE_PATH), 0755, true);
     $init_str = '';
@@ -102,26 +97,19 @@ const POLL_FAST_MS_INT = 1000;
 const POLL_SLOW_MS_INT = 4000;
 
 // ── CSRF token acquisition ────────────────────────────────────────────────────
-// Priority order: window.parent (Unraid's iframe architecture sets it here),
-// then window.csrf_token (non-iframe), then cookie (not HttpOnly in Unraid),
-// then meta tag, then PHP inline value as last resort.
 let csrfToken_str = '';
 
 try {
-  // 1. window.parent.csrf_token — most reliable in Unraid's iframe layout
   if (window.parent && typeof window.parent.csrf_token === 'string' && window.parent.csrf_token) {
     csrfToken_str = window.parent.csrf_token;
   }
-  // 2. window.csrf_token — covers non-iframe context
   if (!csrfToken_str && typeof window.csrf_token === 'string' && window.csrf_token) {
     csrfToken_str = window.csrf_token;
   }
-  // 3. Cookie — Unraid's csrf_token cookie is not HttpOnly so JS can read it
   if (!csrfToken_str && document.cookie) {
     const m_arr = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
     if (m_arr && m_arr[1]) csrfToken_str = decodeURIComponent(m_arr[1]);
   }
-  // 4. Meta tag fallback (not used by Unraid but harmless to check)
   if (!csrfToken_str) {
     const meta_el = document.querySelector("meta[name='csrf_token']");
     if (meta_el) csrfToken_str = meta_el.getAttribute('content') || '';
@@ -130,7 +118,6 @@ try {
   console.warn('[vm-backup] CSRF token discovery failed:', e);
 }
 
-// 5. PHP inline value — last resort, only populated when passed as GET param
 if (!csrfToken_str) {
   csrfToken_str = "<?= htmlspecialchars($_GET['csrf_token'] ?? ($_COOKIE['csrf_token'] ?? ''), ENT_QUOTES) ?>";
 }
@@ -174,9 +161,17 @@ const SERVICE_CONFIG_OBJ = {
     <div class="vmbr-card">
 
       <div id="vmbr-mode-row">
-        <!-- Plugin group — left -->
-        <?php if ($has_siblings_bool): ?>
+        <!-- Mode group — LEFT (swapped) -->
         <div class="vmbr-topbar-group">
+          <span class="vmbr-topbar-label fbb-has-help" id="vmbr-mode-label">Mode:</span>
+          <select id="vmbr-mode-switcher" class="vmbr-topbar-select" onchange="vmbrSwitchMode(this.value)">
+            <option value="backup">Backup</option>
+            <option value="restore">Restore</option>
+          </select>
+        </div>
+        <!-- Plugin group — RIGHT (swapped), only if siblings exist -->
+        <?php if ($has_siblings_bool): ?>
+        <div class="vmbr-topbar-group" style="margin-left:auto;">
           <span class="vmbr-topbar-label fbb-has-help" id="vmbr-plugin-label">Plugin:</span>
           <select id="vmbr-plugin-switcher" class="vmbr-topbar-select" onchange="if(this.value)window.location=this.value">
             <option value="" disabled selected>Switch plugin…</option>
@@ -186,14 +181,6 @@ const SERVICE_CONFIG_OBJ = {
           </select>
         </div>
         <?php endif; ?>
-        <!-- Mode group — right -->
-        <div class="vmbr-topbar-group" style="margin-left:auto;">
-          <span class="vmbr-topbar-label fbb-has-help" id="vmbr-mode-label">Mode:</span>
-          <select id="vmbr-mode-switcher" class="vmbr-topbar-select" onchange="vmbrSwitchMode(this.value)">
-            <option value="backup">Backup</option>
-            <option value="restore">Restore</option>
-          </select>
-        </div>
       </div>
 
       <div class="vmbr-card-header">
@@ -321,9 +308,20 @@ const SERVICE_CONFIG_OBJ = {
           </div>
         </div>
 
+        <!-- Actions row: normal mode shows Save + Backup Now + Schedule It -->
+        <!-- Edit mode shows Save (disabled) + Update (schedule) + Cancel Edit -->
         <div class="vmbr-actions-row">
-          <button type="button" id="vmbr-backup-now-btn" title="Run backup of selected VM(s)">Backup Now</button>
-          <button type="button" id="vmbr-schedule-btn" class="button schedule-button" title="Create a backup schedule using the settings shown above">Schedule It</button>
+          <button type="button" id="vmbr-backup-save-btn"
+                  title="Save backup settings without running a backup">Save</button>
+          <button type="button" id="vmbr-backup-now-btn"
+                  title="Run backup of selected VM(s) now">Backup Now</button>
+          <button type="button" id="vmbr-schedule-update-btn" style="display:none;"
+                  title="Save changes to this schedule">Update</button>
+          <button type="button" id="vmbr-schedule-btn" class="schedule-button"
+                  title="Create a backup schedule using the settings shown above">Schedule It</button>
+          <button type="button" id="vmbr-schedule-cancel-edit-btn" style="display:none;"
+                  title="Cancel editing this schedule">Cancel</button>
+          <!-- legacy cancel btn kept for JS safety -->
           <button type="button" id="vmbr-cancel-edit-btn" style="display:none;">Cancel</button>
         </div>
         <div id="vmbr-backup-popup" class="vmbr-popup"></div>
@@ -413,6 +411,8 @@ const SERVICE_CONFIG_OBJ = {
         </div>
 
         <div class="vmbr-actions-row">
+          <button type="button" id="vmbr-restore-save-btn"
+                  title="Save restore settings without running a restore">Save</button>
           <button type="button" id="vmbr-restore-now-btn" title="Run restore of selected VM(s)">Restore Now</button>
         </div>
         <div id="vmbr-restore-popup" class="vmbr-popup"></div>
@@ -468,7 +468,6 @@ const SERVICE_CONFIG_OBJ = {
       <button type="button" id="vmbr-folder-close-btn">Close</button>
     </div>
     <div id="vmbr-folder-breadcrumb" class="vmbr-breadcrumb"></div>
-    <!-- Inline create-folder bar — toggled by JS -->
     <div id="vmbr-create-folder-bar">
       <input type="text" id="vmbr-new-folder-name" placeholder="New folder name…" autocomplete="off">
       <button type="button" id="vmbr-new-folder-ok-btn">Create</button>
