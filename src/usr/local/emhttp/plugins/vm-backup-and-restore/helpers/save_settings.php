@@ -19,8 +19,6 @@ function json_error(string $message): void
 }
 
 // --- CSRF validation ---
-// Only enforce if the cookie is actually present — if Unraid hasn't set it yet
-// (e.g. first load, session edge case) we allow through rather than hard-fail.
 $csrf_cookie_str = $_COOKIE['csrf_token'] ?? '';
 $csrf_post_str   = $_POST['csrf_token']   ?? '';
 if ($csrf_cookie_str !== '' && !hash_equals($csrf_cookie_str, $csrf_post_str)) {
