@@ -39,45 +39,8 @@ if (!preg_match('/^([\*\/0-9,-]+\s+){4}[\*\/0-9,-]+$/', $cron_str)) {
     exit;
 }
 
-// --- Load existing schedules ---
-$schedules_arr = [];
-if (file_exists(SCHEDULES_CFG)) {
-    $schedules_arr = parse_ini_file(SCHEDULES_CFG, true, INI_SCANNER_RAW);
-    if (!is_array($schedules_arr)) {
-        $schedules_arr = [];
-    }
-}
-
-// --- Duplicate fingerprint check ---
-$new_fingerprint_arr = [
-    'VMS_TO_BACKUP'      => $settings_arr['VMS_TO_BACKUP']      ?? '',
-    'BACKUP_DESTINATION' => $settings_arr['BACKUP_DESTINATION'] ?? '',
-];
-ksort($new_fingerprint_arr);
-$new_hash_str = hash('sha256', json_encode($new_fingerprint_arr));
-
-foreach ($schedules_arr as $existing_id_str => $s_arr) {
-    if (empty($s_arr['SETTINGS'])) {
-        continue;
-    }
-    $existing_settings_arr = json_decode(stripslashes((string)$s_arr['SETTINGS']), true);
-    if (!is_array($existing_settings_arr)) {
-        continue;
-    }
-    $existing_fp_arr = [
-        'VMS_TO_BACKUP'      => $existing_settings_arr['VMS_TO_BACKUP']      ?? '',
-        'BACKUP_DESTINATION' => $existing_settings_arr['BACKUP_DESTINATION'] ?? '',
-    ];
-    ksort($existing_fp_arr);
-    if (hash('sha256', json_encode($existing_fp_arr)) === $new_hash_str) {
-        http_response_code(409);
-        echo json_encode(['status' => 'error', 'message' => 'Duplicate schedule detected', 'conflict_id' => $existing_id_str]);
-        exit;
-    }
-}
-
 // --- Generate unique ID and encode settings ---
-$id_str           = 'schedule_' . time();
+$id_str            = 'schedule_' . time();
 $settings_json_str = addcslashes(json_encode($settings_arr, JSON_UNESCAPED_SLASHES), '"');
 
 $block_str  = "\n[$id_str]\n";

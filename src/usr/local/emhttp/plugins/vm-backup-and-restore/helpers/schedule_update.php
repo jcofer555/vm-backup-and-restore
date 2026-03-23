@@ -49,41 +49,13 @@ if (!is_array($schedules_arr) || !isset($schedules_arr[$id_str])) {
     exit;
 }
 
-$type_str    = (string)($_POST['type'] ?? $schedules_arr[$id_str]['TYPE'] ?? '');
+$type_str     = (string)($_POST['type'] ?? $schedules_arr[$id_str]['TYPE'] ?? '');
 $settings_raw = $_POST['settings'] ?? [];
 $settings_arr = is_array($settings_raw) ? $settings_raw : [];
 
 $allowed_arr  = ($type_str === 'restore') ? ALLOWED_RESTORE_KEYS : ALLOWED_BACKUP_KEYS;
 $settings_arr = array_intersect_key($settings_arr, array_flip($allowed_arr));
 $settings_arr = array_diff_key($settings_arr, array_flip(EXCLUDED_KEYS));
-
-// --- Duplicate fingerprint check (skip self) ---
-$new_fp_arr = [
-    'VMS_TO_BACKUP'      => $settings_arr['VMS_TO_BACKUP']      ?? '',
-    'BACKUP_DESTINATION' => $settings_arr['BACKUP_DESTINATION'] ?? '',
-];
-ksort($new_fp_arr);
-$new_hash_str = hash('sha256', json_encode($new_fp_arr));
-
-foreach ($schedules_arr as $existing_id_str => $s_arr) {
-    if ($existing_id_str === $id_str || empty($s_arr['SETTINGS'])) {
-        continue;
-    }
-    $existing_settings_arr = json_decode(stripslashes((string)$s_arr['SETTINGS']), true);
-    if (!is_array($existing_settings_arr)) {
-        continue;
-    }
-    $existing_fp_arr = [
-        'VMS_TO_BACKUP'      => $existing_settings_arr['VMS_TO_BACKUP']      ?? '',
-        'BACKUP_DESTINATION' => $existing_settings_arr['BACKUP_DESTINATION'] ?? '',
-    ];
-    ksort($existing_fp_arr);
-    if (hash('sha256', json_encode($existing_fp_arr)) === $new_hash_str) {
-        http_response_code(409);
-        echo json_encode(['status' => 'error', 'message' => 'Duplicate schedule detected', 'conflict_id' => $existing_id_str]);
-        exit;
-    }
-}
 
 $settings_json_str = addcslashes(json_encode($settings_arr, JSON_UNESCAPED_SLASHES), '"');
 
