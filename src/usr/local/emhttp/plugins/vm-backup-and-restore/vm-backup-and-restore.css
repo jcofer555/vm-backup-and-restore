@@ -20,7 +20,6 @@
   --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.5);
   --input-w: 210px;
   --label-w: 158px;
-  /* solid triangle arrow — matches browser native ▼, applied to all fields */
   --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpolygon points='0,0 12,0 6,8' fill='%23a78bfa'/%3E%3C/svg%3E");
 }
 
@@ -169,7 +168,6 @@
 }
 
 /* ── Select arrows ───────────────────────────────────────────────────────── */
-/* Strip native arrow from all form selects — mode row excluded (no arrow there) */
 #vmbr-page select,
 #vmbr-backup-panel select,
 #vmbr-restore-panel select {
@@ -180,7 +178,6 @@
   padding-right: 26px !important;
 }
 
-/* Mode/plugin row selects — full native appearance, unset everything we touched */
 #vmbr-mode-row select,
 #vmbr-mode-row .vmbr-topbar-select {
   -webkit-appearance: auto !important;
@@ -191,7 +188,6 @@
   padding-left: 7px !important;
 }
 
-/* Wrapper div injected by JS around every select — carries the ▼ arrow */
 .vmbr-select-wrap {
   position: relative;
   display: inline-block;
@@ -223,7 +219,6 @@
   pointer-events: none;
 }
 
-/* Picker text inputs — wrapped by JS, just ensure no bg-image */
 #vmbr-backup-destination,
 #vmbr-restore-location,
 #vmbr-restore-destination {
@@ -231,7 +226,6 @@
   padding-right: 26px !important;
 }
 
-/* Multiselect divs */
 #vmbr-vm-dropdown-backup,
 #vmbr-vm-dropdown-restore,
 #vmbr-notif-service-backup,
@@ -441,7 +435,6 @@
   cursor: pointer;
 }
 
-/* Picker text inputs */
 #vmbr-backup-destination,
 #vmbr-restore-location,
 #vmbr-restore-destination {
@@ -464,7 +457,6 @@
   box-shadow: 0 0 0 3px var(--c-accent-glow) !important;
 }
 
-/* Log search — no arrow */
 #vmbr-log-search {
   border: none !important;
   box-shadow: none !important;
@@ -477,13 +469,10 @@
   background-image: none !important;
 }
 
-#vmbr-log-search:focus {
-  box-shadow: none !important;
-  border: none !important;
-}
-
+#vmbr-log-search:focus,
 #vmbr-log-search:hover {
   border: none !important;
+  box-shadow: none !important;
 }
 
 input[type="number"] {
@@ -617,9 +606,6 @@ input.state-error {
   font-size: 12px;
 }
 
-/* ── VM dropdown list ─────────────────────────────────────────────────────
-   right:0 + left:auto pins the open list's right edge to the dropdown's
-   right edge, matching the alignment of the select fields above it.       */
 .vmbr-vm-dropdown-list {
   padding: 4px;
   display: none;
@@ -966,20 +952,11 @@ input.state-error {
   margin-top: 18px !important;
 }
 
+
 #vmbr-schedule-list {
   color: var(--c-text) !important;
   width: 100%;
   overflow: visible !important;
-}
-
-@media (min-width:1201px) {
-  #vmbr-page.unraid-71 #vmbr-schedule-section {
-    margin-top: -32px !important;
-  }
-
-  #vmbr-page.unraid-72 #vmbr-schedule-section {
-    margin-top: 2px !important;
-  }
 }
 
 #vmbr-schedule-list .TableContainer {
@@ -1051,25 +1028,25 @@ input.state-error {
   padding-left: 10px !important;
 }
 
+/* Column min-widths — keep table from collapsing on narrow content */
 .vmbr-schedules-table th:nth-child(1),
 .vmbr-schedules-table td:nth-child(1) {
   min-width: 130px;
 }
 
+/* Ellipsis columns: set a real max-width so text truncates but table doesn't overflow.
+   The previous max-width:0 trick was causing the table to collapse and overflow its
+   container at wide screen sizes — replaced with a named max-width instead.        */
 .vmbr-schedules-table th:nth-child(2),
 .vmbr-schedules-table td:nth-child(2) {
   min-width: 90px;
   max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .vmbr-schedules-table th:nth-child(3),
 .vmbr-schedules-table td:nth-child(3) {
   min-width: 90px;
   max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .vmbr-schedules-table th:nth-child(4),
@@ -1147,6 +1124,7 @@ input.state-error {
   }
 }
 
+/* Status dot for enabled/disabled schedule rows */
 .vmbr-sched-dot {
   display: inline-block;
   width: 8px;
@@ -1167,11 +1145,12 @@ input.state-error {
   box-shadow: 0 0 5px #ef4444;
 }
 
+/* Ellipsis cells — overflow hidden + text-overflow on the inner span,
+   not a max-width:0 hack which caused table container overflow          */
 .vmbr-sched-ellipsis {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 0;
 }
 
 /* ── Folder picker modal ─────────────────────────────────────────────────── */
@@ -1229,7 +1208,6 @@ input.state-error {
   background: var(--c-surface);
 }
 
-/* Inline create-folder bar */
 #vmbr-create-folder-bar {
   display: none;
   align-items: center;
@@ -1283,10 +1261,6 @@ input.state-error {
   background: #444 !important;
 }
 
-/* ── Folder list — height-capped so the modal stays compact ───────────────
-   The modal already has max-height:88vh + overflow:hidden. Capping the list
-   here prevents it from growing tall enough to push the footer off-screen
-   when there are many folders. Adjust 320px to taste.                      */
 .vmbr-folder-list {
   overflow-y: auto;
   padding: 6px;
@@ -1579,7 +1553,7 @@ span.fbb-has-help {
   }
 }
 
-/* ── Muted/disabled button state (e.g. Save Settings while editing schedule) */
+/* ── Muted/disabled button state ─────────────────────────────────────────── */
 #vmbr-page button.vmbr-btn-muted,
 #vmbr-page button:disabled.vmbr-btn-muted {
   background: #444 !important;

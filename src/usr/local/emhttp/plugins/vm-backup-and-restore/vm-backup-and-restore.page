@@ -74,390 +74,472 @@ $has_siblings_bool = !empty($sibling_plugins_arr);
 $all_plugin_options_arr = $sibling_plugins_arr;
 uasort($all_plugin_options_arr, fn($a,$b) => strcmp($a['label'],$b['label']));
 
-$unraid_version_str = '7.1';
-if (file_exists('/etc/unraid-version')) {
-    $ver_data_arr = parse_ini_file('/etc/unraid-version');
-    if (!empty($ver_data_arr['version'])) $unraid_version_str = $ver_data_arr['version'];
-}
-$isResponsiveWebgui = version_compare($unraid_version_str, '7.2.0-beta', '>=');
-
 $notif_services_arr            = ['Discord', 'Gotify', 'Ntfy', 'Pushover', 'Slack', 'Unraid'];
 $selected_services_arr         = array_filter(explode(',', $settings_arr['NOTIFICATION_SERVICE'] ?? ''));
 $selected_services_restore_arr = array_filter(explode(',', $restore_settings_arr['NOTIFICATION_SERVICE_RESTORE'] ?? ''));
 ?>
 
 <!-- ── External CSS ──────────────────────────────────────────────────────────── -->
-<link rel="stylesheet" href="/plugins/vm-backup-and-restore/vm-backup-and-restore.css?v=<?=filemtime('/usr/local/emhttp/plugins/vm-backup-and-restore/vm-backup-and-restore.css')?>">
+<link rel="stylesheet"
+  href="/plugins/vm-backup-and-restore/vm-backup-and-restore.css?v=<?=filemtime('/usr/local/emhttp/plugins/vm-backup-and-restore/vm-backup-and-restore.css')?>">
 
 <!-- ── PHP-generated JS constants (inline only) ──────────────────────────────── -->
 <script>
-'use strict';
-const HELPERS_BASE_STR = '/plugins/vm-backup-and-restore/helpers';
-const POLL_FAST_MS_INT = 1000;
-const POLL_SLOW_MS_INT = 4000;
+  'use strict';
+  const HELPERS_BASE_STR = '/plugins/vm-backup-and-restore/helpers';
+  const POLL_FAST_MS_INT = 1000;
+  const POLL_SLOW_MS_INT = 4000;
 
-// ── CSRF token acquisition ────────────────────────────────────────────────────
-let csrfToken_str = '';
+  // ── CSRF token acquisition ────────────────────────────────────────────────────
+  let csrfToken_str = '';
 
-try {
-  if (window.parent && typeof window.parent.csrf_token === 'string' && window.parent.csrf_token) {
-    csrfToken_str = window.parent.csrf_token;
+  try {
+    if (window.parent && typeof window.parent.csrf_token === 'string' && window.parent.csrf_token) {
+      csrfToken_str = window.parent.csrf_token;
+    }
+    if (!csrfToken_str && typeof window.csrf_token === 'string' && window.csrf_token) {
+      csrfToken_str = window.csrf_token;
+    }
+    if (!csrfToken_str && document.cookie) {
+      const m_arr = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+      if (m_arr && m_arr[1]) csrfToken_str = decodeURIComponent(m_arr[1]);
+    }
+    if (!csrfToken_str) {
+      const meta_el = document.querySelector("meta[name='csrf_token']");
+      if (meta_el) csrfToken_str = meta_el.getAttribute('content') || '';
+    }
+  } catch (e) {
+    console.warn('[vm-backup] CSRF token discovery failed:', e);
   }
-  if (!csrfToken_str && typeof window.csrf_token === 'string' && window.csrf_token) {
-    csrfToken_str = window.csrf_token;
-  }
-  if (!csrfToken_str && document.cookie) {
-    const m_arr = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
-    if (m_arr && m_arr[1]) csrfToken_str = decodeURIComponent(m_arr[1]);
-  }
+
   if (!csrfToken_str) {
-    const meta_el = document.querySelector("meta[name='csrf_token']");
-    if (meta_el) csrfToken_str = meta_el.getAttribute('content') || '';
+    csrfToken_str = "<?= htmlspecialchars($_GET['csrf_token'] ?? ($_COOKIE['csrf_token'] ?? ''), ENT_QUOTES) ?>";
   }
-} catch(e) {
-  console.warn('[vm-backup] CSRF token discovery failed:', e);
-}
 
-if (!csrfToken_str) {
-  csrfToken_str = "<?= htmlspecialchars($_GET['csrf_token'] ?? ($_COOKIE['csrf_token'] ?? ''), ENT_QUOTES) ?>";
-}
+  if (!csrfToken_str) {
+    console.warn('[vm-backup] CSRF token could not be determined — write operations may fail');
+  }
 
-if (!csrfToken_str) {
-  console.warn('[vm-backup] CSRF token could not be determined — write operations may fail');
-}
+  const SAVED_WEBHOOKS_OBJ = {
+    DISCORD: "<?= htmlspecialchars($settings_arr['WEBHOOK_DISCORD']  ?? '') ?>",
+    GOTIFY: "<?= htmlspecialchars($settings_arr['WEBHOOK_GOTIFY']   ?? '') ?>",
+    NTFY: "<?= htmlspecialchars($settings_arr['WEBHOOK_NTFY']     ?? '') ?>",
+    PUSHOVER: "<?= htmlspecialchars($settings_arr['WEBHOOK_PUSHOVER'] ?? '') ?>",
+    SLACK: "<?= htmlspecialchars($settings_arr['WEBHOOK_SLACK']    ?? '') ?>",
+  };
+  const SAVED_WEBHOOKS_RESTORE_OBJ = {
+    DISCORD: "<?= htmlspecialchars($restore_settings_arr['WEBHOOK_DISCORD_RESTORE']  ?? '') ?>",
+    GOTIFY: "<?= htmlspecialchars($restore_settings_arr['WEBHOOK_GOTIFY_RESTORE']   ?? '') ?>",
+    NTFY: "<?= htmlspecialchars($restore_settings_arr['WEBHOOK_NTFY_RESTORE']     ?? '') ?>",
+    PUSHOVER: "<?= htmlspecialchars($restore_settings_arr['WEBHOOK_PUSHOVER_RESTORE'] ?? '') ?>",
+    SLACK: "<?= htmlspecialchars($restore_settings_arr['WEBHOOK_SLACK_RESTORE']    ?? '') ?>",
+  };
+  const SAVED_PUSHOVER_KEY_STR = "<?= htmlspecialchars($settings_arr['PUSHOVER_USER_KEY']              ?? '') ?>";
+  const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_arr['PUSHOVER_USER_KEY_RESTORE'] ?? '') ?>";
+  const VMBR_SAVED_VMS_TO_RESTORE = "<?= htmlspecialchars($restore_settings_arr['VMS_TO_RESTORE'] ?? '') ?>";
 
-const SAVED_WEBHOOKS_OBJ = {
-  DISCORD:  "<?= htmlspecialchars($settings_arr['WEBHOOK_DISCORD']  ?? '') ?>",
-  GOTIFY:   "<?= htmlspecialchars($settings_arr['WEBHOOK_GOTIFY']   ?? '') ?>",
-  NTFY:     "<?= htmlspecialchars($settings_arr['WEBHOOK_NTFY']     ?? '') ?>",
-  PUSHOVER: "<?= htmlspecialchars($settings_arr['WEBHOOK_PUSHOVER'] ?? '') ?>",
-  SLACK:    "<?= htmlspecialchars($settings_arr['WEBHOOK_SLACK']    ?? '') ?>",
-};
-const SAVED_WEBHOOKS_RESTORE_OBJ = {
-  DISCORD:  "<?= htmlspecialchars($restore_settings_arr['WEBHOOK_DISCORD_RESTORE']  ?? '') ?>",
-  GOTIFY:   "<?= htmlspecialchars($restore_settings_arr['WEBHOOK_GOTIFY_RESTORE']   ?? '') ?>",
-  NTFY:     "<?= htmlspecialchars($restore_settings_arr['WEBHOOK_NTFY_RESTORE']     ?? '') ?>",
-  PUSHOVER: "<?= htmlspecialchars($restore_settings_arr['WEBHOOK_PUSHOVER_RESTORE'] ?? '') ?>",
-  SLACK:    "<?= htmlspecialchars($restore_settings_arr['WEBHOOK_SLACK_RESTORE']    ?? '') ?>",
-};
-const SAVED_PUSHOVER_KEY_STR         = "<?= htmlspecialchars($settings_arr['PUSHOVER_USER_KEY']              ?? '') ?>";
-const SAVED_PUSHOVER_KEY_RESTORE_STR = "<?= htmlspecialchars($restore_settings_arr['PUSHOVER_USER_KEY_RESTORE'] ?? '') ?>";
-const VMBR_SAVED_VMS_TO_RESTORE      = "<?= htmlspecialchars($restore_settings_arr['VMS_TO_RESTORE'] ?? '') ?>";
-
-const SERVICE_CONFIG_OBJ = {
-  Discord:  { label:'Discord Webhook URL',    prefix:'https://discord.com/api/webhooks/',         needsKey_bool:false, needsUrl_bool:true  },
-  Gotify:   { label:'Gotify URL',             prefix:'https://gotify.example.com/message?token=', needsKey_bool:false, needsUrl_bool:true  },
-  Ntfy:     { label:'Ntfy URL',               prefix:'https://ntfy.sh/',                          needsKey_bool:false, needsUrl_bool:true  },
-  Pushover: { label:'Pushover App Token URL', prefix:'https://api.pushover.net/',                 needsKey_bool:true,  needsUrl_bool:true  },
-  Slack:    { label:'Slack Webhook URL',      prefix:'https://hooks.slack.com/services/',         needsKey_bool:false, needsUrl_bool:true  },
-  Unraid:   { label:null,                     prefix:null,                                         needsKey_bool:false, needsUrl_bool:false },
-};
+  const SERVICE_CONFIG_OBJ = {
+    Discord: { label: 'Discord Webhook URL', prefix: 'https://discord.com/api/webhooks/', needsKey_bool: false, needsUrl_bool: true },
+    Gotify: { label: 'Gotify URL', prefix: 'https://gotify.example.com/message?token=', needsKey_bool: false, needsUrl_bool: true },
+    Ntfy: { label: 'Ntfy URL', prefix: 'https://ntfy.sh/', needsKey_bool: false, needsUrl_bool: true },
+    Pushover: { label: 'Pushover App Token URL', prefix: 'https://api.pushover.net/', needsKey_bool: true, needsUrl_bool: true },
+    Slack: { label: 'Slack Webhook URL', prefix: 'https://hooks.slack.com/services/', needsKey_bool: false, needsUrl_bool: true },
+    Unraid: { label: null, prefix: null, needsKey_bool: false, needsUrl_bool: false },
+  };
 </script>
 
-<div id="vmbr-page" class="<?php echo $isResponsiveWebgui ? 'unraid-72' : 'unraid-71'; ?>">
-<div id="vmbr-layout" style="margin-top:0;">
+<div id="vmbr-page">
+  <div id="vmbr-layout" style="margin-top:0;">
 
-  <div id="vmbr-backup-wrap" class="vmbr-panel-wrap">
-    <div class="vmbr-card">
+    <div id="vmbr-backup-wrap" class="vmbr-panel-wrap">
+      <div class="vmbr-card">
 
-      <div id="vmbr-mode-row">
-        <!-- Mode group — LEFT (swapped) -->
-        <div class="vmbr-topbar-group">
-          <span class="vmbr-topbar-label fbb-has-help" id="vmbr-mode-label">Mode:</span>
-          <select id="vmbr-mode-switcher" class="vmbr-topbar-select" onchange="vmbrSwitchMode(this.value)">
-            <option value="backup">Backup</option>
-            <option value="restore">Restore</option>
-          </select>
-        </div>
-        <!-- Plugin group — RIGHT (swapped), only if siblings exist -->
-        <?php if ($has_siblings_bool): ?>
-        <div class="vmbr-topbar-group" style="margin-left:auto;">
-          <span class="vmbr-topbar-label fbb-has-help" id="vmbr-plugin-label">Plugin:</span>
-          <select id="vmbr-plugin-switcher" class="vmbr-topbar-select" onchange="if(this.value)window.location=this.value">
-            <option value="" disabled selected>Switch plugin…</option>
-            <?php foreach ($all_plugin_options_arr as $info_arr): ?>
-            <option value="<?= htmlspecialchars($info_arr['url']) ?>"><?= htmlspecialchars($info_arr['label']) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-        <?php endif; ?>
-      </div>
-
-      <div class="vmbr-card-header">
-        <span id="vmbr-active-card-title" class="vmbr-card-title">Backup</span>
-        <div id="vmbr-backup-status-wrap" class="vmbr-card-status">
-          <div class="vmbr-status-dot" id="vmbr-backup-dot"></div>
-          <span id="vmbr-backup-status-text">Idle</span>
-        </div>
-        <div id="vmbr-restore-status-wrap" class="vmbr-card-status" style="display:none;">
-          <div class="vmbr-status-dot" id="vmbr-restore-dot"></div>
-          <span id="vmbr-restore-status-text">Idle</span>
-        </div>
-      </div>
-
-      <!-- ══ BACKUP PANEL ══════════════════════════════════════════════════ -->
-      <form id="vmbr-backup-panel" class="vmbr-card-body">
-        <div class="vmbr-section-label">Configuration</div>
-
-        <div class="form-pair">
-          <label title="Choose which VM(s) to backup">VM(s) To Backup:</label>
-          <div id="vmbr-vm-dropdown-backup" class="vmbr-multiselect" tabindex="0" data-selected="<?php echo htmlspecialchars($settings_arr['VMS_TO_BACKUP'] ?? '') ?>">
-            <div class="vmbr-dropdown-label">Select VM(s)</div>
-            <div class="vmbr-vm-dropdown-list"></div>
-          </div>
-          <input type="hidden" id="vmbr-hidden-vms-backup" name="VMS_TO_BACKUP" value="<?php echo htmlspecialchars($settings_arr['VMS_TO_BACKUP'] ?? '') ?>">
-        </div>
-
-        <div class="form-pair">
-          <label title="Choose destination for backup. Each VM saved to a subdirectory named after the VM">Destination:</label>
-          <input type="text" id="vmbr-backup-destination" name="BACKUP_DESTINATION"
-            data-picker-title="Select Backup Destination" placeholder="Click to browse…" readonly
-            value="<?php echo htmlspecialchars($settings_arr['BACKUP_DESTINATION'] ?? '') ?>">
-        </div>
-
-        <div class="form-pair">
-          <label for="vmbr-backup-keep" title="Choose the amount of backups to keep for each VM selected">Backups To Keep:</label>
-          <select id="vmbr-backup-keep" class="short-input" name="BACKUPS_TO_KEEP">
-            <?php $keep_int=(int)($settings_arr['BACKUPS_TO_KEEP']??0); for($i_int=0;$i_int<=99;$i_int++){$sel_str=($keep_int===$i_int)?'selected':''; if($i_int===0)echo"<option value=\"0\" $sel_str>Unlimited</option>"; elseif($i_int===1)echo"<option value=\"1\" $sel_str>Only Latest</option>"; else echo"<option value=\"$i_int\" $sel_str>$i_int</option>"; } ?>
-          </select>
-        </div>
-
-        <div class="form-pair">
-          <label title="Choose the owner for the backup files">Backup Owner:</label>
-          <select id="vmbr-backup-owner" name="BACKUP_OWNER" data-selected="<?php echo htmlspecialchars($settings_arr['BACKUP_OWNER'] ?? 'nobody') ?>"></select>
-        </div>
-
-        <div class="form-pair">
-          <label for="vmbr-backup-dry-run" title="Enable to simulate a backup without making changes">Dry Run:</label>
-          <select id="vmbr-backup-dry-run" class="short-input" name="DRY_RUN">
-            <option value="yes" <?= ($settings_arr['DRY_RUN']??'no')==='yes'?'selected':'' ?>>Yes</option>
-            <option value="no"  <?= ($settings_arr['DRY_RUN']??'no')==='no' ?'selected':'' ?>>No</option>
-          </select>
-        </div>
-
-        <div class="vmbr-section-label" style="margin-top:8px;">Notifications</div>
-
-        <div class="form-pair">
-          <label for="vmbr-backup-notif" title="Send notifications when VM backup starts and finishes">Notifications:</label>
-          <select id="vmbr-backup-notif" class="short-input" name="NOTIFICATIONS">
-            <option value="yes" <?= ($settings_arr['NOTIFICATIONS']??'no')==='yes'?'selected':'' ?>>Yes</option>
-            <option value="no"  <?= ($settings_arr['NOTIFICATIONS']??'no')==='no' ?'selected':'' ?>>No</option>
-          </select>
-        </div>
-
-        <div id="vmbr-backup-notif-service-row" style="display:none;">
-          <div class="form-pair">
-            <label title="Choose which notification service(s) to use">Service:</label>
-            <div style="display:flex;flex-direction:column;gap:4px;">
-              <select id="vmbr-backup-notif-hidden" name="NOTIFICATION_SERVICE" multiple style="display:none;">
-                <?php foreach($notif_services_arr as $svc_str): ?><option value="<?=$svc_str?>" <?=in_array($svc_str,$selected_services_arr,true)?'selected':''?>><?=$svc_str?></option><?php endforeach; ?>
-              </select>
-              <div id="vmbr-notif-service-backup" class="vmbr-multiselect" tabindex="0">
-                <div class="vmbr-dropdown-label" id="vmbr-backup-notif-label">Select service(s)</div>
-                <div class="vmbr-vm-dropdown-list" id="vmbr-backup-notif-list" style="display:none;">
-                  <?php foreach($notif_services_arr as $svc_str): ?>
-                  <div class="vmbr-notif-row" style="cursor:pointer;padding:4px 6px;border-radius:4px;" onclick="(function(r){var cb=r.querySelector('input[type=checkbox]');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change',{bubbles:true}));})(this)">
-                    <label style="pointer-events:none;"><input type="checkbox" value="<?=$svc_str?>" <?=in_array($svc_str,$selected_services_arr,true)?'checked':''?> onclick="event.stopPropagation()"><?=$svc_str?></label>
-                  </div>
-                  <?php endforeach; ?>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div id="vmbr-webhook-container-backup"></div>
-
-        <div class="vmbr-section-label" style="margin-top:8px;">Schedule</div>
-
-        <div class="form-pair" id="vmbr-cron-mode-row">
-          <label for="vmbr-cron-mode" title="Select scheduling mode">Frequency:</label>
-          <div class="input-wrapper">
-            <select id="vmbr-cron-mode" name="CRON_MODE" class="short-input">
-              <option value="hourly"  <?= ($settings_arr['CRON_MODE']??'daily')==='hourly' ?'selected':'' ?>>Hourly</option>
-              <option value="daily"   <?= ($settings_arr['CRON_MODE']??'daily')==='daily'  ?'selected':'' ?>>Daily</option>
-              <option value="weekly"  <?= ($settings_arr['CRON_MODE']??'daily')==='weekly' ?'selected':'' ?>>Weekly</option>
-              <option value="monthly" <?= ($settings_arr['CRON_MODE']??'daily')==='monthly'?'selected':'' ?>>Monthly</option>
+        <div id="vmbr-mode-row">
+          <!-- Mode group -->
+          <div class="vmbr-topbar-group">
+            <span class="vmbr-topbar-label fbb-has-help" id="vmbr-mode-label">Mode:</span>
+            <select id="vmbr-mode-switcher" class="vmbr-topbar-select" onchange="vmbrSwitchMode(this.value)">
+              <option value="backup">Backup</option>
+              <option value="restore">Restore</option>
             </select>
           </div>
+          <!-- Plugin group — only if siblings exist -->
+          <?php if ($has_siblings_bool): ?>
+          <div class="vmbr-topbar-group" style="margin-left:auto;">
+            <span class="vmbr-topbar-label fbb-has-help" id="vmbr-plugin-label">Plugin:</span>
+            <select id="vmbr-plugin-switcher" class="vmbr-topbar-select"
+              onchange="if(this.value)window.location=this.value">
+              <option value="" disabled selected>Switch plugin…</option>
+              <?php foreach ($all_plugin_options_arr as $info_arr): ?>
+              <option value="<?= htmlspecialchars($info_arr['url']) ?>">
+                <?= htmlspecialchars($info_arr['label']) ?>
+              </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <?php endif; ?>
         </div>
 
-        <div id="vmbr-hourly-options" style="display:none;">
-          <div class="form-pair"><label for="vmbr-hourly-freq" title="Select how often to run per day">Interval:</label><div class="input-wrapper"><select id="vmbr-hourly-freq" name="HOURLY_FREQUENCY" class="short-input"><?php foreach([4,6,8] as $freq_int):?><option value="<?=$freq_int?>" <?=($settings_arr['HOURLY_FREQUENCY']??'')===(string)$freq_int?'selected':''?>>Every <?=$freq_int?> Hours</option><?php endforeach;?></select></div></div>
-        </div>
-        <div id="vmbr-daily-options" style="display:none;">
-          <div class="form-pair"><label for="vmbr-daily-hour" title="Select the hour for daily execution">Hour:</label><div class="input-wrapper"><select id="vmbr-daily-hour" name="DAILY_TIME" class="short-input"><?php for($h=0;$h<24;$h++){$hr=str_pad($h,2,'0',STR_PAD_LEFT);echo"<option value=\"$hr\"".((($settings_arr['DAILY_TIME']??'00')===$hr)?' selected':'').">$hr</option>";}?></select></div></div>
-          <div class="form-pair"><label for="vmbr-daily-min" title="Select the minute for daily execution">Minute:</label><div class="input-wrapper"><select id="vmbr-daily-min" name="DAILY_MINUTE" class="short-input"><?php for($m=0;$m<60;$m++){$mn=str_pad($m,2,'0',STR_PAD_LEFT);echo"<option value=\"$mn\"".((($settings_arr['DAILY_MINUTE']??'00')===$mn)?' selected':'').">$mn</option>";}?></select></div></div>
-        </div>
-        <div id="vmbr-weekly-options" style="display:none;">
-          <div class="form-pair"><label for="vmbr-weekly-day" title="Select day of the week">Day:</label><div class="input-wrapper"><select id="vmbr-weekly-day" name="WEEKLY_DAY" class="short-input"><?php foreach(['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as $day_str):echo"<option value=\"$day_str\"".((($settings_arr['WEEKLY_DAY']??'')===$day_str)?' selected':'').">$day_str</option>";endforeach;?></select></div></div>
-          <div class="form-pair"><label for="vmbr-weekly-hour" title="Hour">Hour:</label><div class="input-wrapper"><select id="vmbr-weekly-hour" name="WEEKLY_TIME" class="short-input"><?php for($h=0;$h<24;$h++){$hr=str_pad($h,2,'0',STR_PAD_LEFT);echo"<option value=\"$hr\"".((($settings_arr['WEEKLY_TIME']??'00')===$hr)?' selected':'').">$hr</option>";}?></select></div></div>
-          <div class="form-pair"><label for="vmbr-weekly-min" title="Minute">Minute:</label><div class="input-wrapper"><select id="vmbr-weekly-min" name="WEEKLY_MINUTE" class="short-input"><?php for($m=0;$m<60;$m++){$mn=str_pad($m,2,'0',STR_PAD_LEFT);echo"<option value=\"$mn\"".((($settings_arr['WEEKLY_MINUTE']??'00')===$mn)?' selected':'').">$mn</option>";}?></select></div></div>
-        </div>
-        <div id="vmbr-monthly-options" style="display:none;">
-          <div class="form-pair"><label for="vmbr-monthly-day" title="Select day of the month">Day:</label><div class="input-wrapper"><select id="vmbr-monthly-day" name="MONTHLY_DAY" class="short-input"><?php for($d=1;$d<=31;$d++){$dy=str_pad($d,2,'0',STR_PAD_LEFT);echo"<option value=\"$dy\"".((($settings_arr['MONTHLY_DAY']??'')===$dy)?' selected':'').">$dy</option>";}?></select></div></div>
-          <div class="form-pair"><label for="vmbr-monthly-hour" title="Hour">Hour:</label><div class="input-wrapper"><select id="vmbr-monthly-hour" name="MONTHLY_TIME" class="short-input"><?php for($h=0;$h<24;$h++){$hr=str_pad($h,2,'0',STR_PAD_LEFT);echo"<option value=\"$hr\"".((($settings_arr['MONTHLY_TIME']??'00')===$hr)?' selected':'').">$hr</option>";}?></select></div></div>
-          <div class="form-pair"><label for="vmbr-monthly-min" title="Minute">Minute:</label><div class="input-wrapper"><select id="vmbr-monthly-min" name="MONTHLY_MINUTE" class="short-input"><?php for($m=0;$m<60;$m++){$mn=str_pad($m,2,'0',STR_PAD_LEFT);echo"<option value=\"$mn\"".((($settings_arr['MONTHLY_MINUTE']??'00')===$mn)?' selected':'').">$mn</option>";}?></select></div></div>
-        </div>
-
-        <div id="vmbr-backup-banner" class="vmbr-banner">
-          <div class="vmbr-banner-inner">
-            <span id="vmbr-backup-banner-text" class="vmbr-banner-text"></span>
-            <button type="button" id="vmbr-backup-stop-btn" title="Stop backup immediately and clean up files" onclick="vmbrStopFromBanner('backup')">Stop</button>
-            <span id="vmbr-backup-stop-toast" class="vmbr-stop-toast">Stop requested</span>
+        <div class="vmbr-card-header">
+          <span id="vmbr-active-card-title" class="vmbr-card-title">Backup</span>
+          <div id="vmbr-backup-status-wrap" class="vmbr-card-status">
+            <div class="vmbr-status-dot" id="vmbr-backup-dot"></div>
+            <span id="vmbr-backup-status-text">Idle</span>
+          </div>
+          <div id="vmbr-restore-status-wrap" class="vmbr-card-status" style="display:none;">
+            <div class="vmbr-status-dot" id="vmbr-restore-dot"></div>
+            <span id="vmbr-restore-status-text">Idle</span>
           </div>
         </div>
 
-        <!-- Actions row: normal mode shows Save + Backup Now + Schedule It -->
-        <!-- Edit mode shows Save (disabled) + Update (schedule) + Cancel Edit -->
-        <div class="vmbr-actions-row">
-          <button type="button" id="vmbr-backup-save-btn"
-                  title="Save backup settings without running a backup">Save</button>
-          <button type="button" id="vmbr-backup-now-btn"
-                  title="Run backup of selected VM(s) now">Backup Now</button>
-          <button type="button" id="vmbr-schedule-update-btn" style="display:none;"
-                  title="Save changes to this schedule">Update</button>
-          <button type="button" id="vmbr-schedule-btn" class="schedule-button"
-                  title="Create a backup schedule using the settings shown above">Schedule It</button>
-          <button type="button" id="vmbr-schedule-cancel-edit-btn" style="display:none;"
-                  title="Cancel editing this schedule">Cancel</button>
-          <!-- legacy cancel btn kept for JS safety -->
-          <button type="button" id="vmbr-cancel-edit-btn" style="display:none;">Cancel</button>
-        </div>
-        <div id="vmbr-backup-popup" class="vmbr-popup"></div>
-      </form>
+        <!-- ══ BACKUP PANEL ══════════════════════════════════════════════════ -->
+        <form id="vmbr-backup-panel" class="vmbr-card-body">
+          <div class="vmbr-section-label">Configuration</div>
 
-      <!-- ══ RESTORE PANEL ══════════════════════════════════════════════════ -->
-      <form id="vmbr-restore-panel" class="vmbr-card-body" style="display:none;">
-        <div class="vmbr-section-label">Source</div>
-
-        <div class="form-pair">
-          <label title="Choose location where backups are stored">Backups Location:</label>
-          <input type="text" id="vmbr-restore-location" name="LOCATION_OF_BACKUPS"
-            data-picker-title="Select Location Of Backups" placeholder="Click to browse…" readonly
-            value="<?php echo htmlspecialchars($restore_settings_arr['LOCATION_OF_BACKUPS'] ?? '') ?>">
-        </div>
-
-        <div class="form-pair">
-          <label title="Choose which VM(s) to restore">VM(s) To Restore:</label>
-          <div id="vmbr-vm-dropdown-restore" class="vmbr-multiselect" tabindex="0" data-selected="<?php echo htmlspecialchars($restore_settings_arr['VMS_TO_RESTORE'] ?? '') ?>">
-            <div class="vmbr-dropdown-label">Select VM(s)</div>
-            <div class="vmbr-vm-dropdown-list"></div>
-          </div>
-          <input type="hidden" id="vmbr-hidden-vms-restore" name="VMS_TO_RESTORE" value="<?php echo htmlspecialchars($restore_settings_arr['VMS_TO_RESTORE'] ?? '') ?>">
-        </div>
-
-        <div id="vmbr-malformed-container"></div>
-        <div id="vmbr-version-wrapper" style="display:none;">
-          <div id="vmbr-version-container"></div>
-        </div>
-
-        <div class="vmbr-section-label" style="margin-top:4px;">Destination</div>
-
-        <div class="form-pair">
-          <label title="Choose destination to restore VM(s) to">Restore To:</label>
-          <input type="text" id="vmbr-restore-destination" name="RESTORE_DESTINATION"
-            data-picker-title="Select Restore Destination" placeholder="Click to browse…" readonly
-            value="<?php echo htmlspecialchars($restore_settings_arr['RESTORE_DESTINATION'] ?? '') ?>">
-        </div>
-
-        <div class="form-pair">
-          <label for="vmbr-restore-dry-run" title="Enable to simulate a restore without making changes">Dry Run:</label>
-          <select id="vmbr-restore-dry-run" class="short-input" name="DRY_RUN_RESTORE">
-            <option value="yes" <?= ($restore_settings_arr['DRY_RUN_RESTORE']??'no')==='yes'?'selected':'' ?>>Yes</option>
-            <option value="no"  <?= ($restore_settings_arr['DRY_RUN_RESTORE']??'no')==='no' ?'selected':'' ?>>No</option>
-          </select>
-        </div>
-
-        <div class="vmbr-section-label" style="margin-top:8px;">Notifications</div>
-
-        <div class="form-pair">
-          <label for="vmbr-restore-notif" title="Send notifications when VM restore starts and finishes">Notifications:</label>
-          <select id="vmbr-restore-notif" class="short-input" name="NOTIFICATIONS_RESTORE">
-            <option value="yes" <?= ($restore_settings_arr['NOTIFICATIONS_RESTORE']??'no')==='yes'?'selected':'' ?>>Yes</option>
-            <option value="no"  <?= ($restore_settings_arr['NOTIFICATIONS_RESTORE']??'no')==='no' ?'selected':'' ?>>No</option>
-          </select>
-        </div>
-
-        <div id="vmbr-restore-notif-service-row" style="display:none;">
           <div class="form-pair">
-            <label title="Choose which notification service(s) to use">Service:</label>
-            <div style="display:flex;flex-direction:column;gap:4px;">
-              <select id="vmbr-restore-notif-hidden" name="NOTIFICATION_SERVICE_RESTORE" multiple style="display:none;">
-                <?php foreach($notif_services_arr as $svc_str): ?><option value="<?=$svc_str?>" <?=in_array($svc_str,$selected_services_restore_arr,true)?'selected':''?>><?=$svc_str?></option><?php endforeach; ?>
-              </select>
-              <div id="vmbr-notif-service-restore" class="vmbr-multiselect" tabindex="0">
-                <div class="vmbr-dropdown-label" id="vmbr-restore-notif-label">Select service(s)</div>
-                <div class="vmbr-vm-dropdown-list" id="vmbr-restore-notif-list" style="display:none;">
+            <label title="Choose which VM(s) to backup">VM(s) To Backup:</label>
+            <div id="vmbr-vm-dropdown-backup" class="vmbr-multiselect" tabindex="0"
+              data-selected="<?php echo htmlspecialchars($settings_arr['VMS_TO_BACKUP'] ?? '') ?>">
+              <div class="vmbr-dropdown-label">Select VM(s)</div>
+              <div class="vmbr-vm-dropdown-list"></div>
+            </div>
+            <input type="hidden" id="vmbr-hidden-vms-backup" name="VMS_TO_BACKUP"
+              value="<?php echo htmlspecialchars($settings_arr['VMS_TO_BACKUP'] ?? '') ?>">
+          </div>
+
+          <div class="form-pair">
+            <label
+              title="Choose destination for backup. Each VM saved to a subdirectory named after the VM">Destination:</label>
+            <input type="text" id="vmbr-backup-destination" name="BACKUP_DESTINATION"
+              data-picker-title="Select Backup Destination" placeholder="Click to browse…" readonly
+              value="<?php echo htmlspecialchars($settings_arr['BACKUP_DESTINATION'] ?? '') ?>">
+          </div>
+
+          <div class="form-pair">
+            <label for="vmbr-backup-keep" title="Choose the amount of backups to keep for each VM selected">Backups To
+              Keep:</label>
+            <select id="vmbr-backup-keep" class="short-input" name="BACKUPS_TO_KEEP">
+              <?php $keep_int=(int)($settings_arr['BACKUPS_TO_KEEP']??0); for($i_int=0;$i_int<=99;$i_int++){$sel_str=($keep_int===$i_int)?'selected':''; if($i_int===0)echo"<option value=\"0\" $sel_str>Unlimited</option>"; elseif($i_int===1)echo"<option value=\"1\" $sel_str>Only Latest</option>"; else echo"<option value=\"$i_int\" $sel_str>$i_int</option>"; } ?>
+            </select>
+          </div>
+
+          <div class="form-pair">
+            <label title="Choose the owner for the backup files">Backup Owner:</label>
+            <select id="vmbr-backup-owner" name="BACKUP_OWNER"
+              data-selected="<?php echo htmlspecialchars($settings_arr['BACKUP_OWNER'] ?? 'nobody') ?>"></select>
+          </div>
+
+          <div class="form-pair">
+            <label for="vmbr-backup-dry-run" title="Enable to simulate a backup without making changes">Dry Run:</label>
+            <select id="vmbr-backup-dry-run" class="short-input" name="DRY_RUN">
+              <option value="yes" <?=($settings_arr['DRY_RUN']??'no')==='yes' ?'selected':'' ?>>Yes</option>
+              <option value="no" <?=($settings_arr['DRY_RUN']??'no')==='no' ?'selected':'' ?>>No</option>
+            </select>
+          </div>
+
+          <div class="vmbr-section-label" style="margin-top:8px;">Notifications</div>
+
+          <div class="form-pair">
+            <label for="vmbr-backup-notif"
+              title="Send notifications when VM backup starts and finishes">Notifications:</label>
+            <select id="vmbr-backup-notif" class="short-input" name="NOTIFICATIONS">
+              <option value="yes" <?=($settings_arr['NOTIFICATIONS']??'no')==='yes' ?'selected':'' ?>>Yes</option>
+              <option value="no" <?=($settings_arr['NOTIFICATIONS']??'no')==='no' ?'selected':'' ?>>No</option>
+            </select>
+          </div>
+
+          <div id="vmbr-backup-notif-service-row" style="display:none;">
+            <div class="form-pair">
+              <label title="Choose which notification service(s) to use">Service:</label>
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <select id="vmbr-backup-notif-hidden" name="NOTIFICATION_SERVICE" multiple style="display:none;">
                   <?php foreach($notif_services_arr as $svc_str): ?>
-                  <div class="vmbr-notif-row" style="cursor:pointer;padding:4px 6px;border-radius:4px;" onclick="(function(r){var cb=r.querySelector('input[type=checkbox]');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change',{bubbles:true}));})(this)">
-                    <label style="pointer-events:none;"><input type="checkbox" value="<?=$svc_str?>" <?=in_array($svc_str,$selected_services_restore_arr,true)?'checked':''?> onclick="event.stopPropagation()"><?=$svc_str?></label>
-                  </div>
+                  <option value="<?=$svc_str?>" <?=in_array($svc_str,$selected_services_arr,true)?'selected':''?>>
+                    <?=$svc_str?>
+                  </option>
                   <?php endforeach; ?>
+                </select>
+                <div id="vmbr-notif-service-backup" class="vmbr-multiselect" tabindex="0">
+                  <div class="vmbr-dropdown-label" id="vmbr-backup-notif-label">Select service(s)</div>
+                  <div class="vmbr-vm-dropdown-list" id="vmbr-backup-notif-list" style="display:none;">
+                    <?php foreach($notif_services_arr as $svc_str): ?>
+                    <div class="vmbr-notif-row" style="cursor:pointer;padding:4px 6px;border-radius:4px;"
+                      onclick="(function(r){var cb=r.querySelector('input[type=checkbox]');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change',{bubbles:true}));})(this)">
+                      <label style="pointer-events:none;"><input type="checkbox" value="<?=$svc_str?>"
+                          <?=in_array($svc_str,$selected_services_arr,true)?'checked':''?>
+                        onclick="event.stopPropagation()">
+                        <?=$svc_str?>
+                      </label>
+                    </div>
+                    <?php endforeach; ?>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div id="vmbr-webhook-container-restore"></div>
+          <div id="vmbr-webhook-container-backup"></div>
 
-        <div id="vmbr-restore-banner" class="vmbr-banner">
-          <div class="vmbr-banner-inner">
-            <span id="vmbr-restore-banner-text" class="vmbr-banner-text"></span>
-            <button type="button" id="vmbr-restore-stop-btn" title="Stop restore immediately and clean up files" onclick="vmbrStopFromBanner('restore')">Stop</button>
-            <span id="vmbr-restore-stop-toast" class="vmbr-stop-toast">Stop requested</span>
+          <div class="vmbr-section-label" style="margin-top:8px;">Schedule</div>
+
+          <div class="form-pair" id="vmbr-cron-mode-row">
+            <label for="vmbr-cron-mode" title="Select scheduling mode">Frequency:</label>
+            <div class="input-wrapper">
+              <select id="vmbr-cron-mode" name="CRON_MODE" class="short-input">
+                <option value="hourly" <?=($settings_arr['CRON_MODE']??'daily')==='hourly' ?'selected':'' ?>>Hourly
+                </option>
+                <option value="daily" <?=($settings_arr['CRON_MODE']??'daily')==='daily' ?'selected':'' ?>>Daily
+                </option>
+                <option value="weekly" <?=($settings_arr['CRON_MODE']??'daily')==='weekly' ?'selected':'' ?>>Weekly
+                </option>
+                <option value="monthly" <?=($settings_arr['CRON_MODE']??'daily')==='monthly' ?'selected':'' ?>>Monthly
+                </option>
+              </select>
+            </div>
           </div>
-        </div>
 
-        <div class="vmbr-actions-row">
-          <button type="button" id="vmbr-restore-save-btn"
-                  title="Save restore settings without running a restore">Save</button>
-          <button type="button" id="vmbr-restore-now-btn" title="Run restore of selected VM(s)">Restore Now</button>
-        </div>
-        <div id="vmbr-restore-popup" class="vmbr-popup"></div>
-      </form>
+          <div id="vmbr-hourly-options" style="display:none;">
+            <div class="form-pair"><label for="vmbr-hourly-freq"
+                title="Select how often to run per day">Interval:</label>
+              <div class="input-wrapper"><select id="vmbr-hourly-freq" name="HOURLY_FREQUENCY" class="short-input">
+                  <?php foreach([4,6,8] as $freq_int):?>
+                  <option value="<?=$freq_int?>"
+                    <?=($settings_arr['HOURLY_FREQUENCY']??'')===(string)$freq_int?'selected':''?>>Every
+                    <?=$freq_int?> Hours
+                  </option>
+                  <?php endforeach;?>
+                </select></div>
+            </div>
+          </div>
+          <div id="vmbr-daily-options" style="display:none;">
+            <div class="form-pair"><label for="vmbr-daily-hour"
+                title="Select the hour for daily execution">Hour:</label>
+              <div class="input-wrapper"><select id="vmbr-daily-hour" name="DAILY_TIME" class="short-input">
+                  <?php for($h=0;$h<24;$h++){$hr=str_pad($h,2,'0',STR_PAD_LEFT);echo"<option value=\"$hr\"".((($settings_arr['DAILY_TIME']??'00')===$hr)?' selected':'').">$hr</option>";}?>
+                </select></div>
+            </div>
+            <div class="form-pair"><label for="vmbr-daily-min"
+                title="Select the minute for daily execution">Minute:</label>
+              <div class="input-wrapper"><select id="vmbr-daily-min" name="DAILY_MINUTE" class="short-input">
+                  <?php for($m=0;$m<60;$m++){$mn=str_pad($m,2,'0',STR_PAD_LEFT);echo"<option value=\"$mn\"".((($settings_arr['DAILY_MINUTE']??'00')===$mn)?' selected':'').">$mn</option>";}?>
+                </select></div>
+            </div>
+          </div>
+          <div id="vmbr-weekly-options" style="display:none;">
+            <div class="form-pair"><label for="vmbr-weekly-day" title="Select day of the week">Day:</label>
+              <div class="input-wrapper"><select id="vmbr-weekly-day" name="WEEKLY_DAY" class="short-input">
+                  <?php foreach(['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as $day_str):echo"<option value=\"$day_str\"".((($settings_arr['WEEKLY_DAY']??'')===$day_str)?' selected':'').">$day_str</option>";endforeach;?>
+                </select></div>
+            </div>
+            <div class="form-pair"><label for="vmbr-weekly-hour" title="Hour">Hour:</label>
+              <div class="input-wrapper"><select id="vmbr-weekly-hour" name="WEEKLY_TIME" class="short-input">
+                  <?php for($h=0;$h<24;$h++){$hr=str_pad($h,2,'0',STR_PAD_LEFT);echo"<option value=\"$hr\"".((($settings_arr['WEEKLY_TIME']??'00')===$hr)?' selected':'').">$hr</option>";}?>
+                </select></div>
+            </div>
+            <div class="form-pair"><label for="vmbr-weekly-min" title="Minute">Minute:</label>
+              <div class="input-wrapper"><select id="vmbr-weekly-min" name="WEEKLY_MINUTE" class="short-input">
+                  <?php for($m=0;$m<60;$m++){$mn=str_pad($m,2,'0',STR_PAD_LEFT);echo"<option value=\"$mn\"".((($settings_arr['WEEKLY_MINUTE']??'00')===$mn)?' selected':'').">$mn</option>";}?>
+                </select></div>
+            </div>
+          </div>
+          <div id="vmbr-monthly-options" style="display:none;">
+            <div class="form-pair"><label for="vmbr-monthly-day" title="Select day of the month">Day:</label>
+              <div class="input-wrapper"><select id="vmbr-monthly-day" name="MONTHLY_DAY" class="short-input">
+                  <?php for($d=1;$d<=31;$d++){$dy=str_pad($d,2,'0',STR_PAD_LEFT);echo"<option value=\"$dy\"".((($settings_arr['MONTHLY_DAY']??'')===$dy)?' selected':'').">$dy</option>";}?>
+                </select></div>
+            </div>
+            <div class="form-pair"><label for="vmbr-monthly-hour" title="Hour">Hour:</label>
+              <div class="input-wrapper"><select id="vmbr-monthly-hour" name="MONTHLY_TIME" class="short-input">
+                  <?php for($h=0;$h<24;$h++){$hr=str_pad($h,2,'0',STR_PAD_LEFT);echo"<option value=\"$hr\"".((($settings_arr['MONTHLY_TIME']??'00')===$hr)?' selected':'').">$hr</option>";}?>
+                </select></div>
+            </div>
+            <div class="form-pair"><label for="vmbr-monthly-min" title="Minute">Minute:</label>
+              <div class="input-wrapper"><select id="vmbr-monthly-min" name="MONTHLY_MINUTE" class="short-input">
+                  <?php for($m=0;$m<60;$m++){$mn=str_pad($m,2,'0',STR_PAD_LEFT);echo"<option value=\"$mn\"".((($settings_arr['MONTHLY_MINUTE']??'00')===$mn)?' selected':'').">$mn</option>";}?>
+                </select></div>
+            </div>
+          </div>
 
-    </div><!-- .vmbr-card -->
-  </div><!-- #vmbr-backup-wrap -->
+          <div id="vmbr-backup-banner" class="vmbr-banner">
+            <div class="vmbr-banner-inner">
+              <span id="vmbr-backup-banner-text" class="vmbr-banner-text"></span>
+              <button type="button" id="vmbr-backup-stop-btn" title="Stop backup immediately and clean up files"
+                onclick="vmbrStopFromBanner('backup')">Stop</button>
+              <span id="vmbr-backup-stop-toast" class="vmbr-stop-toast">Stop requested</span>
+            </div>
+          </div>
 
-  <!-- ══ LOG PANEL ══════════════════════════════════════════════════════════ -->
-  <div id="vmbr-log-panel">
-    <div class="vmbr-card-header" style="border-radius:10px 10px 0 0;">
-      <span class="vmbr-card-title">Activity Log</span>
-      <span id="vmbr-log-last-run" style="font-size:11px;color:var(--c-text-muted);margin-left:10px;">No last run available</span>
-    </div>
-    <div class="vmbr-log-toolbar">
-      <span id="vmbr-debug-log-label" style="font-size:12px;font-weight:600;color:var(--c-label);white-space:nowrap;cursor:help;">Debug Log:</span>
-      <span class="fbb-toggle-wrap">
-        <label class="fbb-toggle">
-          <input type="checkbox" id="vmbr-log-debug-toggle" onchange="vmbrSwitchLog(this.checked)">
-          <span class="fbb-toggle-slider"></span>
-        </label>
-      </span>
-      <div class="vmbr-log-search-wrap">
-        <input type="text" id="vmbr-log-search" placeholder="Search…" autocomplete="off" style="padding-right:24px;">
-        <span id="vmbr-log-search-clear" role="button" aria-label="Clear search">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1L11 11M11 1L1 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <div class="vmbr-actions-row">
+            <button type="button" id="vmbr-backup-save-btn"
+              title="Save backup settings without running a backup">Save</button>
+            <button type="button" id="vmbr-backup-now-btn" title="Run backup of selected VM(s) now">Backup Now</button>
+            <button type="button" id="vmbr-schedule-update-btn" style="display:none;"
+              title="Save changes to this schedule">Update</button>
+            <button type="button" id="vmbr-schedule-btn" class="schedule-button"
+              title="Create a backup schedule using the settings shown above">Schedule It</button>
+            <button type="button" id="vmbr-schedule-cancel-edit-btn" style="display:none;"
+              title="Cancel editing this schedule">Cancel</button>
+            <!-- legacy cancel btn kept for JS safety -->
+            <button type="button" id="vmbr-cancel-edit-btn" style="display:none;">Cancel</button>
+          </div>
+          <div id="vmbr-backup-popup" class="vmbr-popup"></div>
+        </form>
+
+        <!-- ══ RESTORE PANEL ══════════════════════════════════════════════════ -->
+        <form id="vmbr-restore-panel" class="vmbr-card-body" style="display:none;">
+          <div class="vmbr-section-label">Source</div>
+
+          <div class="form-pair">
+            <label title="Choose location where backups are stored">Backups Location:</label>
+            <input type="text" id="vmbr-restore-location" name="LOCATION_OF_BACKUPS"
+              data-picker-title="Select Location Of Backups" placeholder="Click to browse…" readonly
+              value="<?php echo htmlspecialchars($restore_settings_arr['LOCATION_OF_BACKUPS'] ?? '') ?>">
+          </div>
+
+          <div class="form-pair">
+            <label title="Choose which VM(s) to restore">VM(s) To Restore:</label>
+            <div id="vmbr-vm-dropdown-restore" class="vmbr-multiselect" tabindex="0"
+              data-selected="<?php echo htmlspecialchars($restore_settings_arr['VMS_TO_RESTORE'] ?? '') ?>">
+              <div class="vmbr-dropdown-label">Select VM(s)</div>
+              <div class="vmbr-vm-dropdown-list"></div>
+            </div>
+            <input type="hidden" id="vmbr-hidden-vms-restore" name="VMS_TO_RESTORE"
+              value="<?php echo htmlspecialchars($restore_settings_arr['VMS_TO_RESTORE'] ?? '') ?>">
+          </div>
+
+          <div id="vmbr-malformed-container"></div>
+          <div id="vmbr-version-wrapper" style="display:none;">
+            <div id="vmbr-version-container"></div>
+          </div>
+
+          <div class="vmbr-section-label" style="margin-top:4px;">Destination</div>
+
+          <div class="form-pair">
+            <label title="Choose destination to restore VM(s) to">Restore To:</label>
+            <input type="text" id="vmbr-restore-destination" name="RESTORE_DESTINATION"
+              data-picker-title="Select Restore Destination" placeholder="Click to browse…" readonly
+              value="<?php echo htmlspecialchars($restore_settings_arr['RESTORE_DESTINATION'] ?? '') ?>">
+          </div>
+
+          <div class="form-pair">
+            <label for="vmbr-restore-dry-run" title="Enable to simulate a restore without making changes">Dry
+              Run:</label>
+            <select id="vmbr-restore-dry-run" class="short-input" name="DRY_RUN_RESTORE">
+              <option value="yes" <?=($restore_settings_arr['DRY_RUN_RESTORE']??'no')==='yes' ?'selected':'' ?>>Yes
+              </option>
+              <option value="no" <?=($restore_settings_arr['DRY_RUN_RESTORE']??'no')==='no' ?'selected':'' ?>>No
+              </option>
+            </select>
+          </div>
+
+          <div class="vmbr-section-label" style="margin-top:8px;">Notifications</div>
+
+          <div class="form-pair">
+            <label for="vmbr-restore-notif"
+              title="Send notifications when VM restore starts and finishes">Notifications:</label>
+            <select id="vmbr-restore-notif" class="short-input" name="NOTIFICATIONS_RESTORE">
+              <option value="yes" <?=($restore_settings_arr['NOTIFICATIONS_RESTORE']??'no')==='yes' ?'selected':'' ?>
+                >Yes</option>
+              <option value="no" <?=($restore_settings_arr['NOTIFICATIONS_RESTORE']??'no')==='no' ?'selected':'' ?>>No
+              </option>
+            </select>
+          </div>
+
+          <div id="vmbr-restore-notif-service-row" style="display:none;">
+            <div class="form-pair">
+              <label title="Choose which notification service(s) to use">Service:</label>
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <select id="vmbr-restore-notif-hidden" name="NOTIFICATION_SERVICE_RESTORE" multiple
+                  style="display:none;">
+                  <?php foreach($notif_services_arr as $svc_str): ?>
+                  <option value="<?=$svc_str?>"
+                    <?=in_array($svc_str,$selected_services_restore_arr,true)?'selected':''?>>
+                    <?=$svc_str?>
+                  </option>
+                  <?php endforeach; ?>
+                </select>
+                <div id="vmbr-notif-service-restore" class="vmbr-multiselect" tabindex="0">
+                  <div class="vmbr-dropdown-label" id="vmbr-restore-notif-label">Select service(s)</div>
+                  <div class="vmbr-vm-dropdown-list" id="vmbr-restore-notif-list" style="display:none;">
+                    <?php foreach($notif_services_arr as $svc_str): ?>
+                    <div class="vmbr-notif-row" style="cursor:pointer;padding:4px 6px;border-radius:4px;"
+                      onclick="(function(r){var cb=r.querySelector('input[type=checkbox]');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change',{bubbles:true}));})(this)">
+                      <label style="pointer-events:none;"><input type="checkbox" value="<?=$svc_str?>"
+                          <?=in_array($svc_str,$selected_services_restore_arr,true)?'checked':''?>
+                        onclick="event.stopPropagation()">
+                        <?=$svc_str?>
+                      </label>
+                    </div>
+                    <?php endforeach; ?>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="vmbr-webhook-container-restore"></div>
+
+          <div id="vmbr-restore-banner" class="vmbr-banner">
+            <div class="vmbr-banner-inner">
+              <span id="vmbr-restore-banner-text" class="vmbr-banner-text"></span>
+              <button type="button" id="vmbr-restore-stop-btn" title="Stop restore immediately and clean up files"
+                onclick="vmbrStopFromBanner('restore')">Stop</button>
+              <span id="vmbr-restore-stop-toast" class="vmbr-stop-toast">Stop requested</span>
+            </div>
+          </div>
+
+          <div class="vmbr-actions-row">
+            <button type="button" id="vmbr-restore-save-btn"
+              title="Save restore settings without running a restore">Save</button>
+            <button type="button" id="vmbr-restore-now-btn" title="Run restore of selected VM(s)">Restore Now</button>
+          </div>
+          <div id="vmbr-restore-popup" class="vmbr-popup"></div>
+        </form>
+
+      </div><!-- .vmbr-card -->
+    </div><!-- #vmbr-backup-wrap -->
+
+    <!-- ══ LOG PANEL ══════════════════════════════════════════════════════════ -->
+    <div id="vmbr-log-panel">
+      <div class="vmbr-card-header" style="border-radius:10px 10px 0 0;">
+        <span class="vmbr-card-title">Activity Log</span>
+        <span id="vmbr-log-last-run" style="font-size:11px;color:var(--c-text-muted);margin-left:10px;">No last run
+          available</span>
+      </div>
+      <div class="vmbr-log-toolbar">
+        <span id="vmbr-debug-log-label"
+          style="font-size:12px;font-weight:600;color:var(--c-label);white-space:nowrap;cursor:help;">Debug Log:</span>
+        <span class="fbb-toggle-wrap">
+          <label class="fbb-toggle">
+            <input type="checkbox" id="vmbr-log-debug-toggle" onchange="vmbrSwitchLog(this.checked)">
+            <span class="fbb-toggle-slider"></span>
+          </label>
         </span>
+        <div class="vmbr-log-search-wrap">
+          <input type="text" id="vmbr-log-search" placeholder="Search…" autocomplete="off" style="padding-right:24px;">
+          <span id="vmbr-log-search-clear" role="button" aria-label="Clear search">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M1 1L11 11M11 1L1 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </span>
+        </div>
+        <span id="vmbr-log-search-count"></span>
+        <div class="vmbr-log-toolbar-right">
+          <span id="vmbr-log-toast"></span>
+          <button type="button" id="vmbr-log-clear-btn" title="Clear the log">Clear</button>
+          <button type="button" id="vmbr-log-copy-btn" title="Copy log to clipboard">Copy</button>
+          <button type="button" id="vmbr-log-scroll-top-btn" title="Scroll to top">&#8679;</button>
+          <button type="button" id="vmbr-log-autoscroll-btn" title="Auto-scroll to bottom">&#8681;</button>
+        </div>
       </div>
-      <span id="vmbr-log-search-count"></span>
-      <div class="vmbr-log-toolbar-right">
-        <span id="vmbr-log-toast"></span>
-        <button type="button" id="vmbr-log-clear-btn" title="Clear the log">Clear</button>
-        <button type="button" id="vmbr-log-copy-btn" title="Copy log to clipboard">Copy</button>
-        <button type="button" id="vmbr-log-scroll-top-btn" title="Scroll to top">&#8679;</button>
-        <button type="button" id="vmbr-log-autoscroll-btn" title="Auto-scroll to bottom">&#8681;</button>
-      </div>
+      <pre id="vmbr-log-pre">VM backup &amp; restore log not found</pre>
     </div>
-    <pre id="vmbr-log-pre">VM backup &amp; restore log not found</pre>
+
+  </div><!-- #vmbr-layout -->
+
+  <div id="vmbr-schedule-section">
+    <div id="vmbr-schedule-list"></div>
   </div>
-
-</div><!-- #vmbr-layout -->
-
-<div id="vmbr-schedule-section">
-  <div id="vmbr-schedule-list"></div>
-</div>
 </div><!-- #vmbr-page -->
 
 <!-- ══ Folder picker modal ════════════════════════════════════════════════════ -->
@@ -490,7 +572,9 @@ const SERVICE_CONFIG_OBJ = {
 <div class="vmbr-dialog-overlay" id="vmbr-confirm-overlay">
   <div class="vmbr-dialog-box">
     <div class="vmbr-dialog-header"><span id="vmbr-confirm-title">Confirm</span></div>
-    <div class="vmbr-dialog-body"><p id="vmbr-confirm-msg"></p></div>
+    <div class="vmbr-dialog-body">
+      <p id="vmbr-confirm-msg"></p>
+    </div>
     <div class="vmbr-dialog-footer">
       <button type="button" id="vmbr-confirm-cancel" class="vmbr-btn-secondary">Cancel</button>
       <button type="button" id="vmbr-confirm-ok">OK</button>
@@ -502,7 +586,9 @@ const SERVICE_CONFIG_OBJ = {
 <div class="vmbr-dialog-overlay" id="vmbr-alert-overlay">
   <div class="vmbr-dialog-box">
     <div class="vmbr-dialog-header"><span id="vmbr-alert-title">Notice</span></div>
-    <div class="vmbr-dialog-body"><p id="vmbr-alert-msg"></p></div>
+    <div class="vmbr-dialog-body">
+      <p id="vmbr-alert-msg"></p>
+    </div>
     <div class="vmbr-dialog-footer">
       <button type="button" id="vmbr-alert-ok">OK</button>
     </div>
@@ -510,4 +596,5 @@ const SERVICE_CONFIG_OBJ = {
 </div>
 
 <!-- ── External JS ───────────────────────────────────────────────────────────── -->
-<script src="/plugins/vm-backup-and-restore/vm-backup-and-restore.js?v=<?=filemtime('/usr/local/emhttp/plugins/vm-backup-and-restore/vm-backup-and-restore.js')?>"></script>
+<script
+  src="/plugins/vm-backup-and-restore/vm-backup-and-restore.js?v=<?=filemtime('/usr/local/emhttp/plugins/vm-backup-and-restore/vm-backup-and-restore.js')?>"></script>

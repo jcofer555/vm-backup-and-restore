@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 const SCHEDULES_CFG = '/boot/config/plugins/vm-backup-and-restore/schedules.cfg';
@@ -51,7 +52,7 @@ function humanCron(string $cron): string
     if (preg_match('/^\d+$/', $min_str) && preg_match('/^\d+$/', $hour_str) && preg_match('/^\d+$/', $dom_str) && $month_str === '*' && $dow_str === '*') {
         $t_str      = date('g:i A', mktime((int)$hour_str, (int)$min_str));
         $dom_int    = (int)$dom_str;
-        $suffix_str = match($dom_int % 10) {
+        $suffix_str = match ($dom_int % 10) {
             1 => ($dom_int === 11) ? 'th' : 'st',
             2 => ($dom_int === 12) ? 'th' : 'nd',
             3 => ($dom_int === 13) ? 'th' : 'rd',
@@ -65,90 +66,97 @@ function humanCron(string $cron): string
 ?>
 <?php if (!empty($schedules_arr)): ?>
 
-<div class="TableContainer">
-<table class="vmbr-schedules-table">
-<colgroup>
-  <col><col><col><col><col><col><col><col>
-</colgroup>
-<thead>
-<tr>
-  <th>Scheduling</th>
-  <th>VM(s) To Backup</th>
-  <th>Destination</th>
-  <th>Keep</th>
-  <th>Owner</th>
-  <th>Dry Run</th>
-  <th>Notify</th>
-  <th>Actions</th>
-</tr>
-</thead>
-<tbody>
-<?php foreach ($schedules_arr as $id_str => $s_arr): ?>
-<?php
-    $enabled_bool  = ((string)($s_arr['ENABLED'] ?? 'yes')) === 'yes';
-    $btn_text_str  = $enabled_bool ? 'Disable' : 'Enable';
-    $dot_class_str = $enabled_bool ? 'enabled' : 'disabled';
-    $cron_str      = (string)($s_arr['CRON'] ?? '');
+    <div class="TableContainer">
+        <table class="vmbr-schedules-table">
+            <colgroup>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>Scheduling</th>
+                    <th>VM(s) To Backup</th>
+                    <th>Destination</th>
+                    <th>Keep</th>
+                    <th>Owner</th>
+                    <th>Dry Run</th>
+                    <th>Notify</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($schedules_arr as $id_str => $s_arr): ?>
+                    <?php
+                    $enabled_bool  = ((string)($s_arr['ENABLED'] ?? 'yes')) === 'yes';
+                    $btn_text_str  = $enabled_bool ? 'Disable' : 'Enable';
+                    $dot_class_str = $enabled_bool ? 'enabled' : 'disabled';
+                    $cron_str      = (string)($s_arr['CRON'] ?? '');
 
-    $settings_arr = [];
-    if (!empty($s_arr['SETTINGS'])) {
-        $decoded_arr = json_decode(stripslashes((string)$s_arr['SETTINGS']), true);
-        if (is_array($decoded_arr)) {
-            $settings_arr = $decoded_arr;
-        }
-    }
+                    $settings_arr = [];
+                    if (!empty($s_arr['SETTINGS'])) {
+                        $decoded_arr = json_decode(stripslashes((string)$s_arr['SETTINGS']), true);
+                        if (is_array($decoded_arr)) {
+                            $settings_arr = $decoded_arr;
+                        }
+                    }
 
-    $vms_str  = !empty($settings_arr['VMS_TO_BACKUP'])     ? str_replace(',', ', ', $settings_arr['VMS_TO_BACKUP']) : '—';
-    $dest_str = !empty($settings_arr['BACKUP_DESTINATION']) ? $settings_arr['BACKUP_DESTINATION']                   : '—';
+                    $vms_str  = !empty($settings_arr['VMS_TO_BACKUP'])     ? str_replace(',', ', ', $settings_arr['VMS_TO_BACKUP']) : '—';
+                    $dest_str = !empty($settings_arr['BACKUP_DESTINATION']) ? $settings_arr['BACKUP_DESTINATION']                   : '—';
 
-    if (!isset($settings_arr['BACKUPS_TO_KEEP'])) {
-        $keep_str = '—';
-    } else {
-        $btk_int  = (int)$settings_arr['BACKUPS_TO_KEEP'];
-        $keep_str = $btk_int === 0 ? 'Unlimited' : ($btk_int === 1 ? 'Only Latest' : (string)$btk_int);
-    }
+                    if (!isset($settings_arr['BACKUPS_TO_KEEP'])) {
+                        $keep_str = '—';
+                    } else {
+                        $btk_int  = (int)$settings_arr['BACKUPS_TO_KEEP'];
+                        $keep_str = $btk_int === 0 ? 'Unlimited' : ($btk_int === 1 ? 'Only Latest' : (string)$btk_int);
+                    }
 
-    $owner_str  = $settings_arr['BACKUP_OWNER'] ?? '—';
-    $dry_str    = !isset($settings_arr['DRY_RUN'])      ? '—' : yesNo($settings_arr['DRY_RUN']);
-    $notify_str = !isset($settings_arr['NOTIFICATIONS']) ? '—' : yesNo($settings_arr['NOTIFICATIONS']);
-    $id_esc     = htmlspecialchars($id_str);
-    $human_str  = htmlspecialchars(humanCron($cron_str));
-    $cron_esc   = htmlspecialchars($cron_str);
-?>
-<tr>
-  <td>
-    <div style="display:flex;align-items:center;gap:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-      <span class="vmbr-sched-dot <?= $dot_class_str ?>" style="margin-right:6px;"></span>
-      <span class="vm-backup-and-restoretip" title="<?= $human_str ?> — <?= $cron_esc ?>"><?= $human_str ?></span>
-    </div>
-  </td>
-  <td class="vmbr-sched-ellipsis"><span class="vm-backup-and-restoretip" title="<?= htmlspecialchars($vms_str) ?>"><?= htmlspecialchars($vms_str) ?></span></td>
-  <td class="vmbr-sched-ellipsis"><span class="vm-backup-and-restoretip" title="<?= htmlspecialchars($dest_str) ?>"><?= htmlspecialchars($dest_str) ?></span></td>
-  <td><?= htmlspecialchars($keep_str) ?></td>
-  <td><?= htmlspecialchars($owner_str) ?></td>
-  <td><?= htmlspecialchars($dry_str) ?></td>
-  <td><?= htmlspecialchars($notify_str) ?></td>
-  <td>
-    <div class="vmbr-sched-actions">
-      <button type="button"
-              class="schedule-action-btn schedule-edit-btn vm-backup-and-restoretip"
-              data-id="<?= $id_esc ?>"
-              title="Edit schedule"
-              onclick="editSchedule('<?= $id_esc ?>')">Edit</button>
-      <button type="button" class="schedule-action-btn vm-backup-and-restoretip"
-              title="<?= $enabled_bool ? 'Disable schedule' : 'Enable schedule' ?>"
-              onclick="toggleSchedule('<?= $id_esc ?>', <?= $enabled_bool ? 'true' : 'false' ?>)"><?= $btn_text_str ?></button>
-      <button type="button" class="schedule-action-btn vm-backup-and-restoretip" title="Delete schedule"
-              onclick="deleteSchedule('<?= $id_esc ?>')">Delete</button>
-      <button type="button" class="schedule-action-btn run-schedule-btn vm-backup-and-restoretip"
-              title="Run schedule now"
-              onclick="runScheduleBackup('<?= $id_esc ?>', this)">Run</button>
-    </div>
-  </td>
-</tr>
-<?php endforeach; ?>
-</tbody>
-</table>
-</div><!-- /.TableContainer -->
+                    $owner_str  = $settings_arr['BACKUP_OWNER'] ?? '—';
+                    $dry_str    = !isset($settings_arr['DRY_RUN'])      ? '—' : yesNo($settings_arr['DRY_RUN']);
+                    $notify_str = !isset($settings_arr['NOTIFICATIONS']) ? '—' : yesNo($settings_arr['NOTIFICATIONS']);
+                    $id_esc     = htmlspecialchars($id_str);
+                    $human_str  = htmlspecialchars(humanCron($cron_str));
+                    $cron_esc   = htmlspecialchars($cron_str);
+                    ?>
+                    <tr>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                <span class="vmbr-sched-dot <?= $dot_class_str ?>" style="margin-right:6px;"></span>
+                                <span class="vm-backup-and-restoretip" title="<?= $human_str ?> — <?= $cron_esc ?>"><?= $human_str ?></span>
+                            </div>
+                        </td>
+                        <td class="vmbr-sched-ellipsis"><span class="vm-backup-and-restoretip" title="<?= htmlspecialchars($vms_str) ?>"><?= htmlspecialchars($vms_str) ?></span></td>
+                        <td class="vmbr-sched-ellipsis"><span class="vm-backup-and-restoretip" title="<?= htmlspecialchars($dest_str) ?>"><?= htmlspecialchars($dest_str) ?></span></td>
+                        <td><?= htmlspecialchars($keep_str) ?></td>
+                        <td><?= htmlspecialchars($owner_str) ?></td>
+                        <td><?= htmlspecialchars($dry_str) ?></td>
+                        <td><?= htmlspecialchars($notify_str) ?></td>
+                        <td>
+                            <div class="vmbr-sched-actions">
+                                <button type="button"
+                                    class="schedule-action-btn schedule-edit-btn vm-backup-and-restoretip"
+                                    data-id="<?= $id_esc ?>"
+                                    title="Edit schedule"
+                                    onclick="editSchedule('<?= $id_esc ?>')">Edit</button>
+                                <button type="button" class="schedule-action-btn vm-backup-and-restoretip"
+                                    title="<?= $enabled_bool ? 'Disable schedule' : 'Enable schedule' ?>"
+                                    onclick="toggleSchedule('<?= $id_esc ?>', <?= $enabled_bool ? 'true' : 'false' ?>)"><?= $btn_text_str ?></button>
+                                <button type="button" class="schedule-action-btn vm-backup-and-restoretip" title="Delete schedule"
+                                    onclick="deleteSchedule('<?= $id_esc ?>')">Delete</button>
+                                <button type="button" class="schedule-action-btn run-schedule-btn vm-backup-and-restoretip"
+                                    title="Run schedule now"
+                                    onclick="runScheduleBackup('<?= $id_esc ?>', this)">Run</button>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div><!-- /.TableContainer -->
 
 <?php endif; ?>
