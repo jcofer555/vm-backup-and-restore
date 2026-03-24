@@ -31,15 +31,20 @@ foreach ($versions_arr as $raw_str => $files_for_version_arr) {
     $has_nvram_bool = false;
 
     foreach ($files_for_version_arr as $file_str) {
-        $ext_str = strtolower(pathinfo($file_str, PATHINFO_EXTENSION));
-        if ($ext_str === 'img' || $ext_str === 'qcow2') {
-            $has_disk_bool = true;
-        }
-        if ($ext_str === 'xml') {
+        $lower_str = strtolower($file_str);
+
+        if (str_ends_with($lower_str, '.xml')) {
             $has_xml_bool = true;
+            continue;
         }
-        if ($ext_str === 'fd') {
+        if (str_ends_with($lower_str, '.fd')) {
             $has_nvram_bool = true;
+            continue;
+        }
+        if (str_ends_with($lower_str, '.img')
+            || str_ends_with($lower_str, '.qcow2')
+            || str_ends_with($lower_str, '.raw')) {
+            $has_disk_bool = true;
         }
     }
 

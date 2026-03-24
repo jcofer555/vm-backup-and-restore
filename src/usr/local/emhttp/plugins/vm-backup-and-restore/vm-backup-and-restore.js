@@ -80,6 +80,7 @@ function vmbrSaveBackupSettings(onSuccess_fn) {
     BACKUPS_TO_KEEP: $('#vmbr-backup-keep').val(),
     BACKUP_OWNER: $('#vmbr-backup-owner').val(),
     DRY_RUN: $('#vmbr-backup-dry-run').val(),
+    FORCE_STOP_VMS: document.getElementById('vmbr-backup-force-stop')?.checked ? 'yes' : 'no',
     NOTIFICATIONS: document.getElementById('vmbr-backup-notif')?.value || 'no',
     NOTIFICATION_SERVICE: vmbrGetSelectedServices(false).join(','),
     WEBHOOK_DISCORD: webhooks_obj['WEBHOOK_DISCORD'] || '',
@@ -91,7 +92,7 @@ function vmbrSaveBackupSettings(onSuccess_fn) {
     csrf_token: csrfToken_str
   }).done(function (res) {
     if (res && res.status === 'ok') {
-      vmbrShowPopup('vmbr-backup-popup', '✓ Settings saved!');
+      vmbrShowPopup('vmbr-backup-popup', onSuccess_fn ? '✓ Settings saved and backup started!' : '✓ Settings saved!');
       if (onSuccess_fn) onSuccess_fn();
     } else {
       vmbrAlert('Failed to save settings');
@@ -130,7 +131,7 @@ function vmbrSaveRestoreSettings(onSuccess_fn) {
     csrf_token: csrfToken_str
   }).done(function (res) {
     if (res && res.status === 'ok') {
-      vmbrShowPopup('vmbr-restore-popup', '✓ Settings saved!');
+      vmbrShowPopup('vmbr-restore-popup', onSuccess_fn ? '✓ Settings saved and restore started!' : '✓ Settings saved!');
       if (onSuccess_fn) onSuccess_fn();
     } else {
       vmbrAlert('Failed to save settings');
@@ -654,8 +655,7 @@ function editSchedule(id_str) {
       if (el_obj.is(':checkbox')) el_obj.prop('checked', settings_obj[k_str] == 1 || settings_obj[k_str] === true);
       else if (el_obj.is(':radio')) $('[name="' + k_str + '"][value="' + settings_obj[k_str] + '"]').prop('checked', true);
       else el_obj.val(settings_obj[k_str]).trigger('change');
-      if (k_str === 'VMS_TO_BACKUP') $('#vmbr-vm-dropdown-backup').attr('data-selected', settings_obj[k_str]);
-    }
+      if (k_str === 'VMS_TO_BACKUP') $('#vmbr-vm-dropdown-backup').attr('data-selected', settings_obj[k_str]);    }
     vmbrPopulateCronFields(s_obj.CRON || '');
     editingScheduleId_str = id_str;
     vmbrLoadBackupVMs();
@@ -680,8 +680,6 @@ function runScheduleBackup(id_str, btn_el) {
   vmbrConfirm('Are you sure you want to run this backup now?', function () {
     vmbrLockScheduleUI(); btn_el.disabled = true;
     const origText_str = btn_el.textContent; const origTitle_str = btn_el.getAttribute('title') || 'Run schedule'; btn_el.textContent = 'Running…';
-    // Use schedule_run_manual.php — has full CSRF validation, designed for UI-triggered runs.
-    // run_schedule.php is reserved for cron/CLI invocation via argv[1].
     vmbrPost('schedule_run_manual.php', { id: id_str, csrf_token: csrfToken_str }).done(function (res) {
       if (!res.started) { vmbrAlert('Failed to start backup'); btn_el.disabled = false; btn_el.textContent = origText_str; vmbrUnlockScheduleUI(); return; }
       vmbrShowBanner('backup', '⚠ Scheduled backup in progress'); vmbrSetAllButtonsDisabled(true); prevBackupBanner_bool = true;
@@ -697,6 +695,7 @@ function toggleSchedule(id_str, isEnabled_bool) {
     vmbrPost('schedule_toggle.php', { id: id_str, csrf_token: csrfToken_str }).always(() => vmbrLoadSchedules(true));
   });
 }
+
 
 // ── DOM ready ─────────────────────────────────────────────────────────────────
 $(document).ready(function () {
@@ -758,11 +757,11 @@ $(document).ready(function () {
     vmbrLoadSchedules(true);
   });
 
-  // Legacy cancel-edit button (kept for safety)
   $('#vmbr-cancel-edit-btn').on('click', function () {
     vmbrExitScheduleEditMode();
     vmbrLoadSchedules(true);
   });
+
 
   $('input[data-picker-title]').on('click', function () {
     folderPickerTargetId_str = $(this).attr('id');

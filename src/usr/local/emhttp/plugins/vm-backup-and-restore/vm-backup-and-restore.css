@@ -1034,9 +1034,7 @@ input.state-error {
   min-width: 130px;
 }
 
-/* Ellipsis columns: set a real max-width so text truncates but table doesn't overflow.
-   The previous max-width:0 trick was causing the table to collapse and overflow its
-   container at wide screen sizes — replaced with a named max-width instead.        */
+/* Ellipsis columns: set a real max-width so text truncates but table doesn't overflow. */
 .vmbr-schedules-table th:nth-child(2),
 .vmbr-schedules-table td:nth-child(2) {
   min-width: 90px;
@@ -1145,8 +1143,7 @@ input.state-error {
   box-shadow: 0 0 5px #ef4444;
 }
 
-/* Ellipsis cells — overflow hidden + text-overflow on the inner span,
-   not a max-width:0 hack which caused table container overflow          */
+/* Ellipsis cells — overflow hidden + text-overflow on the inner span */
 .vmbr-sched-ellipsis {
   overflow: hidden;
   text-overflow: ellipsis;

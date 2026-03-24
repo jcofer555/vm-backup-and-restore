@@ -15,6 +15,7 @@ $backup_defaults_arr = [
     'BACKUPS_TO_KEEP'      => '0',
     'BACKUP_OWNER'         => 'nobody',
     'DRY_RUN'              => 'no',
+    'FORCE_STOP_VMS'       => 'no',
     'NOTIFICATIONS'        => 'no',
     'NOTIFICATION_SERVICE' => '',
     'WEBHOOK_DISCORD'      => '',
@@ -77,6 +78,7 @@ uasort($all_plugin_options_arr, fn($a,$b) => strcmp($a['label'],$b['label']));
 $notif_services_arr            = ['Discord', 'Gotify', 'Ntfy', 'Pushover', 'Slack', 'Unraid'];
 $selected_services_arr         = array_filter(explode(',', $settings_arr['NOTIFICATION_SERVICE'] ?? ''));
 $selected_services_restore_arr = array_filter(explode(',', $restore_settings_arr['NOTIFICATION_SERVICE_RESTORE'] ?? ''));
+
 ?>
 
 <!-- ── External CSS ──────────────────────────────────────────────────────────── -->
@@ -119,6 +121,7 @@ $selected_services_restore_arr = array_filter(explode(',', $restore_settings_arr
   if (!csrfToken_str) {
     console.warn('[vm-backup] CSRF token could not be determined — write operations may fail');
   }
+
 
   const SAVED_WEBHOOKS_OBJ = {
     DISCORD: "<?= htmlspecialchars($settings_arr['WEBHOOK_DISCORD']  ?? '') ?>",
@@ -235,6 +238,19 @@ $selected_services_restore_arr = array_filter(explode(',', $restore_settings_arr
               <option value="yes" <?=($settings_arr['DRY_RUN']??'no')==='yes' ?'selected':'' ?>>Yes</option>
               <option value="no" <?=($settings_arr['DRY_RUN']??'no')==='no' ?'selected':'' ?>>No</option>
             </select>
+          </div>
+
+          <div class="form-pair">
+            <label for="vmbr-backup-force-stop"
+              title="Have your vm(s) stopped before backup to ensure 100% data consistency during backup">Force Stop:</label>
+            <span class="fbb-toggle-wrap">
+              <label class="fbb-toggle">
+                <input type="checkbox" id="vmbr-backup-force-stop" name="FORCE_STOP_VMS"
+                  value="yes"
+                  <?php echo ($settings_arr['FORCE_STOP_VMS'] ?? 'no') === 'yes' ? 'checked' : '' ?>>
+                <span class="fbb-toggle-slider"></span>
+              </label>
+            </span>
           </div>
 
           <div class="vmbr-section-label" style="margin-top:8px;">Notifications</div>
@@ -495,6 +511,7 @@ $selected_services_restore_arr = array_filter(explode(',', $restore_settings_arr
           </div>
           <div id="vmbr-restore-popup" class="vmbr-popup"></div>
         </form>
+
 
       </div><!-- .vmbr-card -->
     </div><!-- #vmbr-backup-wrap -->

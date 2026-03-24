@@ -34,16 +34,6 @@ debug_log() {
 	echo "[$(date '+%Y-%m-%d %H:%M:%S')] Restore session started debug - $*" >>"$DEBUG_LOG"
 }
 
-log_path_resolution() {
-	local label_str="$1" raw_str="$2" resolved_str="$3"
-	if [[ -n "$raw_str" && "$raw_str" != "$resolved_str" ]]; then
-		echo "[PATH RESOLVED] $label_str: $raw_str -> $resolved_str (symlink followed)"
-		debug_log "[PATH RESOLVED] $label_str: $raw_str -> $resolved_str"
-	else
-		debug_log "$label_str: $resolved_str (no resolution needed)"
-	fi
-}
-
 # Log rotation: main log
 if [[ -f "$LAST_RUN_FILE" ]]; then
 	size_bytes_int=$(stat -c%s "$LAST_RUN_FILE")
@@ -198,16 +188,7 @@ DRY_RUN="$DRY_RUN_RESTORE"
 # Keep paths exactly as entered — do not resolve symlinks at startup.
 backup_path_str="${LOCATION_OF_BACKUPS:-}"
 vm_domains_str="${RESTORE_DESTINATION:-}"
-if [[ -n "$backup_path_str" ]]; then
-	_resolved_str=$(readlink -f "$backup_path_str" 2>/dev/null || echo "$backup_path_str")
-	log_path_resolution "Backups Location" "$backup_path_str" "$_resolved_str"
-	unset _resolved_str
-fi
-if [[ -n "$vm_domains_str" ]]; then
-	_resolved_str=$(readlink -f "$vm_domains_str" 2>/dev/null || echo "$vm_domains_str")
-	log_path_resolution "Restore Destination" "$vm_domains_str" "$_resolved_str"
-	unset _resolved_str
-fi
+
 debug_log "LOCATION_OF_BACKUPS=$backup_path_str"
 debug_log "RESTORE_DESTINATION=$vm_domains_str"
 
@@ -347,12 +328,23 @@ for vm_str in "${vm_names_arr[@]}"; do
 
 	xml_file_str=$(ls "$backup_dir_str"/"${prefix_str}"*.xml 2>/dev/null | head -n1)
 	nvram_file_str=$(ls "$backup_dir_str"/"${prefix_str}"*VARS*.fd 2>/dev/null | head -n1)
-	disks_arr=("$backup_dir_str"/"${prefix_str}"vdisk*.img "$backup_dir_str"/"${prefix_str}"*.qcow2)
+
+	# Collect all vdisk files for this version.
+	# Snapshot backups produce a full base disk copy (same filename as the
+	# original vdisk) — restore is a straight file copy just like a full backup.
+	disks_arr=()
+	for f_str in "$backup_dir_str"/"${prefix_str}"*; do
+		[[ -f "$f_str" ]] || continue
+		case "$f_str" in
+		*.xml | *VARS*.fd) continue ;;
+		*) disks_arr+=("$f_str") ;;
+		esac
+	done
 
 	debug_log "xml=${xml_file_str:-not found} nvram=${nvram_file_str:-not found}"
-	debug_log "disks: ${disks_arr[*]}"
+	debug_log "disks: ${disks_arr[*]:-none}"
 
-	# Pre-flight validation
+	# ── Pre-flight validation ──────────────────────────────────────────────
 	missing_files_arr=()
 	if [[ ! -d "$backup_dir_str" ]]; then
 		echo "[ERROR] Backup folder missing: $backup_dir_str — skipping $vm_str"
@@ -361,12 +353,7 @@ for vm_str in "${vm_names_arr[@]}"; do
 	fi
 	[[ ! -f "$xml_file_str" ]] && missing_files_arr+=("XML (.xml)")
 	[[ ! -f "$nvram_file_str" ]] && missing_files_arr+=("NVRAM (*VARS*.fd)")
-	has_vdisk_bool=false
-	for d_str in "${disks_arr[@]}"; do [[ -f "$d_str" ]] && {
-		has_vdisk_bool=true
-		break
-	}; done
-	[[ "$has_vdisk_bool" == false ]] && missing_files_arr+=("vdisk (vdisk*.img or *.qcow2)")
+	((${#disks_arr[@]} == 0)) && missing_files_arr+=("vdisk (.img or .qcow2)")
 
 	if ((${#missing_files_arr[@]} > 0)); then
 		echo "[ERROR] Backup for $vm_str (version: $version_str) is incomplete — missing:"
@@ -383,7 +370,7 @@ for vm_str in "${vm_names_arr[@]}"; do
 
 	echo "Starting restore for $vm_str"
 
-	# Shutdown
+	# ── Shutdown ───────────────────────────────────────────────────────────
 	set_restore_status "Stopping $vm_str"
 	if virsh list --state-running --name | grep -Fxq "$vm_str"; then
 		echo "Stopping $vm_str"
@@ -398,7 +385,7 @@ for vm_str in "${vm_names_arr[@]}"; do
 		echo "$vm_str is not running"
 	fi
 
-	# Restore XML
+	# ── Restore XML ────────────────────────────────────────────────────────
 	set_restore_status "Restoring XML for $vm_str"
 	dest_xml_str="$xml_base_str/$vm_str.xml"
 	debug_log "Restoring XML: $xml_file_str -> $dest_xml_str"
@@ -413,7 +400,7 @@ for vm_str in "${vm_names_arr[@]}"; do
 	echo "Restored XML $xml_file_str → $dest_xml_str"
 	[[ -f "$STOP_FLAG" ]] && exit 1
 
-	# Restore NVRAM
+	# ── Restore NVRAM ──────────────────────────────────────────────────────
 	set_restore_status "Restoring NVRAM for $vm_str"
 	nvram_filename_str=$(basename "$nvram_file_str")
 	nvram_filename_str="${nvram_filename_str#$prefix_str}"
@@ -430,10 +417,13 @@ for vm_str in "${vm_names_arr[@]}"; do
 	echo "Restored NVRAM $nvram_file_str → $dest_nvram_str"
 	[[ -f "$STOP_FLAG" ]] && exit 1
 
-	# Restore vdisks — NO --sparse to prevent zero-hole corruption
-	set_restore_status "Restoring vdisks for $vm_str"
+	# ── Restore vdisks ────────────────────────────────────────────────────
+	# Both Full and Snapshot backups store a complete point-in-time copy of
+	# each base disk — restore is a straight file copy in both cases.
 	dest_domain_str="$vm_domains_str/$vm_str"
 	debug_log "dest_domain=$dest_domain_str"
+
+	set_restore_status "Restoring vdisks for $vm_str"
 
 	parent_dataset_str=$(zfs list -H -o name "$(dirname "$dest_domain_str")" 2>/dev/null)
 	if [[ -n "$parent_dataset_str" ]]; then
@@ -444,6 +434,7 @@ for vm_str in "${vm_names_arr[@]}"; do
 
 	for d_str in "${disks_arr[@]}"; do
 		[[ -f "$d_str" ]] || continue
+		[[ -f "$STOP_FLAG" ]] && exit 1
 		file_str=$(basename "$d_str")
 		file_str="${file_str#$prefix_str}"
 		debug_log "Restoring vdisk: $d_str -> $dest_domain_str/$file_str"
@@ -452,37 +443,11 @@ for vm_str in "${vm_names_arr[@]}"; do
 		RESTORED_FILES_arr+=("$dest_domain_str/$file_str")
 		run_cmd chmod 644 "$dest_domain_str/$file_str"
 		echo "Restored vdisk $d_str → $dest_domain_str/$file_str"
-		[[ -f "$STOP_FLAG" ]] && exit 1
 	done
 
-	# Restore extra files (non-vdisk, non-xml, non-nvram files in backup)
-	set_restore_status "Restoring extra files for $vm_str"
-	for extra_file_str in "$backup_dir_str"/"${prefix_str}"*; do
-		[[ -f "$extra_file_str" ]] || continue
-		already_copied_bool=false
-		for d_str in "${disks_arr[@]}"; do
-			[[ "$extra_file_str" == "$d_str" ]] && {
-				already_copied_bool=true
-				break
-			}
-		done
-		[[ "$already_copied_bool" == true ]] && continue
-		case "$(basename "$extra_file_str")" in
-		*.xml) continue ;;
-		*VARS*.fd) continue ;;
-		esac
-		file_str=$(basename "$extra_file_str")
-		file_str="${file_str#$prefix_str}"
-		debug_log "Restoring extra file: $extra_file_str -> $dest_domain_str/$file_str"
-		run_cmd rm -f "$dest_domain_str/$file_str"
-		restore_vdisk "$extra_file_str" "$dest_domain_str/$file_str"
-		RESTORED_FILES_arr+=("$dest_domain_str/$file_str")
-		run_cmd chmod 644 "$dest_domain_str/$file_str"
-		echo "Restored extra file $extra_file_str → $dest_domain_str/$file_str"
-		[[ -f "$STOP_FLAG" ]] && exit 1
-	done
+	[[ -f "$STOP_FLAG" ]] && exit 1
 
-	# Redefine VM
+	# ── Redefine VM ────────────────────────────────────────────────────────
 	set_restore_status "Redefining $vm_str"
 	debug_log "Redefining VM from: $dest_xml_str"
 	run_cmd virsh define "$dest_xml_str"
