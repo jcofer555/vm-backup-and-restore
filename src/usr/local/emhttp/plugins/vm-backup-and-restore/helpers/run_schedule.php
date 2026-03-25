@@ -49,17 +49,12 @@ if (file_exists(LOCK_FILE)) {
     @unlink(LOCK_FILE);
 }
 
-// --- Decode and apply settings ---
+// --- Decode schedule settings ---
 $raw_settings_str = stripslashes($schedules_arr[$id_str]['SETTINGS'] ?? '');
 $settings_arr     = json_decode($raw_settings_str, true);
 if (!is_array($settings_arr)) {
     $settings_arr = [];
 }
-
-foreach ($settings_arr as $key_str => $val_str) {
-    putenv("$key_str=$val_str");
-}
-putenv("SCHEDULE_ID=$id_str");
 
 // --- Write placeholder lock ---
 $placeholder_str = "PID=0\nMODE=schedule\nSCHEDULE_ID=$id_str\nSTART=" . time() . "\n";
@@ -67,8 +62,14 @@ if (file_put_contents(LOCK_FILE, $placeholder_str, LOCK_EX) === false) {
     json_error('Unable to write lock file');
 }
 
-// --- Launch ---
-$cmd_str = 'nohup /bin/bash ' . escapeshellarg(SCHEDULE_SCRIPT) . ' >/dev/null 2>&1 & echo $!';
+// --- Build env string and launch (same pattern as schedule_run_manual.php) ---
+$env_str = '';
+foreach ($settings_arr as $key_str => $val_str) {
+    $env_str .= escapeshellarg($key_str) . '=' . escapeshellarg((string)$val_str) . ' ';
+}
+$env_str .= 'SCHEDULE_ID=' . escapeshellarg($id_str) . ' ';
+
+$cmd_str = 'nohup /usr/bin/env ' . $env_str . '/bin/bash ' . escapeshellarg(SCHEDULE_SCRIPT) . ' >/dev/null 2>&1 & echo $!';
 $pid_str = trim((string)shell_exec($cmd_str));
 
 if ($pid_str === '' || !is_numeric($pid_str)) {

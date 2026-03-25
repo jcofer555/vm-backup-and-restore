@@ -573,6 +573,19 @@ source "$CONFIG" || {
 	exit 1
 }
 
+# Apply per-schedule env var overrides (set by run_schedule.php / schedule_run_manual.php).
+# These take priority over the values in settings.cfg so each schedule
+# can have its own VMs, destination, retention, etc.
+_SCHEDULE_OVERRIDE_KEYS="VMS_TO_BACKUP BACKUP_DESTINATION BACKUPS_TO_KEEP BACKUP_OWNER DRY_RUN FORCE_STOP_VMS NOTIFICATIONS NOTIFICATION_SERVICE WEBHOOK_DISCORD WEBHOOK_GOTIFY WEBHOOK_NTFY WEBHOOK_PUSHOVER WEBHOOK_SLACK PUSHOVER_USER_KEY"
+for _key_str in $_SCHEDULE_OVERRIDE_KEYS; do
+	# ${!_key_str+set} expands to "set" only when the env var exists (even if empty)
+	if [[ "${!_key_str+set}" == "set" ]]; then
+		declare "$_key_str"="${!_key_str}"
+		debug_log "schedule override applied: $_key_str=${!_key_str}"
+	fi
+done
+unset _key_str _SCHEDULE_OVERRIDE_KEYS
+
 DRY_RUN="${DRY_RUN:-no}"
 # Webhook cleanup
 WEBHOOK_DISCORD="${WEBHOOK_DISCORD//\"/}"
